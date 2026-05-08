@@ -64,3 +64,16 @@
 - [ ] 7. Docs 页：Skills 模块（同结构，含 3 行配置片段）
 - [ ] 8. Docs 页：底部 CTA「获取 API Key」跳转 /tokens
 - [ ] 9. 保存 v13 检查点并交付
+
+
+---
+
+# Sciverse v14 · 接入指南结构重构 + 搜索后引流卡转型
+
+- [ ] 1. Docs 页重构：左侧二级菜单（概览 / API 接口 / CLI · SDK / Skills）
+- [ ] 2. 概览子页（默认）：三方式简介卡 + 对比表 + 底部 CTA
+- [ ] 3. API 子页：保留适用场景/优势/能力/cURL 示例 + 「查看完整 API 参考」新窗口外链
+- [ ] 4. CLI · SDK 子页：保留 pip+npm 安装与 Python 示例 + 新窗口外链
+- [ ] 5. Skills 子页：保留 yaml MCP 配置 + 「安装到我的 Agent」新窗口外链
+- [ ] 6. SkillsBubble → IntegrationBubble：搜索后引流改为「接入指南」整体引流
+- [ ] 7. 保存 v14 检查点并交付
