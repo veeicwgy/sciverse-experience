@@ -8,7 +8,8 @@
 import { useEffect, useState } from "react";
 import { Sparkles, ArrowUpRight, X } from "lucide-react";
 
-const KEY = "sciverse:skillsBubble:dismissed";
+// v10.1: 升级 key 版本号，让之前点过“不再提示”的用户重新看到改版后的 Skills 卡
+const KEY = "sciverse:skillsBubble:dismissed:v10";
 
 export default function SkillsBubble() {
   const [show, setShow] = useState(false);
