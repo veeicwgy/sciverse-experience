@@ -1,20 +1,21 @@
 /*
- * Sciverse · API Key Management (/tokens)
- * 字段：名称 / Token(脱敏) / 状态(剩余天数) / 创建时间 / 过期时间 / 操作
+ * Sciverse · API Key Management (/tokens) — v11
+ * 字段：名称 / Token(脱敏) / 创建时间 / 操作
+ * 规则：长期有效，无过期时间；最多创建 10 个
  */
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Copy, Check, Trash2, Plus, KeyRound, X } from "lucide-react";
 import { toast } from "sonner";
 import Sidebar from "@/components/layout/Sidebar";
-import { cn } from "@/lib/utils";
 
 type Token = {
   id: string;
   name: string;
   token: string;
   created: string;
-  expires: string;
 };
+
+const MAX_TOKENS = 10;
 
 const INITIAL: Token[] = [
   {
@@ -22,14 +23,12 @@ const INITIAL: Token[] = [
     name: "my-key",
     token: "sk-sci-7af9e2c1f3a48a59b1e02-pub",
     created: "2026-04-03 16:53",
-    expires: "2026-07-02 16:53",
   },
   {
     id: "t2",
     name: "mcp test",
     token: "sk-sci-9b0c3e8a4d77c6e5b1f02-mcp",
     created: "2026-04-02 16:29",
-    expires: "2026-07-01 16:29",
   },
 ];
 
@@ -37,31 +36,24 @@ function maskToken(t: string) {
   return t.slice(0, 7) + "•".repeat(18) + t.slice(-4);
 }
 
-function daysLeft(expires: string) {
-  const ms = new Date(expires.replace(" ", "T")).getTime() - Date.now();
-  return Math.max(0, Math.round(ms / 86400000));
-}
-
 export default function Tokens() {
   const [list, setList] = useState<Token[]>(INITIAL);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
 
-  const total = 5;
   const used = list.length;
+  const reachLimit = used >= MAX_TOKENS;
 
   const create = () => {
     if (!name.trim()) {
       toast.error("请填写名称");
       return;
     }
-    if (list.length >= total) {
-      toast.error("已达上限 5 个");
+    if (reachLimit) {
+      toast.error(`已达上限 ${MAX_TOKENS} 个`);
       return;
     }
     const now = new Date();
-    const exp = new Date(now);
-    exp.setDate(exp.getDate() + 90);
     const fmt = (d: Date) =>
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
     const newToken: Token = {
@@ -74,7 +66,6 @@ export default function Tokens() {
         "-" +
         name.trim().toLowerCase().replace(/\s+/g, "-").slice(0, 8),
       created: fmt(now),
-      expires: fmt(exp),
     };
     setList((l) => [newToken, ...l]);
     setOpen(false);
@@ -93,13 +84,22 @@ export default function Tokens() {
                 API Token 管理
               </h1>
               <p className="mt-1.5 text-[13.5px] text-[var(--ink-2)] max-w-[640px]">
-                Token 用于验证调用 Sciverse API 时的账户身份。
+                Token 用于验证调用 Sciverse API 时的账户身份，长期有效。
                 <span className="text-[var(--ink-3)]">
-                  {" "}有效期 90 天，到期后需重新创建，不支持续期。
+                  {" "}单账户最多创建 {MAX_TOKENS} 个 Token，请妥善保管，泄露后请立即删除。
                 </span>
               </p>
             </div>
-            <button onClick={() => setOpen(true)} className="btn-ink">
+            <button
+              onClick={() => {
+                if (reachLimit) {
+                  toast.error(`已达上限 ${MAX_TOKENS} 个，请删除后再新建`);
+                  return;
+                }
+                setOpen(true);
+              }}
+              className="btn-ink"
+              data-disabled={reachLimit}>
               <Plus className="h-4 w-4" />
               创建 Token
             </button>
@@ -107,18 +107,16 @@ export default function Tokens() {
 
           <div className="mt-3 inline-flex items-center gap-2 text-[12px] font-mono text-[var(--ink-3)]">
             <KeyRound className="h-3 w-3" />
-            <span>API Tokens · {used}/{total}</span>
+            <span>API Tokens · {used}/{MAX_TOKENS}</span>
             <span>·</span>
             <span>本月调用 12,450</span>
           </div>
 
           <div className="mt-6 card-paper overflow-hidden">
-            <div className="grid grid-cols-[1fr_1.4fr_1fr_1fr_1fr_120px] text-[11.5px] tracking-[0.12em] uppercase font-mono text-[var(--ink-3)] px-5 py-3 bg-[var(--paper-2)] border-b hairline">
+            <div className="grid grid-cols-[1.2fr_1.7fr_1fr_120px] text-[11.5px] tracking-[0.12em] uppercase font-mono text-[var(--ink-3)] px-5 py-3 bg-[var(--paper-2)] border-b hairline">
               <span>名称</span>
               <span>Token</span>
-              <span>状态</span>
               <span>创建时间</span>
-              <span>过期时间</span>
               <span className="text-right">操作</span>
             </div>
             {list.length === 0 && (
@@ -156,7 +154,7 @@ export default function Tokens() {
               创建 API Token
             </h2>
             <p className="mt-1 text-[12.5px] text-[var(--ink-2)]">
-              名称仅用于本地识别，不会发送至外部。
+              名称仅用于本地识别，不会发送至外部。Token 长期有效，可随时删除。
             </p>
             <input
               autoFocus
@@ -190,17 +188,8 @@ function TokenRow({
 }) {
   const [copied, setCopied] = useState(false);
   const [revealed, setRevealed] = useState(false);
-  const left = useMemo(() => daysLeft(t.expires), [t.expires]);
-  const status =
-    left > 30 ? "有效" : left > 0 ? "即将过期" : "已过期";
-  const statusColor =
-    left > 30
-      ? "text-[var(--forest)] bg-[var(--forest-soft)]"
-      : left > 0
-        ? "text-[var(--amber)] bg-[var(--amber-soft)]"
-        : "text-[#b91c1c] bg-[#fdecec]";
   return (
-    <div className="grid grid-cols-[1fr_1.4fr_1fr_1fr_1fr_120px] px-5 py-4 items-center border-b hairline last:border-0 hover:bg-[var(--paper-2)]/60 transition-colors">
+    <div className="grid grid-cols-[1.2fr_1.7fr_1fr_120px] px-5 py-4 items-center border-b hairline last:border-0 hover:bg-[var(--paper-2)]/60 transition-colors">
       <div className="font-display text-[15px] text-[var(--ink)]">{t.name}</div>
       <button
         onClick={() => setRevealed((v) => !v)}
@@ -208,21 +197,7 @@ function TokenRow({
         title={revealed ? "点击隐藏" : "点击查看"}>
         {revealed ? t.token : maskToken(t.token)}
       </button>
-      <div>
-        <span
-          className={cn(
-            "inline-flex items-center gap-1.5 px-2 py-1 rounded-full font-mono text-[11px]",
-            statusColor,
-          )}>
-          <span className="h-1.5 w-1.5 rounded-full bg-current" />
-          {status}
-        </span>
-        <div className="mt-1 text-[11px] text-[var(--ink-3)]">
-          剩余 {left} 天
-        </div>
-      </div>
       <div className="font-mono text-[12.5px] text-[var(--ink-2)]">{t.created}</div>
-      <div className="font-mono text-[12.5px] text-[var(--ink-2)]">{t.expires}</div>
       <div className="flex items-center justify-end gap-1.5">
         <button
           onClick={async () => {
