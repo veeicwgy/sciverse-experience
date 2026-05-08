@@ -77,3 +77,13 @@
 - [ ] 5. Skills 子页：保留 yaml MCP 配置 + 「安装到我的 Agent」新窗口外链
 - [ ] 6. SkillsBubble → IntegrationBubble：搜索后引流改为「接入指南」整体引流
 - [ ] 7. 保存 v14 检查点并交付
+
+
+---
+
+# Sciverse v15 · 4 项细节优化
+
+- [ ] 1. /docs 全页移除英文 UPPERCASE 副标
+- [ ] 2. 全站去除「计费 / 收费 / 按调用次数计费 / 未用不扣」措辞，统一为「免费调用」
+- [ ] 3. /docs 内 API Key 入口仅保留 1 处（概览页底部 CTA）
+- [ ] 4. IntegrationBubble 重做：去英文标题 + 文案精简 + 按钮换风格 + mini-card 改为单行避免截断

@@ -1,5 +1,8 @@
 /*
- * Sciverse · 接入指南 (/docs) — v14
+ * Sciverse · 接入指南 (/docs) — v15
+ * v15: 移除所有英文 UPPERCASE 副标；去除「计费 / 收费 / 5 分钟」措辞，统一为「免费调用」；
+ *      API Key 入口仅保留概览底部 1 处（侧边栏与三方式子页底部不再重复 CTA）
+ * v14:
  * 结构：左侧二级菜单 + 右侧主内容
  *   - 概览（overview，默认）：三方式简介卡 + 对比表 + 底部 CTA
  *   - API 接口（api）：适用场景 / 优势 / 主要能力 + cURL 代码块 + 新窗口外链
@@ -48,7 +51,7 @@ const METHODS: Method[] = [
     no: "01",
     icon: Cable,
     title: "API 接口",
-    oneLine: "RESTful · 单次 HTTP 调用即可拿到清洗后的科学结果",
+    oneLine: "RESTful 接口，一次 HTTP 调用即可拿到清洗后的科学结果",
     bestFor:
       "已有后端服务、自定义 Agent 工具调用、希望对返回结果做二次加工的团队。",
     pros: [
@@ -223,11 +226,11 @@ export default function Docs() {
       <main className="flex-1 min-w-0 flex">
         {/* 二级菜单 */}
         <aside className="hidden lg:block w-[220px] shrink-0 border-r hairline px-5 py-10 sticky top-0 self-start h-screen overflow-y-auto bg-[var(--paper)]">
-          <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--ink-3)]">
-            Integration Guide
-          </div>
-          <div className="mt-1.5 font-display text-[18px] tracking-tight text-[var(--ink)]">
+          <div className="font-display text-[18px] tracking-tight text-[var(--ink)]">
             接入指南
+          </div>
+          <div className="mt-1 text-[12px] text-[var(--ink-3)]">
+            选一种方式开始接入
           </div>
           <nav className="mt-6 space-y-0.5">
             {NAV.map((n) => {
@@ -249,13 +252,6 @@ export default function Docs() {
               );
             })}
           </nav>
-          <Link
-            href="/tokens"
-            className="mt-8 inline-flex items-center gap-1 text-[12px] text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors">
-            <KeyRound className="h-3 w-3" />
-            申请 API Key
-            <ArrowRight className="h-3 w-3" />
-          </Link>
         </aside>
 
         {/* 主内容 */}
@@ -292,36 +288,35 @@ export default function Docs() {
             {active === "overview" && <Overview onGo={go} />}
             {active !== "overview" && currentMethod && <MethodPage method={currentMethod} />}
 
-            {/* 底部 CTA（所有子页都展示） */}
-            <section className="mt-20 mb-4 relative overflow-hidden rounded-2xl border hairline bg-[var(--ink)] text-white p-8 lg:p-10">
-              <div
-                className="absolute -right-24 -top-24 h-[260px] w-[260px] rounded-full opacity-50 pointer-events-none"
-                style={{
-                  background:
-                    "radial-gradient(circle, rgba(124,92,252,0.45) 0%, rgba(91,91,247,0) 70%)",
-                }}
-              />
-              <div className="relative flex flex-wrap items-center justify-between gap-6">
-                <div className="max-w-[560px]">
-                  <span className="font-mono text-[10.5px] tracking-[0.2em] uppercase text-white/55">
-                    Get Started
-                  </span>
-                  <h3 className="mt-2 font-display text-[28px] leading-tight tracking-[-0.01em]">
-                    申请 API Key，5 分钟完成接入
-                  </h3>
-                  <p className="mt-2 text-[13.5px] text-white/70 leading-relaxed">
-                    一个 Key 通用 API · CLI · Skills 三种方式，调用按次计费、未用不扣，免费额度足够日常研究使用。
-                  </p>
+            {/* 底部 CTA：仅在概览页展示，避免在三方式子页重复出现 API Key 入口 */}
+            {active === "overview" && (
+              <section className="mt-20 mb-4 relative overflow-hidden rounded-2xl border hairline bg-[var(--ink)] text-white p-8 lg:p-10">
+                <div
+                  className="absolute -right-24 -top-24 h-[260px] w-[260px] rounded-full opacity-50 pointer-events-none"
+                  style={{
+                    background:
+                      "radial-gradient(circle, rgba(124,92,252,0.45) 0%, rgba(91,91,247,0) 70%)",
+                  }}
+                />
+                <div className="relative flex flex-wrap items-center justify-between gap-6">
+                  <div className="max-w-[560px]">
+                    <h3 className="font-display text-[28px] leading-tight tracking-[-0.01em]">
+                      免费申请 API Key，立即开始接入
+                    </h3>
+                    <p className="mt-2 text-[13.5px] text-white/70 leading-relaxed">
+                      一个 Key 通用 API、CLI · SDK、Skills 三种方式，全部能力免费调用，无需付费。
+                    </p>
+                  </div>
+                  <Link
+                    href="/tokens"
+                    className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-white text-[var(--ink)] text-[13.5px] font-medium hover:bg-white/90 transition-colors">
+                    <KeyRound className="h-4 w-4" />
+                    获取 API Key
+                    <ArrowUpRight className="h-3.5 w-3.5" />
+                  </Link>
                 </div>
-                <Link
-                  href="/tokens"
-                  className="inline-flex items-center gap-2 h-11 px-5 rounded-full bg-white text-[var(--ink)] text-[13.5px] font-medium hover:bg-white/90 transition-colors">
-                  <KeyRound className="h-4 w-4" />
-                  获取 API Key
-                  <ArrowUpRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-            </section>
+              </section>
+            )}
           </div>
         </div>
       </main>
@@ -335,14 +330,11 @@ function Overview({ onGo }: { onGo: (k: SecKey) => void }) {
     <>
       {/* HERO */}
       <section>
-        <span className="font-mono text-[10.5px] tracking-[0.2em] uppercase text-[var(--ink-3)]">
-          Integration Guide · Overview
-        </span>
-        <h1 className="mt-2 font-display text-[44px] leading-[1.05] tracking-[-0.02em] text-[var(--ink)]">
+        <h1 className="font-display text-[44px] leading-[1.05] tracking-[-0.02em] text-[var(--ink)]">
           三种方式，按需选择
         </h1>
         <p className="mt-3 max-w-[640px] text-[14.5px] leading-relaxed text-[var(--ink-2)]">
-          Sciverse 的科学检索能力可通过 <span className="text-[var(--ink)]">API 接口</span>、<span className="text-[var(--ink)]">CLI / SDK</span>、<span className="text-[var(--ink)]">Skills</span> 三种方式接入你的工作流。一个 API Key 全部通用，调用按次计费、未用不扣。
+          Sciverse 的科学检索能力可通过 <span className="text-[var(--ink)]">API 接口</span>、<span className="text-[var(--ink)]">CLI / SDK</span>、<span className="text-[var(--ink)]">Skills</span> 三种方式接入你的工作流。一个 API Key 全部通用，所有能力免费调用。
         </p>
       </section>
 
@@ -360,9 +352,6 @@ function Overview({ onGo }: { onGo: (k: SecKey) => void }) {
                   <span className="h-9 w-9 rounded-xl bg-[var(--paper-2)] border hairline grid place-items-center text-[var(--ink)]">
                     <Icon className="h-4 w-4" />
                   </span>
-                  <span className="font-mono text-[10.5px] tracking-[0.18em] text-[var(--ink-3)]">
-                    {m.no}
-                  </span>
                 </div>
                 <div className="mt-4 font-display text-[18px] text-[var(--ink)] tracking-tight">
                   {m.title}
@@ -371,11 +360,8 @@ function Overview({ onGo }: { onGo: (k: SecKey) => void }) {
                   {m.oneLine}
                 </p>
                 <div className="mt-3 pt-3 border-t hairline">
-                  <span className="font-mono text-[9.5px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
-                    适合
-                  </span>
-                  <p className="mt-1 text-[12px] text-[var(--ink-2)] line-clamp-2">
-                    {m.bestFor}
+                  <p className="text-[12px] text-[var(--ink-2)] line-clamp-2">
+                    适合：{m.bestFor}
                   </p>
                 </div>
                 <div className="mt-4 inline-flex items-center gap-1 text-[12px] text-[var(--ink)] group-hover:gap-2 transition-all">
@@ -390,16 +376,13 @@ function Overview({ onGo }: { onGo: (k: SecKey) => void }) {
 
       {/* 对比表 */}
       <section className="mt-12">
-        <span className="font-mono text-[10.5px] tracking-[0.2em] uppercase text-[var(--ink-3)]">
-          Compare
-        </span>
-        <h2 className="mt-1 font-display text-[22px] text-[var(--ink)]">三种方式横向对比</h2>
+        <h2 className="font-display text-[22px] text-[var(--ink)]">三种方式横向对比</h2>
         <p className="mt-1.5 text-[13px] text-[var(--ink-2)] max-w-[640px]">
           按团队角色、接入成本、灵活度、平台覆盖等维度横向比较，帮助你快速选定适合的接入方式。
         </p>
 
         <div className="mt-4 card-paper overflow-hidden">
-          <div className="grid grid-cols-[1.1fr_1fr_1fr_1fr] text-[11.5px] tracking-[0.12em] uppercase font-mono text-[var(--ink-3)] px-5 py-3 bg-[var(--paper-2)] border-b hairline">
+          <div className="grid grid-cols-[1.1fr_1fr_1fr_1fr] text-[12px] text-[var(--ink-3)] px-5 py-3 bg-[var(--paper-2)] border-b hairline">
             <span></span>
             <span>API 接口</span>
             <span>CLI · SDK</span>
@@ -412,7 +395,7 @@ function Overview({ onGo }: { onGo: (k: SecKey) => void }) {
                 "grid grid-cols-[1.1fr_1fr_1fr_1fr] px-5 py-3.5 items-center text-[13px]",
                 i !== 0 && "border-t hairline",
               )}>
-              <span className="font-mono text-[11px] tracking-[0.08em] uppercase text-[var(--ink-3)]">
+              <span className="text-[12.5px] text-[var(--ink-3)]">
                 {row.label}
               </span>
               <span className="text-[var(--ink)]">{row.values.api}</span>
@@ -445,9 +428,6 @@ function MethodPage({ method }: { method: Method }) {
     <section>
       {/* 区头 */}
       <div className="flex items-start gap-3">
-        <span className="font-mono text-[12px] tracking-[0.18em] text-[var(--ink-3)] mt-2">
-          {method.no}
-        </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2.5">
             <span className="h-9 w-9 rounded-xl bg-[var(--paper-2)] border hairline grid place-items-center text-[var(--ink)]">
@@ -467,17 +447,13 @@ function MethodPage({ method }: { method: Method }) {
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-5">
         <div className="card-paper p-5">
           <div>
-            <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
-              适用场景
-            </span>
+            <div className="text-[12.5px] text-[var(--ink-3)]">适用场景</div>
             <p className="mt-1.5 text-[13.5px] text-[var(--ink)] leading-relaxed">
               {method.bestFor}
             </p>
           </div>
           <div className="mt-5">
-            <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
-              优势
-            </span>
+            <div className="text-[12.5px] text-[var(--ink-3)]">优势</div>
             <ul className="mt-2 space-y-1.5">
               {method.pros.map((p) => (
                 <li key={p} className="flex items-start gap-2 text-[13px] text-[var(--ink-2)]">
@@ -488,9 +464,7 @@ function MethodPage({ method }: { method: Method }) {
             </ul>
           </div>
           <div className="mt-5">
-            <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
-              主要能力
-            </span>
+            <div className="text-[12.5px] text-[var(--ink-3)]">主要能力</div>
             <ul className="mt-2 space-y-1.5">
               {method.features.map((f) => (
                 <li key={f} className="flex items-start gap-2 text-[13px] text-[var(--ink-2)]">
@@ -530,7 +504,7 @@ function CodeBlock({ lang, code }: { lang: string; code: string }) {
   return (
     <div className="relative rounded-2xl overflow-hidden border hairline bg-[#16161d] text-[#E4E4F0] shadow-[0_2px_18px_-12px_rgba(20,20,30,0.4)]">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06]">
-        <span className="font-mono text-[10.5px] tracking-[0.2em] uppercase text-white/45">
+        <span className="font-mono text-[10.5px] tracking-[0.2em] text-white/45">
           {lang}
         </span>
         <button
@@ -548,6 +522,7 @@ function CodeBlock({ lang, code }: { lang: string; code: string }) {
         </button>
       </div>
       <pre className="px-4 py-4 text-[12.5px] leading-[1.7] overflow-x-auto font-mono">
+        {/* lang 标签仅作代码区分使用，非中文副标 */}
         <code>
           {code.split("\n").map((line, i) => (
             <span key={i} className="block">
