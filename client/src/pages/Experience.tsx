@@ -200,6 +200,34 @@ function ResultCard({ r, q }: { r: Result; q: string }) {
   );
 }
 
+// v9: 提交瞬间的粒子扩散反馈（8 颗紫蓝粒子 + 1 圈脉冲环）
+// 以 key 重新 mount 重启动画，800ms 后 DOM 仍在但动画结束，opacity 为 0
+function BurstFx() {
+  const dots = Array.from({ length: 8 }).map((_, i) => {
+    const angle = (i / 8) * Math.PI * 2 + Math.random() * 0.4;
+    const dist = 28 + Math.random() * 14; // 28-42px
+    const tx = Math.cos(angle) * dist;
+    const ty = Math.sin(angle) * dist;
+    return { tx, ty, delay: i * 12 };
+  });
+  return (
+    <span aria-hidden className="sv-burst">
+      <span className="sv-burst-ring" />
+      {dots.map((d, i) => (
+        <span
+          key={i}
+          className="sv-burst-dot"
+          style={{
+            ['--tx' as any]: `${d.tx}px`,
+            ['--ty' as any]: `${d.ty}px`,
+            animationDelay: `${d.delay}ms`,
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
 // v7/v8: 科学学术蒙层组件 — 低透明度 SVG，纯装饰，不可交互
 // active=true 时（搜索框 focus）渐晕呼吸、DNA 飘移、苯环微转、分子脉动同步启动
 function ScienceBackdrop({ active = false }: { active?: boolean }) {
@@ -452,6 +480,7 @@ export default function Experience() {
   const [meta, setMeta] = useState<{ count: number; ms: number } | null>(null);
   const [page, setPage] = useState(1);
   const [focused, setFocused] = useState(false);
+  const [burstId, setBurstId] = useState(0); // 递增 key 触发重新 mount 以重启粒子动画
   const PAGE_SIZE = 8;
   const composing = useRef(false);
   // 仅在输入为空、未提交过查询、且未 focus 时运行打字机
@@ -490,6 +519,7 @@ export default function Experience() {
   const submit = async (q?: string) => {
     const value = (q ?? query).trim();
     if (!value) return;
+    setBurstId((n) => n + 1); // 启动一次粒子反馈
     setLoading(true);
     setCommitted(value);
     setPage(1);
@@ -566,22 +596,26 @@ export default function Experience() {
                       <X className="h-4 w-4" />
                     </button>
                   )}
-                  <button
-                    onClick={() => submit()}
-                    disabled={!canSubmit}
-                    aria-label="发送"
-                    className={cn(
-                      "h-9 w-9 inline-flex items-center justify-center rounded-full transition-all",
-                      canSubmit && !loading
-                        ? "bg-[var(--ink)] text-white hover:bg-black shadow-sm"
-                        : "bg-[#ececec] text-[var(--ink-3)]",
-                    )}>
-                    {loading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <ArrowUp className="h-4 w-4" />
-                    )}
-                  </button>
+                  <div className="relative">
+                    {/* v9: 提交瞬间的粒子扩散反馈，通过 burstId 重启动画 */}
+                    {burstId > 0 && <BurstFx key={burstId} />}
+                    <button
+                      onClick={() => submit()}
+                      disabled={!canSubmit}
+                      aria-label="发送"
+                      className={cn(
+                        "relative h-9 w-9 inline-flex items-center justify-center rounded-full transition-all",
+                        canSubmit && !loading
+                          ? "bg-[var(--ink)] text-white hover:bg-black shadow-sm"
+                          : "bg-[#ececec] text-[var(--ink-3)]",
+                      )}>
+                      {loading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ArrowUp className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

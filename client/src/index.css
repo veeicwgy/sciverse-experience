@@ -564,3 +564,62 @@
   .sv-scan { animation: none !important; }
   .sv-search-shell.is-focused { transform: none; }
 }
+
+
+/* ──────────────────────────────────────────────
+ * Sciverse v9 · Submit Burst Particles
+ * 发送按钮提交瞬间发射的粒子扩散反馈
+ * 通过 CSS 变量 --tx / --ty 控制每颗粒子终点偏移
+ * ────────────────────────────────────────────── */
+.sv-burst {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+.sv-burst-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  margin-top: -2px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, #5B5BF7 0%, rgba(91,91,247,0.9) 50%, rgba(91,91,247,0) 100%);
+  box-shadow: 0 0 6px rgba(91,91,247,0.55);
+  opacity: 0;
+  transform: translate(0, 0) scale(0.6);
+  animation: sv-burst-fly 720ms cubic-bezier(0.16, 0.84, 0.32, 1) forwards;
+}
+@keyframes sv-burst-fly {
+  0%   { opacity: 0;   transform: translate(0, 0) scale(0.5); }
+  18%  { opacity: 1; }
+  70%  { opacity: 0.85; }
+  100% { opacity: 0;   transform: translate(var(--tx, 0), var(--ty, 0)) scale(0.2); }
+}
+/* 中心 ring：单次脉冲，强化「启动」时机 */
+.sv-burst-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28px;
+  height: 28px;
+  margin-left: -14px;
+  margin-top: -14px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(91,91,247,0.5);
+  opacity: 0;
+  transform: scale(0.4);
+  animation: sv-burst-ring 620ms cubic-bezier(0.16, 0.84, 0.32, 1) forwards;
+}
+@keyframes sv-burst-ring {
+  0%   { opacity: 0.0; transform: scale(0.4); border-color: rgba(91,91,247,0.7); }
+  20%  { opacity: 0.85; }
+  100% { opacity: 0;   transform: scale(2.6); border-color: rgba(91,91,247,0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-burst-dot,
+  .sv-burst-ring { animation: none !important; opacity: 0 !important; }
+}
