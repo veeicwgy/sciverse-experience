@@ -15,6 +15,7 @@ import {
   KeyRound,
   BarChart3,
   LogIn,
+  LogOut,
   HelpCircle,
   Globe,
 } from "lucide-react";
@@ -94,17 +95,41 @@ function Logo({ collapsed }: { collapsed: boolean }) {
   );
 }
 
+type User = { name: string; handle: string; avatar: string };
+const MOCK_USER: User = {
+  name: "小王",
+  handle: "@xiaowang",
+  avatar:
+    "data:image/svg+xml;utf8," +
+    encodeURIComponent(
+      `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%238a8aff'/><stop offset='1' stop-color='%235b5bf7'/></linearGradient></defs><rect width='64' height='64' rx='32' fill='url(%23g)'/><text x='50%25' y='56%25' font-family='Inter,Arial,sans-serif' font-size='28' font-weight='600' fill='white' text-anchor='middle' dominant-baseline='middle'>小</text></svg>`
+    ),
+};
+
 export default function Sidebar({ active }: { active?: NavKey }) {
   const [location] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
   const historyRef = useRef<HTMLDivElement | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("sciverse:sidebar:collapsed");
     if (stored === "1") setCollapsed(true);
+    if (localStorage.getItem("sciverse:user") === "1") setUser(MOCK_USER);
   }, []);
+
+  const signIn = () => {
+    setUser(MOCK_USER);
+    localStorage.setItem("sciverse:user", "1");
+    toast("已登录", { description: `欢迎回来，${MOCK_USER.name} · 仅演示模拟` });
+  };
+  const signOut = () => {
+    setUser(null);
+    localStorage.removeItem("sciverse:user");
+    toast("已退出登录");
+  };
 
   useEffect(() => {
     localStorage.setItem(
@@ -241,43 +266,54 @@ export default function Sidebar({ active }: { active?: NavKey }) {
         })}
       </nav>
 
-      {/* bottom: 精简登录 + 微信 popover icon */}
+      {/* bottom: 登录态头像 / 未登录按钮 + 开发者群二维码 + 语言 */}
       <div className={cn("p-3 border-t hairline", collapsed && "px-2")}>
         {!collapsed ? (
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => toast("登录功能即将开放", { description: "我们会先邀请内测开发者，敬请期待" })}
-              className="btn-ink !py-2 !px-4 text-[13px] flex-1 justify-center">
-              <LogIn className="h-3.5 w-3.5" />
-              登录
-            </button>
+            {user ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="flex-1 flex items-center gap-2 rounded-full border hairline bg-white pl-1 pr-3 py-1 hover:border-[var(--ink)] transition-colors text-left">
+                    <img src={user.avatar} alt={user.name} className="h-7 w-7 rounded-full" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[12.5px] text-[var(--ink)] truncate leading-tight">{user.name}</div>
+                      <div className="font-mono text-[10px] text-[var(--ink-3)] truncate leading-tight">{user.handle}</div>
+                    </div>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent side="top" align="start" className="w-[180px] p-1.5">
+                  <button onClick={signOut} className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-[12.5px] text-[var(--ink-2)] hover:bg-[#f1f0eb] hover:text-[var(--ink)] transition-colors">
+                    <LogOut className="h-3.5 w-3.5" /> 退出登录
+                  </button>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <button onClick={signIn} className="btn-ink !py-2 !px-4 text-[13px] flex-1 justify-center">
+                <LogIn className="h-3.5 w-3.5" />
+                登录
+              </button>
+            )}
 
             <Popover>
               <PopoverTrigger asChild>
-                <button
-                  aria-label="帮助 · 微信小助手"
-                  className="h-9 w-9 rounded-full border hairline bg-white flex items-center justify-center text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
+                <button aria-label="开发者群" className="h-9 w-9 rounded-full border hairline bg-white flex items-center justify-center text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
                   <HelpCircle className="h-4 w-4" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="top" align="end" className="w-[220px] p-3">
-                <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--ink-3)] mb-2">
-                  微信小助手
+              <PopoverContent side="top" align="end" className="w-[180px] p-2.5">
+                <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--ink-3)] mb-1.5">
+                  开发者群
                 </div>
-                <div className="rounded-md border hairline bg-[var(--paper-2)] grid-paper aspect-square w-full grid place-items-center">
-                  <span className="font-mono text-[10px] text-[var(--ink-3)]">QR PLACEHOLDER</span>
-                </div>
-                <div className="mt-2 text-[11.5px] leading-relaxed text-[var(--ink-2)]">
-                  扫码加入开发者群，抢先体验新接口与公测计划。
+                <img src="/manus-storage/sciverse-wechat-qr_6f1a7ef6.png" alt="微信开发者群二维码" className="w-full rounded-md border hairline bg-white" />
+                <div className="mt-1.5 text-[11px] leading-relaxed text-[var(--ink-2)]">
+                  扫码加入，抢先体验新接口与公测计划。
                 </div>
               </PopoverContent>
             </Popover>
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <button
-                  onClick={() => toast("已切换为 中文", { description: "EN 版本敬请期待" })}
-                  className="h-9 w-9 rounded-full border hairline bg-white flex items-center justify-center text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
+                <button onClick={() => toast("已切换为 中文", { description: "EN 版本敬请期待" })} className="h-9 w-9 rounded-full border hairline bg-white flex items-center justify-center text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
                   <Globe className="h-4 w-4" />
                 </button>
               </TooltipTrigger>
@@ -286,33 +322,46 @@ export default function Sidebar({ active }: { active?: NavKey }) {
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => toast("登录功能即将开放")}
-                  className="h-9 w-9 rounded-full bg-[var(--ink)] text-white flex items-center justify-center">
-                  <LogIn className="h-4 w-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="text-xs">登录</TooltipContent>
-            </Tooltip>
+            {user ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="h-9 w-9 rounded-full overflow-hidden border hairline bg-white">
+                    <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent side="right" align="end" className="w-[180px] p-1.5">
+                  <div className="px-2 py-1.5 text-[12px] text-[var(--ink-2)]">
+                    <span className="text-[var(--ink)]">{user.name}</span>
+                    <span className="font-mono text-[10px] text-[var(--ink-3)] ml-1">{user.handle}</span>
+                  </div>
+                  <button onClick={signOut} className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-[12.5px] text-[var(--ink-2)] hover:bg-[#f1f0eb] hover:text-[var(--ink)] transition-colors">
+                    <LogOut className="h-3.5 w-3.5" /> 退出登录
+                  </button>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button onClick={signIn} className="h-9 w-9 rounded-full bg-[var(--ink)] text-white flex items-center justify-center">
+                    <LogIn className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-xs">登录</TooltipContent>
+              </Tooltip>
+            )}
             <Popover>
               <PopoverTrigger asChild>
-                <button
-                  aria-label="帮助 · 微信小助手"
-                  className="h-9 w-9 rounded-full border hairline bg-white flex items-center justify-center text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
+                <button aria-label="开发者群" className="h-9 w-9 rounded-full border hairline bg-white flex items-center justify-center text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
                   <HelpCircle className="h-4 w-4" />
                 </button>
               </PopoverTrigger>
-              <PopoverContent side="right" align="end" className="w-[220px] p-3">
-                <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--ink-3)] mb-2">
-                  微信小助手
+              <PopoverContent side="right" align="end" className="w-[180px] p-2.5">
+                <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--ink-3)] mb-1.5">
+                  开发者群
                 </div>
-                <div className="rounded-md border hairline bg-[var(--paper-2)] grid-paper aspect-square w-full grid place-items-center">
-                  <span className="font-mono text-[10px] text-[var(--ink-3)]">QR PLACEHOLDER</span>
-                </div>
-                <div className="mt-2 text-[11.5px] leading-relaxed text-[var(--ink-2)]">
-                  扫码加入开发者群，抢先体验新接口与公测计划。
+                <img src="/manus-storage/sciverse-wechat-qr_6f1a7ef6.png" alt="微信开发者群二维码" className="w-full rounded-md border hairline bg-white" />
+                <div className="mt-1.5 text-[11px] leading-relaxed text-[var(--ink-2)]">
+                  扫码加入，抢先体验新接口与公测计划。
                 </div>
               </PopoverContent>
             </Popover>

@@ -1,6 +1,6 @@
 /*
  * Sciverse · Experience Page (主入口)
- * Layout: Sidebar (260/64) + Main (search · status · result list · drift cards · data scale) + ConversionPanel (sticky)
+ * Layout: Sidebar (260/64) + Main (search · skills bubble · result list · ecosystem · data capability)
  * Style: Editorial Lab — paper #FAFAF7, hairline #ECECE7, brand #5B5BF7, Fraunces+Inter+JetBrainsMono
  */
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -22,10 +22,13 @@ import {
   Sparkles,
   Quote,
   Code2,
+  Zap,
+  Activity,
+  Globe2,
 } from "lucide-react";
 import { toast } from "sonner";
 import Sidebar from "@/components/layout/Sidebar";
-import ConversionPanel from "@/components/experience/ConversionPanel";
+import SkillsBubble from "@/components/experience/SkillsBubble";
 import { cn } from "@/lib/utils";
 
 type Result = {
@@ -315,24 +318,23 @@ export default function Experience() {
     <div className="min-h-screen flex">
       <Sidebar active="experience" />
 
-      <main className="flex-1 min-w-0 flex">
-        <div className="flex-1 min-w-0 max-w-[920px] mx-auto px-8 lg:px-12 py-2">
+      <main className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 max-w-[960px] mx-auto px-8 lg:px-12 py-2">
           <HeroHeader />
 
           {/* SEARCH */}
           <section className="relative">
             <div
               className={cn(
-                "card-paper p-3 pl-4 flex items-start gap-3 transition-all duration-300",
+                "card-paper p-3 pl-4 flex items-end gap-3 transition-all duration-300",
                 "focus-within:border-[var(--ink)] focus-within:shadow-[0_18px_42px_-28px_rgba(20,20,30,0.25)]",
               )}>
-              <Search className="h-4 w-4 text-[var(--ink-3)] shrink-0 mt-3" />
+              <Search className="h-4 w-4 text-[var(--ink-3)] shrink-0 mb-3" />
               <textarea
                 ref={inputRef as unknown as React.RefObject<HTMLTextAreaElement>}
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value);
-                  // 自动撑高
                   const el = e.currentTarget;
                   el.style.height = "auto";
                   el.style.height = Math.min(el.scrollHeight, 200) + "px";
@@ -341,40 +343,34 @@ export default function Experience() {
                 onCompositionStart={() => (composing.current = true)}
                 onCompositionEnd={() => (composing.current = false)}
                 disabled={loading}
-                rows={3}
-                placeholder={`输入一段科学问题或关键词 · 支持中英文
-例：mRNA 疫苗递送系统在脂质纳米颗粒中的最新优化策略，按 2023 年起的高引文献排序
-Shift + Enter 换行，Enter 直接搜索`}
-                className="flex-1 bg-transparent outline-none py-2.5 text-[15px] leading-[1.65] placeholder:text-[var(--ink-3)] disabled:opacity-60 resize-none min-h-[88px] max-h-[200px]"
+                rows={2}
+                placeholder="输入科学问题或关键词·例：mRNA 疫苗递送系统"
+                className="flex-1 bg-transparent outline-none py-2.5 text-[15px] leading-[1.65] placeholder:text-[var(--ink-3)] disabled:opacity-60 resize-none min-h-[60px] max-h-[200px]"
               />
-              <div className="flex flex-col items-end gap-2 self-stretch justify-between pt-1 pb-1">
-                {query ? (
-                  <button
-                    onClick={clear}
-                    aria-label="清空"
-                    className="h-7 w-7 rounded-full hover:bg-[#f1f0eb] grid place-items-center text-[var(--ink-2)] transition-colors">
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                ) : (
-                  <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--ink-3)] pr-1">⌘ ⏎</span>
-                )}
+              {query && (
                 <button
-                  onClick={() => submit()}
-                  disabled={!canSubmit}
-                  className="btn-ink !py-2.5 !px-5">
-                  {loading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      搜索中
-                    </>
-                  ) : (
-                    <>
-                      搜索
-                      <ArrowRight className="h-4 w-4" />
-                    </>
-                  )}
+                  onClick={clear}
+                  aria-label="清空"
+                  className="h-8 w-8 rounded-full hover:bg-[#f1f0eb] grid place-items-center text-[var(--ink-2)] transition-colors mb-1">
+                  <X className="h-3.5 w-3.5" />
                 </button>
-              </div>
+              )}
+              <button
+                onClick={() => submit()}
+                disabled={!canSubmit}
+                className="btn-ink !py-2.5 !px-5 mb-1">
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    搜索中
+                  </>
+                ) : (
+                  <>
+                    搜索
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
             </div>
 
             {/* sample tags */}
@@ -399,8 +395,8 @@ Shift + Enter 换行，Enter 直接搜索`}
           {/* STATUS + RESULTS */}
           {meta && committed && (
             <section className="mt-10">
-
-              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[12.5px] text-[var(--ink-2)]">
+              <SkillsBubble />
+              <div className="mt-5 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[12.5px] text-[var(--ink-2)]">
                 <span>
                   搜索结果{" "}
                   <span className="text-[var(--ink)]">「{committed}」</span>
@@ -512,51 +508,79 @@ Shift + Enter 换行，Enter 直接搜索`}
 
           {/* DATA SCALE */}
           <section className="mt-14">
-            <h2 className="font-display text-[26px] text-[var(--ink)]">
-              Sciverse 数据能力<span className="italic"> 全景</span>
-            </h2>
-            <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-2 border-t border-b hairline">
-              {[
-                { num: "25M+", unit: "篇", label: "OA 文献", note: "10 大学科 · T+1 同步" },
-                { num: "50K+", unit: "册", label: "教材书籍", note: "全量 40 万 持续接入" },
-                { num: "10M+", unit: "条", label: "化学反应", note: "1976 — 2025 专利覆盖" },
-                { num: "570K+", unit: "条", label: "蛋白注释", note: "23 维 functional axes" },
-              ].map((d, i) => (
-                <div
-                  key={d.label}
-                  className={cn(
-                    "py-7 px-2 min-w-0",
-                    i !== 0 && "lg:border-l hairline lg:pl-6",
-                    (i === 1 || i === 3) && "border-l hairline pl-5",
-                  )}>
-                  <div className="flex items-baseline gap-2 min-w-0">
-                    <span className="font-display font-semibold leading-none tracking-[-0.02em] text-[var(--ink)] text-[clamp(28px,3.4vw,44px)] truncate">
-                      {d.num}
-                    </span>
-                    <span className="text-[12.5px] text-[var(--ink-2)] shrink-0">{d.unit}</span>
+            <div className="flex items-end justify-between gap-4 flex-wrap">
+              <h2 className="font-display text-[26px] text-[var(--ink)]">
+                Sciverse 数据能力<span className="italic"> 全景</span>
+              </h2>
+              <div className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)] flex items-center gap-2">
+                <span className="inline-block h-px w-8 bg-[var(--ink-3)]/40" />
+                Updated · May 2026
+              </div>
+            </div>
+            <div className="mt-6 border-y hairline">
+              <div className="grid grid-cols-2 lg:grid-cols-4">
+                {[
+                  { num: "25M+", unit: "篇", label: "OA 文献", note: "10 大学科 · T+1 同步", pct: 92, idx: "01" },
+                  { num: "50K+", unit: "册", label: "教材书籍", note: "全量 40 万 · 持续接入", pct: 12, idx: "02" },
+                  { num: "10M+", unit: "条", label: "化学反应", note: "1976 — 2025 专利覆盖", pct: 78, idx: "03" },
+                  { num: "570K+", unit: "条", label: "蛋白注释", note: "23 维 functional axes", pct: 64, idx: "04" },
+                ].map((d, i) => (
+                  <div
+                    key={d.label}
+                    className={cn(
+                      "group relative px-5 py-7 min-w-0 transition-colors hover:bg-[#f7f6f1]",
+                      i !== 0 && "lg:border-l hairline",
+                      (i === 1 || i === 3) && "border-l hairline lg:border-l",
+                    )}>
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[10px] tracking-[0.18em] text-[var(--ink-3)]">{d.idx}</span>
+                    </div>
+                    <div className="mt-3 flex items-baseline gap-1.5 min-w-0">
+                      <span className="font-display font-semibold leading-none tracking-[-0.025em] text-[var(--ink)] text-[clamp(30px,3.2vw,44px)] truncate">
+                        {d.num}
+                      </span>
+                      <span className="text-[12px] text-[var(--ink-2)] shrink-0">{d.unit}</span>
+                    </div>
+                    <div className="mt-3 text-[13px] text-[var(--ink)]">{d.label}</div>
+                    <div className="mt-1 font-mono text-[10.5px] tracking-[0.02em] text-[var(--ink-3)] truncate">
+                      {d.note}
+                    </div>
+                    <div className="mt-4 h-[2px] w-full bg-[var(--ink-3)]/15 overflow-hidden rounded-full">
+                      <div
+                        className="h-full bg-[var(--ink)] transition-[width] duration-700 ease-out"
+                        style={{ width: `${d.pct}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="mt-2 text-[13px] text-[var(--ink)]">{d.label}</div>
-                  <div className="mt-0.5 font-mono text-[11px] tracking-[0.04em] text-[var(--ink-3)] truncate">
-                    {d.note}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
-            <div className="mt-5 grid md:grid-cols-3 gap-4">
+            <div className="mt-5 grid md:grid-cols-3 gap-px bg-[var(--ink-3)]/15 rounded-xl overflow-hidden border hairline">
               {[
-                { k: "最快", v: "Agentic Search 响应 < 600ms", icon: "⚡" },
-                { k: "最新", v: "T+1 数据自动同步", icon: "🔄" },
-                { k: "最全", v: "API 覆盖 2,000 万+ 文献元数据", icon: "📡" },
+                { k: "最快", en: "Fastest", metric: "< 600", unit: "ms", v: "Agentic Search 平均响应", Icon: Zap },
+                { k: "最新", en: "Freshest", metric: "T+1", unit: "同步", v: "每日增量文献与专利自动入库", Icon: Activity },
+                { k: "最全", en: "Broadest", metric: "2,000", unit: "万+ 元数据", v: "覆盖文献 · 专利 · 反应 · 蛋白", Icon: Globe2 },
               ].map((it) => (
-                <div key={it.k} className="card-paper p-4 flex items-start gap-3">
-                  <span className="text-[18px]">{it.icon}</span>
-                  <div>
-                    <div className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
-                      {it.k}
+                <div key={it.k} className="bg-[var(--paper)] p-5 group transition-colors hover:bg-[#f7f6f1]">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="h-7 w-7 rounded-full border hairline grid place-items-center text-[var(--ink-2)] group-hover:text-[var(--brand)] group-hover:border-[var(--brand)] transition-colors">
+                        <it.Icon className="h-3.5 w-3.5" strokeWidth={1.6} />
+                      </span>
+                      <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
+                        {it.en}
+                      </span>
                     </div>
-                    <div className="text-[13.5px] text-[var(--ink)] mt-0.5">{it.v}</div>
+                    <span className="font-display italic text-[12px] text-[var(--ink-3)]">{it.k}</span>
                   </div>
+                  <div className="mt-4 flex items-baseline gap-1">
+                    <span className="font-display text-[30px] font-semibold leading-none tracking-[-0.02em] text-[var(--ink)]">
+                      {it.metric}
+                    </span>
+                    <span className="text-[12px] text-[var(--ink-2)]">{it.unit}</span>
+                  </div>
+                  <div className="mt-2 text-[12.5px] text-[var(--ink-2)] leading-relaxed">{it.v}</div>
                 </div>
               ))}
             </div>
@@ -571,8 +595,6 @@ Shift + Enter 换行，Enter 直接搜索`}
             </a>
           </footer>
         </div>
-
-        <ConversionPanel query={committed || query} />
       </main>
     </div>
   );

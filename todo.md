@@ -1,15 +1,34 @@
-# Sciverse 体验站点 · v2 优化清单
+# Sciverse v3 · 8 项细节优化清单
 
-## Hero 区
-- [ ] 主标题改为「让 Agent 真正读懂 科学世界」（Fraunces 大字 + 「科学世界」品牌色高亮）
-- [ ] 删除 hero 副标题段（"Sciverse 同时调用 …"那一段）
-- [ ] 搜索框改为可输入一段话的 textarea（自动增高，min 88px，max 200px），保留 Enter 提交、Shift+Enter 换行；右下角药丸"搜索"按钮固定
+## 1. ConversionPanel 接入卡删除
+- [ ] 移除 ConversionPanel 整个"把这次搜索接入你的 Agent"模块（与搜索 API 无关）
+- [ ] 主区结果上方插入 Skills 引导小卡
 
-## 全局
-- [ ] 删除所有页面一级标题之上的 "§ 0X / XXX" 英文小标题（Experience / Ecosystem / Data Capability / Docs / Tokens / Stats / Integrate / Quotas）
-- [ ] 数据全景大屏数字遮挡：4 列网格在 ≥1280px 加 column-gap，数字字号自适应（clamp），单位"册/条"等单独包裹；数字与单位之间加固定间距，避免横向重叠
+## 2. Skills 引导小卡（结果页气泡）
+- [ ] 在搜索结果区上方插入气泡式小卡，引导使用 Sciverse Skills
+- [ ] 「不再提示」按钮，localStorage 持久化关闭
 
-## Sidebar
-- [ ] 收起态下点击"历史对话"图标 → 自动展开 sidebar 并滚动到历史区（带 toast/反馈）
-- [ ] 登录区精简：只保留一颗"登录 / 注册"黑色药丸按钮（点击展示 toast"功能即将开放"），去掉"未登录 · 立即解锁"长文案
-- [ ] 微信小助手卡片改为底部一颗"帮助 / 微信"icon 按钮，点击 popover 弹出二维码占位（不再常驻展示）
+## 3. 登录态模拟（Sidebar 底部）
+- [ ] 点击「登录」→ 模拟登录成功
+- [ ] 登录后展示头像 + 用户名 + 退出登录
+- [ ] localStorage 持久化
+
+## 4. 搜索框精简
+- [ ] placeholder 简化为一行
+- [ ] 删除右侧灰色竖条与 ⌘ ⏎ 灰色 icon
+- [ ] 保留 textarea 多行能力
+
+## 5. 数据全景视觉升级（去 AI 感）
+- [ ] 数据卡：编辑式数字 + 极细 hairline + 微动效
+- [ ] 三大特性：去 emoji，换线性 icon + 编辑式比较
+
+## 6. Stats 指标调整
+- [ ] 去掉 平均响应时间 / 消耗 Token
+- [ ] 分 App 明细 → Sciverse / 点石 (DianShi) / SeqStudio
+
+## 7. Stats 删除一级标题英文小标题（核验）
+- [ ] 重新确认 § 已移除
+
+## 8. 微信群二维码 + 卡片瘦身
+- [ ] 用真实二维码图片替换 placeholder
+- [ ] Popover 卡片宽度从 220px 缩小到 ~180px

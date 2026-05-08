@@ -1,36 +1,46 @@
 /*
- * Sciverse · Usage Stats (/stats)
- * 总览 4 数字 + 分 Key 明细
+ * Sciverse · Usage Stats (/stats) — v3
+ * 总览仅 2 数字（调用量 / 成功率），分 App 明细：Sciverse / 点石 / SeqStudio
  */
 import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import { cn } from "@/lib/utils";
-import { TrendingUp, CheckCircle2, Timer, Coins } from "lucide-react";
+import { TrendingUp, CheckCircle2, Search, Beaker, Dna } from "lucide-react";
 
 const RANGES = ["今天", "本周", "本月"] as const;
 type Range = (typeof RANGES)[number];
 
-const SUMMARY: Record<Range, { calls: string; success: string; ms: string; tokens: string }> = {
-  今天: { calls: "12,450", success: "99.2%", ms: "420 ms", tokens: "1.24 M" },
-  本周: { calls: "78,902", success: "99.5%", ms: "405 ms", tokens: "8.30 M" },
-  本月: { calls: "302,778", success: "99.4%", ms: "412 ms", tokens: "32.6 M" },
+const SUMMARY: Record<Range, { calls: string; success: string }> = {
+  今天: { calls: "12,450", success: "99.2%" },
+  本周: { calls: "78,902", success: "99.5%" },
+  本月: { calls: "302,778", success: "99.4%" },
 };
 
-const KEYS: Record<
-  Range,
-  { name: string; calls: string; success: string; ms: string }[]
-> = {
+type AppRow = {
+  key: "sciverse" | "dianshi" | "seqstudio";
+  name: string;
+  desc: string;
+  Icon: any;
+  calls: string;
+  success: string;
+  share: number; // 0-100
+};
+
+const APPS: Record<Range, AppRow[]> = {
   今天: [
-    { name: "my-key", calls: "3,241", success: "99.8%", ms: "380 ms" },
-    { name: "mcp test", calls: "9,209", success: "98.9%", ms: "440 ms" },
+    { key: "sciverse", name: "Sciverse", desc: "agentic-search · meta-search · vector-search", Icon: Search, calls: "8,210", success: "99.4%", share: 66 },
+    { key: "dianshi", name: "点石 DianShi", desc: "化学反应 / 物质 / 专利", Icon: Beaker, calls: "2,540", success: "99.0%", share: 20 },
+    { key: "seqstudio", name: "SeqStudio", desc: "蛋白注释 · BLAST · Foldseek", Icon: Dna, calls: "1,700", success: "98.8%", share: 14 },
   ],
   本周: [
-    { name: "my-key", calls: "21,402", success: "99.7%", ms: "388 ms" },
-    { name: "mcp test", calls: "57,500", success: "99.4%", ms: "418 ms" },
+    { key: "sciverse", name: "Sciverse", desc: "agentic-search · meta-search · vector-search", Icon: Search, calls: "52,400", success: "99.6%", share: 66 },
+    { key: "dianshi", name: "点石 DianShi", desc: "化学反应 / 物质 / 专利", Icon: Beaker, calls: "16,002", success: "99.3%", share: 20 },
+    { key: "seqstudio", name: "SeqStudio", desc: "蛋白注释 · BLAST · Foldseek", Icon: Dna, calls: "10,500", success: "99.1%", share: 14 },
   ],
   本月: [
-    { name: "my-key", calls: "82,041", success: "99.6%", ms: "390 ms" },
-    { name: "mcp test", calls: "220,737", success: "99.3%", ms: "428 ms" },
+    { key: "sciverse", name: "Sciverse", desc: "agentic-search · meta-search · vector-search", Icon: Search, calls: "201,830", success: "99.5%", share: 66 },
+    { key: "dianshi", name: "点石 DianShi", desc: "化学反应 / 物质 / 专利", Icon: Beaker, calls: "60,448", success: "99.2%", share: 20 },
+    { key: "seqstudio", name: "SeqStudio", desc: "蛋白注释 · BLAST · Foldseek", Icon: Dna, calls: "40,500", success: "99.0%", share: 14 },
   ],
 };
 
@@ -64,7 +74,7 @@ function StatCard({
 export default function Stats() {
   const [range, setRange] = useState<Range>("今天");
   const s = SUMMARY[range];
-  const k = KEYS[range];
+  const apps = APPS[range];
 
   return (
     <div className="min-h-screen flex">
@@ -77,7 +87,7 @@ export default function Stats() {
                 调用统计
               </h1>
               <p className="mt-1.5 text-[13.5px] text-[var(--ink-2)]">
-                按 API Key 维度查看调用量、成功率与平均耗时
+                按 App 维度查看调用量与成功率，分时间范围聚合
               </p>
             </div>
             <div className="inline-flex p-0.5 rounded-full border hairline bg-white">
@@ -97,34 +107,49 @@ export default function Stats() {
             </div>
           </div>
 
-          <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* 总览：仅保留 调用量 + 成功率 */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3">
             <StatCard icon={TrendingUp} label="总调用次数" value={s.calls} hint={`时间范围：${range}`} />
             <StatCard icon={CheckCircle2} label="成功率" value={s.success} hint="HTTP 2xx 占比" />
-            <StatCard icon={Timer} label="平均响应时间" value={s.ms} hint="P50 端到端" />
-            <StatCard icon={Coins} label="消耗 Token" value={s.tokens} hint="LLM 整合阶段累计" />
           </div>
 
+          {/* 分 App 明细：Sciverse / 点石 / SeqStudio */}
           <div className="mt-10">
-            <div className="section-marker mb-3">§ Per-Key Breakdown</div>
-            <h2 className="font-display text-[22px] text-[var(--ink)]">
-              分 Key 调用明细
-            </h2>
+            <div className="flex items-end justify-between gap-3">
+              <h2 className="font-display text-[22px] text-[var(--ink)]">
+                分 App 调用明细
+              </h2>
+              <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
+                3 apps
+              </span>
+            </div>
+
             <div className="mt-3 card-paper overflow-hidden">
-              <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr] text-[11.5px] tracking-[0.12em] uppercase font-mono text-[var(--ink-3)] px-5 py-3 bg-[var(--paper-2)] border-b hairline">
-                <span>Key 名称</span>
+              <div className="grid grid-cols-[1.6fr_1fr_1fr_1.2fr] text-[11.5px] tracking-[0.12em] uppercase font-mono text-[var(--ink-3)] px-5 py-3 bg-[var(--paper-2)] border-b hairline">
+                <span>App</span>
                 <span>调用量</span>
                 <span>成功率</span>
-                <span>平均耗时</span>
+                <span>占比</span>
               </div>
-              {k.map((row, i) => (
+              {apps.map((row, i) => (
                 <div
-                  key={row.name}
+                  key={row.key}
                   className={cn(
-                    "grid grid-cols-[1.4fr_1fr_1fr_1fr] px-5 py-4 items-center",
+                    "grid grid-cols-[1.6fr_1fr_1fr_1.2fr] px-5 py-4 items-center",
                     i !== 0 && "border-t hairline",
                   )}>
-                  <div className="font-display text-[15px] text-[var(--ink)]">
-                    {row.name}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="h-8 w-8 rounded-full border hairline grid place-items-center text-[var(--ink-2)] shrink-0">
+                      <row.Icon className="h-3.5 w-3.5" strokeWidth={1.6} />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="font-display text-[15px] text-[var(--ink)] truncate">
+                        {row.name}
+                      </div>
+                      <div className="font-mono text-[10.5px] tracking-[0.04em] text-[var(--ink-3)] truncate">
+                        {row.desc}
+                      </div>
+                    </div>
                   </div>
                   <div className="font-mono text-[13px] text-[var(--ink)]">
                     {row.calls}
@@ -135,28 +160,19 @@ export default function Stats() {
                       {row.success}
                     </span>
                   </div>
-                  <div className="font-mono text-[13px] text-[var(--ink-2)]">
-                    {row.ms}
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-[3px] rounded-full bg-[var(--ink-3)]/15 overflow-hidden">
+                      <div
+                        className="h-full bg-[var(--ink)] transition-[width] duration-700 ease-out"
+                        style={{ width: `${row.share}%` }}
+                      />
+                    </div>
+                    <span className="font-mono text-[11px] text-[var(--ink-2)] w-9 text-right">
+                      {row.share}%
+                    </span>
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-
-          <div className="mt-8 card-paper p-5">
-            <div className="section-marker mb-2">§ Per-App Breakdown</div>
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-display text-[18px] text-[var(--ink)]">
-                  分 App 明细
-                </h3>
-                <p className="mt-1 text-[12.5px] text-[var(--ink-2)]">
-                  待定 · 接入 App 维度统计后此处展示分布与峰值时间。
-                </p>
-              </div>
-              <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
-                Coming soon
-              </span>
             </div>
           </div>
         </div>
