@@ -1,28 +1,20 @@
-# Sciverse v4 · 6 项细节优化清单
+# Sciverse v5 · 6 项细节优化清单
 
-## 1. 全局 Logo 替换
-- [ ] 用 logo-light.svg 替换 Sidebar 顶部 logo
-- [ ] 折叠态侧边栏同步缩小显示同一 logo（28-32px）
-- [ ] 去掉 "v0.1" 版本徽标
+## 1. Hero 与搜索框（Experience.tsx）
+- [ ] 主标题去句号（"让 Agent 真正读懂 科学世界"）
+- [ ] placeholder 渐显动画（800ms fade-in）
+- [ ] 仅保留右下圆形箭头发送按钮，删 ENTER/SHIFT+ENTER 提示文案
+- [ ] 输入有内容后箭头按钮变深色
 
-## 2. 搜索框优化
-- [ ] textarea 高度再加高（120 - 220px）
-- [ ] 删除内部放大镜小 icon（与外部冲突）
-- [ ] 搜索按钮改为低调高级方案（替换醒目药丸按钮）
+## 2. 全局导航
+- [ ] 点击 Sidebar 顶部 Logo → 跳回 /
+- [ ] 修 bug：仅当路由 = / 时历史对话默认展开
 
-## 3. 登录态优化
-- [ ] popover/底部入口仅显示用户名（去掉头像装饰）
+## 3. 调用统计（Stats.tsx）
+- [ ] "分 App 明细" → "分接口调用明细"
+- [ ] 三行 icon 改用 sciverse / dianshi / seqstudio 官方 logo
 
-## 4. Sciverse 生态三模块官方 logo
-- [ ] 点石 DianShi → 官方 logo
-- [ ] SeqStudio → 官方 logo
-- [ ] Sci-Base 数据集 → 官方 logo
-
-## 5. Skills 真实链接
-- [ ] SkillsBubble 链接 → https://clawhub.ai/gary-shen/sciverse-agent-tools
-
-## 6. Docs 内容补全 + 按 Claude 文档布局重排
-- [ ] 解压三个 zip（meta / content / agentic）提取真实文档
-- [ ] 左侧目录树 + 中部正文长文档 + 右侧示例代码
-- [ ] 每端点结构：Overview · Quickstart · Endpoint · Parameters · Response · Errors · Try-it
-- [ ] 保证 API 端点 URL、HTTP 方法、字段名完全不变
+## 4. 结果卡（Experience.tsx）
+- [ ] 删"复制引用 / 复制 API 查询"按钮
+- [ ] 展开全文区 max-height: 320px + overflow-y: auto
+- [ ] 分页：每页 8 条 + 上/下页 + 当前页/总页

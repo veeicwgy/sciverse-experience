@@ -71,22 +71,25 @@ const HISTORY = [
 
 function Logo({ collapsed }: { collapsed: boolean }) {
   return (
-    <div className="flex items-center gap-2.5 px-1">
+    <Link
+      href="/"
+      className="flex items-center gap-2.5 px-1 group cursor-pointer"
+      aria-label="返回新对话">
       <img
         src="/manus-storage/sciverse-logo_532e83dd.svg"
         alt="Sciverse"
         className={cn(
-          "select-none",
+          "select-none transition-transform group-hover:scale-[1.04]",
           collapsed ? "h-7 w-7" : "h-8 w-8"
         )}
         draggable={false}
       />
       {!collapsed && (
-        <span className="font-display text-[18px] font-semibold text-[var(--ink)] tracking-tight">
+        <span className="font-display text-[18px] font-semibold text-[var(--ink)] tracking-tight group-hover:text-[var(--brand)] transition-colors">
           Sciverse
         </span>
       )}
-    </div>
+    </Link>
   );
 }
 
@@ -104,7 +107,10 @@ const MOCK_USER: User = {
 export default function Sidebar({ active }: { active?: NavKey }) {
   const [location] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(true);
+  const [historyOpen, setHistoryOpen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.location.pathname === "/";
+  });
   const [user, setUser] = useState<User | null>(null);
   const historyRef = useRef<HTMLDivElement | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
@@ -132,6 +138,11 @@ export default function Sidebar({ active }: { active?: NavKey }) {
       collapsed ? "1" : "0"
     );
   }, [collapsed]);
+
+  // 路由变化时，非首页自动收起历史对话
+  useEffect(() => {
+    setHistoryOpen(location === "/");
+  }, [location]);
 
   const currentKey = useMemo<NavKey | undefined>(() => {
     if (active) return active;

@@ -5,7 +5,13 @@
 import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import { cn } from "@/lib/utils";
-import { TrendingUp, CheckCircle2, Search, Beaker, Dna } from "lucide-react";
+import { TrendingUp, CheckCircle2 } from "lucide-react";
+
+const LOGO_MAP: Record<string, string> = {
+  sciverse: "/manus-storage/sciverse-logo_532e83dd.svg",
+  dianshi: "/manus-storage/dianshi-logo_a0c8c0fa.svg",
+  seqstudio: "/manus-storage/seqstudio-logo_aae3b06d.svg",
+};
 
 const RANGES = ["今天", "本周", "本月"] as const;
 type Range = (typeof RANGES)[number];
@@ -20,7 +26,6 @@ type AppRow = {
   key: "sciverse" | "dianshi" | "seqstudio";
   name: string;
   desc: string;
-  Icon: any;
   calls: string;
   success: string;
   share: number; // 0-100
@@ -28,19 +33,19 @@ type AppRow = {
 
 const APPS: Record<Range, AppRow[]> = {
   今天: [
-    { key: "sciverse", name: "Sciverse", desc: "agentic-search · meta-search · vector-search", Icon: Search, calls: "8,210", success: "99.4%", share: 66 },
-    { key: "dianshi", name: "点石 DianShi", desc: "化学反应 / 物质 / 专利", Icon: Beaker, calls: "2,540", success: "99.0%", share: 20 },
-    { key: "seqstudio", name: "SeqStudio", desc: "蛋白注释 · BLAST · Foldseek", Icon: Dna, calls: "1,700", success: "98.8%", share: 14 },
+    { key: "sciverse", name: "Sciverse", desc: "agentic-search · meta-search · content-search", calls: "8,210", success: "99.4%", share: 66 },
+    { key: "dianshi", name: "点石 DianShi", desc: "化学反应 / 物质 / 专利", calls: "2,540", success: "99.0%", share: 20 },
+    { key: "seqstudio", name: "SeqStudio", desc: "蛋白注释 · BLAST · Foldseek", calls: "1,700", success: "98.8%", share: 14 },
   ],
   本周: [
-    { key: "sciverse", name: "Sciverse", desc: "agentic-search · meta-search · vector-search", Icon: Search, calls: "52,400", success: "99.6%", share: 66 },
-    { key: "dianshi", name: "点石 DianShi", desc: "化学反应 / 物质 / 专利", Icon: Beaker, calls: "16,002", success: "99.3%", share: 20 },
-    { key: "seqstudio", name: "SeqStudio", desc: "蛋白注释 · BLAST · Foldseek", Icon: Dna, calls: "10,500", success: "99.1%", share: 14 },
+    { key: "sciverse", name: "Sciverse", desc: "agentic-search · meta-search · content-search", calls: "52,400", success: "99.6%", share: 66 },
+    { key: "dianshi", name: "点石 DianShi", desc: "化学反应 / 物质 / 专利", calls: "16,002", success: "99.3%", share: 20 },
+    { key: "seqstudio", name: "SeqStudio", desc: "蛋白注释 · BLAST · Foldseek", calls: "10,500", success: "99.1%", share: 14 },
   ],
   本月: [
-    { key: "sciverse", name: "Sciverse", desc: "agentic-search · meta-search · vector-search", Icon: Search, calls: "201,830", success: "99.5%", share: 66 },
-    { key: "dianshi", name: "点石 DianShi", desc: "化学反应 / 物质 / 专利", Icon: Beaker, calls: "60,448", success: "99.2%", share: 20 },
-    { key: "seqstudio", name: "SeqStudio", desc: "蛋白注释 · BLAST · Foldseek", Icon: Dna, calls: "40,500", success: "99.0%", share: 14 },
+    { key: "sciverse", name: "Sciverse", desc: "agentic-search · meta-search · content-search", calls: "201,830", success: "99.5%", share: 66 },
+    { key: "dianshi", name: "点石 DianShi", desc: "化学反应 / 物质 / 专利", calls: "60,448", success: "99.2%", share: 20 },
+    { key: "seqstudio", name: "SeqStudio", desc: "蛋白注释 · BLAST · Foldseek", calls: "40,500", success: "99.0%", share: 14 },
   ],
 };
 
@@ -87,7 +92,7 @@ export default function Stats() {
                 调用统计
               </h1>
               <p className="mt-1.5 text-[13.5px] text-[var(--ink-2)]">
-                按 App 维度查看调用量与成功率，分时间范围聚合
+                按接口维度查看调用量与成功率，分时间范围聚合
               </p>
             </div>
             <div className="inline-flex p-0.5 rounded-full border hairline bg-white">
@@ -113,20 +118,20 @@ export default function Stats() {
             <StatCard icon={CheckCircle2} label="成功率" value={s.success} hint="HTTP 2xx 占比" />
           </div>
 
-          {/* 分 App 明细：Sciverse / 点石 / SeqStudio */}
+          {/* 分接口调用明细：Sciverse / 点石 / SeqStudio */}
           <div className="mt-10">
             <div className="flex items-end justify-between gap-3">
               <h2 className="font-display text-[22px] text-[var(--ink)]">
-                分 App 调用明细
+                分接口调用明细
               </h2>
               <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
-                3 apps
+                3 endpoints
               </span>
             </div>
 
             <div className="mt-3 card-paper overflow-hidden">
               <div className="grid grid-cols-[1.6fr_1fr_1fr_1.2fr] text-[11.5px] tracking-[0.12em] uppercase font-mono text-[var(--ink-3)] px-5 py-3 bg-[var(--paper-2)] border-b hairline">
-                <span>App</span>
+                <span>接口 / 站点</span>
                 <span>调用量</span>
                 <span>成功率</span>
                 <span>占比</span>
@@ -139,8 +144,13 @@ export default function Stats() {
                     i !== 0 && "border-t hairline",
                   )}>
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="h-8 w-8 rounded-full border hairline grid place-items-center text-[var(--ink-2)] shrink-0">
-                      <row.Icon className="h-3.5 w-3.5" strokeWidth={1.6} />
+                    <span className="h-8 w-8 rounded-full border hairline grid place-items-center bg-white shrink-0 overflow-hidden">
+                      <img
+                        src={LOGO_MAP[row.key]}
+                        alt={row.name}
+                        className="h-5 w-5 object-contain"
+                        draggable={false}
+                      />
                     </span>
                     <div className="min-w-0">
                       <div className="font-display text-[15px] text-[var(--ink)] truncate">

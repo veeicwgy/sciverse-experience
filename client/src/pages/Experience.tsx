@@ -6,21 +6,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   X,
-  ArrowRight,
+  ArrowUp,
   Loader2,
-  Copy,
   ChevronDown,
   ChevronUp,
-  Check,
   FileText,
   Globe,
   ExternalLink,
   Sparkles,
-  Quote,
-  Code2,
   Zap,
   Activity,
   Globe2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import Sidebar from "@/components/layout/Sidebar";
@@ -148,12 +146,6 @@ function RelevanceDots({ score }: { score: number }) {
 
 function ResultCard({ r, q }: { r: Result; q: string }) {
   const [expanded, setExpanded] = useState(false);
-  const [copiedCite, setCopiedCite] = useState(false);
-  const [copiedApi, setCopiedApi] = useState(false);
-
-  const cite = `${r.title}. ${r.venue}, ${r.year}.${r.doi ? ` https://doi.org/${r.doi}` : ""}`;
-  const curl = `curl -X POST https://api.sciverse.space/agentic-search \\\n  -H "Authorization: Bearer YOUR_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"query":"${q || r.title.slice(0, 24)}","top_k":10}'`;
-
   return (
     <article className="card-paper p-5 ed-in">
       <div className="flex items-center justify-between">
@@ -188,47 +180,22 @@ function ResultCard({ r, q }: { r: Result; q: string }) {
         )}
       </div>
 
-      <p
+        <div
         className={cn(
           "mt-3 text-[14px] leading-[1.78] text-[var(--ink)]",
           !expanded && "line-clamp-3",
+          expanded && "max-h-[320px] overflow-y-auto pr-2 result-scroll",
         )}>
         <span className="text-[var(--ink-3)] mr-1.5">“</span>
         {highlightKeywords(r.abstract, q)}
         <span className="text-[var(--ink-3)] ml-1">”</span>
-      </p>
-
+      </div>
       <button
         onClick={() => setExpanded((v) => !v)}
         className="mt-2 inline-flex items-center gap-1 text-[12.5px] text-[var(--brand)] hover:underline">
         {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
         {expanded ? "收起" : "展开全文"}
       </button>
-
-      <div className="mt-4 pt-3 border-t hairline flex items-center justify-between">
-        <button
-          onClick={async () => {
-            await navigator.clipboard.writeText(cite);
-            setCopiedCite(true);
-            toast.success("引用已复制（APA 风格）");
-            setTimeout(() => setCopiedCite(false), 1500);
-          }}
-          className="btn-ghost !py-1.5 !px-2.5 text-[12px]">
-          {copiedCite ? <Check className="h-3 w-3" /> : <Quote className="h-3 w-3" />}
-          {copiedCite ? "已复制引用" : "复制引用"}
-        </button>
-        <button
-          onClick={async () => {
-            await navigator.clipboard.writeText(curl);
-            setCopiedApi(true);
-            toast.success("cURL 查询已复制");
-            setTimeout(() => setCopiedApi(false), 1500);
-          }}
-          className="btn-ghost !py-1.5 !px-2.5 text-[12px]">
-          {copiedApi ? <Check className="h-3 w-3" /> : <Code2 className="h-3 w-3" />}
-          {copiedApi ? "已复制 API" : "复制 API 查询"}
-        </button>
-      </div>
     </article>
   );
 }
@@ -237,7 +204,7 @@ function HeroHeader() {
   return (
     <header className="relative pt-16 pb-8">
       <h1 className="font-display text-[clamp(36px,4.6vw,52px)] leading-[1.06] tracking-[-0.02em] text-[var(--ink)] max-w-[840px]">
-        让 Agent 真正读懂 <span className="text-[var(--brand)]">科学世界</span>。
+        让 Agent 真正读懂 <span className="text-[var(--brand)]">科学世界</span>
       </h1>
     </header>
   );
@@ -250,6 +217,8 @@ export default function Experience() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Result[] | null>(null);
   const [meta, setMeta] = useState<{ count: number; ms: number } | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 8;
   const composing = useRef(false);
 
   // URL ?q=
@@ -284,6 +253,7 @@ export default function Experience() {
     if (!value) return;
     setLoading(true);
     setCommitted(value);
+    setPage(1);
     // sync URL
     const url = new URL(window.location.href);
     url.searchParams.set("q", value);
@@ -338,38 +308,34 @@ export default function Experience() {
                 onCompositionStart={() => (composing.current = true)}
                 onCompositionEnd={() => (composing.current = false)}
                 disabled={loading}
-                rows={3}
+                rows={2}
                 placeholder="输入科学问题或关键词，例：mRNA 疫苗递送系统"
-                className="w-full bg-transparent outline-none text-[15.5px] leading-[1.7] placeholder:text-[var(--ink-3)] disabled:opacity-60 resize-none min-h-[120px] max-h-[220px]"
+                className="w-full bg-transparent outline-none text-[15.5px] leading-[1.7] placeholder-fade placeholder:text-[var(--ink-3)] disabled:opacity-60 resize-none min-h-[88px] max-h-[220px]"
               />
-              <div className="flex items-center justify-between pt-1 border-t hairline">
-                <div className="font-mono text-[11px] tracking-[0.16em] uppercase text-[var(--ink-3)]">
-                  Enter 提交 · Shift+Enter 换行
-                </div>
+              <div className="flex items-center justify-end pt-1">
                 <div className="flex items-center gap-1.5">
                   {query && (
                     <button
                       onClick={clear}
                       aria-label="清空"
-                      className="h-8 px-3 inline-flex items-center gap-1 rounded-full hover:bg-[#f1f0eb] text-[12.5px] text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors">
-                      <X className="h-3.5 w-3.5" /> 清空
+                      className="h-9 w-9 inline-flex items-center justify-center rounded-full text-[var(--ink-3)] hover:bg-[#f1f0eb] hover:text-[var(--ink)] transition-colors">
+                      <X className="h-4 w-4" />
                     </button>
                   )}
                   <button
                     onClick={() => submit()}
                     disabled={!canSubmit}
-                    className="h-8 px-3.5 inline-flex items-center gap-1.5 rounded-full border hairline bg-white text-[12.5px] text-[var(--ink)] hover:border-[var(--ink)] hover:bg-[var(--paper-2)] disabled:opacity-50 disabled:hover:border-[var(--border)] transition-all"
-                    aria-label="提交搜索">
+                    aria-label="发送"
+                    className={cn(
+                      "h-9 w-9 inline-flex items-center justify-center rounded-full transition-all",
+                      canSubmit && !loading
+                        ? "bg-[var(--ink)] text-white hover:bg-black shadow-sm"
+                        : "bg-[#ececec] text-[var(--ink-3)]",
+                    )}>
                     {loading ? (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        <span>检索中</span>
-                      </>
+                      <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <>
-                        <span>提交</span>
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </>
+                      <ArrowUp className="h-4 w-4" />
                     )}
                   </button>
                 </div>
@@ -423,10 +389,36 @@ export default function Experience() {
               </div>
 
               <div className="mt-4 space-y-4">
-                {results!.map((r) => (
+                {results!.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((r) => (
                   <ResultCard key={r.id} r={r} q={committed} />
                 ))}
               </div>
+              {results!.length > PAGE_SIZE && (
+                <div className="mt-6 pt-4 border-t hairline flex items-center justify-between">
+                  <div className="font-mono text-[11px] tracking-[0.16em] uppercase text-[var(--ink-3)]">
+                    第 {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, results!.length)} 条 · 共 {results!.length} 条
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="h-8 w-8 inline-flex items-center justify-center rounded-full text-[var(--ink-2)] hover:bg-[#f1f0eb] hover:text-[var(--ink)] disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+                      aria-label="上一页">
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <span className="px-3 font-mono text-[12.5px] text-[var(--ink)]">
+                      {page} <span className="text-[var(--ink-3)]">/ {Math.ceil(results!.length / PAGE_SIZE)}</span>
+                    </span>
+                    <button
+                      onClick={() => setPage((p) => Math.min(Math.ceil(results!.length / PAGE_SIZE), p + 1))}
+                      disabled={page >= Math.ceil(results!.length / PAGE_SIZE)}
+                      className="h-8 w-8 inline-flex items-center justify-center rounded-full text-[var(--ink-2)] hover:bg-[#f1f0eb] hover:text-[var(--ink)] disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+                      aria-label="下一页">
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
