@@ -1,14 +1,14 @@
 /*
- * Sciverse · Usage Stats (/stats) — v11
- * 顶部：时间粒度（日/周/月） · 密钥筛选（全部 + 最多 10 个 key）
- * 总览：单一核心数字（调用量）
- * 主图：按粒度变化 X 轴 — 日=24h / 周=近 7 天 / 月=本月每日
- * 明细：分接口（Sciverse / 点石 / SeqStudio）调用量 + 占比，去成功率
+ * Sciverse · Usage Stats (/stats) — v12
+ * 顶部：标题 + 时间粒度 日/周/月（右上）
+ * 总览：单卡 — 总调用次数（按所选粒度 + 当前密钥聚合）
+ * 主图区：上方密钥胶囊条（含 sparkline + 调用量），下方折线+面积渐变图，鼠标 hover crosshair + tooltip
+ * 明细：分接口调用量 + 占比
  */
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import { cn } from "@/lib/utils";
-import { TrendingUp, KeyRound, ChevronDown } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 
 // ─── 资源 ──────────────────────────────────────────────
 const LOGO_MAP: Record<string, string> = {
@@ -31,7 +31,7 @@ const GRAN_LABEL: Record<Gran, string> = {
   月: "本月 · 按日",
 };
 
-// ─── 密钥列表（演示数据，与 Tokens 页保持一致风格） ───────
+// ─── 密钥列表 ──────────────────────────────────────────
 type KeyOpt = { id: string; name: string; weight: number };
 const KEYS: KeyOpt[] = [
   { id: "all", name: "全部密钥", weight: 1 },
@@ -43,7 +43,7 @@ const KEYS: KeyOpt[] = [
   { id: "k6", name: "ad-hoc", weight: 0.03 },
 ];
 
-// ─── 数据生成（确定性，无后端） ───────────────────────────
+// ─── 数据生成（确定性） ────────────────────────────────
 function seedRandom(seed: number) {
   let s = seed >>> 0;
   return () => {
@@ -53,11 +53,11 @@ function seedRandom(seed: number) {
 }
 function buildSeries(gran: Gran, keyId: string): { x: string; v: number }[] {
   const w = KEYS.find((k) => k.id === keyId)?.weight ?? 1;
-  const seed = (gran.charCodeAt(0) * 31 + keyId.length * 7) | 0;
+  const seed = (gran.charCodeAt(0) * 31 + keyId.length * 7 + (keyId === "all" ? 11 : 1)) | 0;
   const rng = seedRandom(seed);
   if (gran === "日") {
     return Array.from({ length: 24 }, (_, h) => {
-      const base = 200 + Math.sin(((h - 6) / 24) * Math.PI * 2) * 180;
+      const base = 220 + Math.sin(((h - 6) / 24) * Math.PI * 2) * 180;
       const noise = (rng() - 0.5) * 80;
       const v = Math.max(0, Math.round((base + noise) * w));
       return { x: `${String(h).padStart(2, "0")}:00`, v };
@@ -71,7 +71,6 @@ function buildSeries(gran: Gran, keyId: string): { x: string; v: number }[] {
       return { x: d, v };
     });
   }
-  // 月：本月每日
   const today = new Date();
   const days = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
   return Array.from({ length: days }, (_, i) => {
@@ -80,13 +79,17 @@ function buildSeries(gran: Gran, keyId: string): { x: string; v: number }[] {
     return { x: String(i + 1), v };
   });
 }
+// 胶囊里 mini sparkline 固定使用近 7 天（与时间粒度无关，仅做识别）
+function buildSparkline(keyId: string): number[] {
+  return buildSeries("周", keyId).map((p) => p.v);
+}
 
-// ─── 分接口明细（按粒度近似） ────────────────────────────
+// ─── 分接口明细 ────────────────────────────────────────
 type AppRow = {
   key: "sciverse" | "dianshi" | "seqstudio";
   name: string;
   desc: string;
-  share: number; // 0-100
+  share: number;
 };
 const APP_BASE: AppRow[] = [
   { key: "sciverse", name: "Sciverse", desc: "agentic-search · meta-search · content-search", share: 66 },
@@ -94,22 +97,16 @@ const APP_BASE: AppRow[] = [
   { key: "seqstudio", name: "SeqStudio", desc: "蛋白注释 · BLAST · Foldseek", share: 14 },
 ];
 
-function fmt(n: number) {
-  return n.toLocaleString("en-US");
-}
+const fmt = (n: number) => n.toLocaleString("en-US");
 
-// ─── 组件 ──────────────────────────────────────────────
+// ─── 主组件 ────────────────────────────────────────────
 export default function Stats() {
   const [gran, setGran] = useState<Gran>("周");
   const [keyId, setKeyId] = useState<string>("all");
-  const [openKey, setOpenKey] = useState(false);
 
   const series = useMemo(() => buildSeries(gran, keyId), [gran, keyId]);
   const total = useMemo(() => series.reduce((a, b) => a + b.v, 0), [series]);
-  const peak = useMemo(() => series.reduce((m, b) => (b.v > m.v ? b : m), series[0]), [series]);
-  const avg = useMemo(() => Math.round(total / series.length), [total, series]);
   const apps = APP_BASE.map((a) => ({ ...a, calls: Math.round(total * (a.share / 100)) }));
-
   const currentKey = KEYS.find((k) => k.id === keyId) ?? KEYS[0];
 
   return (
@@ -124,111 +121,45 @@ export default function Stats() {
                 调用统计
               </h1>
               <p className="mt-1.5 text-[13.5px] text-[var(--ink-2)]">
-                按时间粒度查看调用量趋势，可按密钥维度筛选 · 最多展示 10 个密钥
+                按时间粒度查看调用量趋势 · 可切换至单个密钥维度（最多 10 个）
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              {/* 密钥筛选 */}
-              <div className="relative">
+            <div className="inline-flex p-0.5 rounded-full border hairline bg-white">
+              {GRANS.map((g) => (
                 <button
-                  onClick={() => setOpenKey((v) => !v)}
-                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full border hairline bg-white text-[12.5px] text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
-                  <KeyRound className="h-3.5 w-3.5" />
-                  {currentKey.name}
-                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", openKey && "rotate-180")} />
+                  key={g}
+                  onClick={() => setGran(g)}
+                  className={cn(
+                    "px-3.5 py-1.5 text-[12.5px] rounded-full transition-colors",
+                    gran === g
+                      ? "bg-[var(--ink)] text-white"
+                      : "text-[var(--ink-2)] hover:text-[var(--ink)]",
+                  )}>
+                  {g}
                 </button>
-                {openKey && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setOpenKey(false)} />
-                    <div className="absolute right-0 top-10 z-20 w-[220px] card-paper p-1.5 shadow-md ed-in">
-                      <div className="px-2.5 py-1.5 font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
-                        筛选密钥 · {KEYS.length - 1}/10
-                      </div>
-                      {KEYS.map((k) => (
-                        <button
-                          key={k.id}
-                          onClick={() => {
-                            setKeyId(k.id);
-                            setOpenKey(false);
-                          }}
-                          className={cn(
-                            "w-full text-left px-2.5 py-1.5 rounded-md flex items-center justify-between text-[13px] transition-colors",
-                            keyId === k.id
-                              ? "bg-[#f1f0eb] text-[var(--ink)]"
-                              : "text-[var(--ink-2)] hover:bg-[#f6f5f0] hover:text-[var(--ink)]",
-                          )}>
-                          <span className="truncate">{k.name}</span>
-                          {k.id !== "all" && (
-                            <span className="font-mono text-[10.5px] text-[var(--ink-3)]">
-                              {Math.round(k.weight * 100)}%
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-              {/* 时间粒度 */}
-              <div className="inline-flex p-0.5 rounded-full border hairline bg-white">
-                {GRANS.map((g) => (
-                  <button
-                    key={g}
-                    onClick={() => setGran(g)}
-                    className={cn(
-                      "px-3.5 py-1.5 text-[12.5px] rounded-full transition-colors",
-                      gran === g
-                        ? "bg-[var(--ink)] text-white"
-                        : "text-[var(--ink-2)] hover:text-[var(--ink)]",
-                    )}>
-                    {g}
-                  </button>
-                ))}
-              </div>
+              ))}
             </div>
           </div>
 
-          {/* OVERVIEW: 单一核心数字 + 趋势上下文 */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="md:col-span-1 card-paper p-5">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-3.5 w-3.5 text-[var(--ink-3)]" />
-                <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
-                  总调用次数
-                </span>
-              </div>
-              <div className="mt-3 font-display text-[36px] tracking-[-0.02em] text-[var(--ink)]">
+          {/* OVERVIEW: 仅总调用次数 */}
+          <div className="mt-6 card-paper p-5">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-3.5 w-3.5 text-[var(--ink-3)]" />
+              <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
+                总调用次数
+              </span>
+            </div>
+            <div className="mt-3 flex items-baseline gap-3">
+              <div className="font-display text-[40px] tracking-[-0.02em] text-[var(--ink)] leading-none">
                 {fmt(total)}
               </div>
-              <div className="mt-1 text-[12px] text-[var(--ink-3)]">
+              <div className="text-[12.5px] text-[var(--ink-3)]">
                 {GRAN_LABEL[gran]} · {currentKey.name}
               </div>
             </div>
-            <div className="card-paper p-5">
-              <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
-                单点峰值
-              </span>
-              <div className="mt-3 font-display text-[28px] text-[var(--ink)]">
-                {fmt(peak.v)}
-              </div>
-              <div className="mt-1 text-[12px] text-[var(--ink-3)]">
-                出现于 <span className="font-mono">{peak.x}</span>
-              </div>
-            </div>
-            <div className="card-paper p-5">
-              <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
-                单点均值
-              </span>
-              <div className="mt-3 font-display text-[28px] text-[var(--ink)]">
-                {fmt(avg)}
-              </div>
-              <div className="mt-1 text-[12px] text-[var(--ink-3)]">
-                {gran === "日" ? "每小时平均" : gran === "周" ? "每天平均" : "每天平均"}
-              </div>
-            </div>
           </div>
 
-          {/* MAIN CHART */}
+          {/* MAIN CHART CARD */}
           <div className="mt-8 card-paper p-5">
             <div className="flex items-end justify-between gap-3">
               <div>
@@ -240,10 +171,31 @@ export default function Stats() {
                 </div>
               </div>
               <div className="text-[11.5px] text-[var(--ink-3)] font-mono">
-                {series.length} pts
+                {series.length} pts · 鼠标悬停查看精确值
               </div>
             </div>
-            <BarChart series={series} gran={gran} />
+
+            {/* 密钥胶囊条 */}
+            <div className="mt-4 -mx-1 overflow-x-auto sv-scrollbar">
+              <div className="flex items-stretch gap-2 px-1 pb-2 min-w-max">
+                {KEYS.map((k) => (
+                  <KeyChip
+                    key={k.id}
+                    k={k}
+                    active={keyId === k.id}
+                    onClick={() => setKeyId(k.id)}
+                    spark={buildSparkline(k.id)}
+                    total={
+                      k.id === "all"
+                        ? buildSeries(gran, "all").reduce((a, b) => a + b.v, 0)
+                        : buildSeries(gran, k.id).reduce((a, b) => a + b.v, 0)
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+
+            <LineChart series={series} />
           </div>
 
           {/* APP BREAKDOWN */}
@@ -329,86 +281,184 @@ export default function Stats() {
   );
 }
 
-// ─── 柱状图（纯 SVG，浅色 hairline 网格 + 紫蓝渐变柱） ───
-function BarChart({
-  series,
-  gran,
+// ─── 密钥胶囊 ──────────────────────────────────────────
+function KeyChip({
+  k,
+  active,
+  onClick,
+  spark,
+  total,
 }: {
-  series: { x: string; v: number }[];
-  gran: Gran;
+  k: KeyOpt;
+  active: boolean;
+  onClick: () => void;
+  spark: number[];
+  total: number;
 }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "shrink-0 group relative rounded-xl border px-3 py-2.5 text-left transition-all min-w-[160px]",
+        active
+          ? "border-[var(--ink)] bg-[var(--ink)] text-white shadow-[0_2px_10px_rgba(20,20,30,0.12)]"
+          : "hairline bg-white text-[var(--ink-2)] hover:border-[var(--ink)] hover:text-[var(--ink)]",
+      )}>
+      <div className="flex items-center gap-1.5">
+        <span
+          className={cn(
+            "h-1.5 w-1.5 rounded-full",
+            active ? "bg-white" : "bg-[#5B5BF7]",
+          )}
+        />
+        <span className="text-[12.5px] font-medium truncate max-w-[120px]">
+          {k.name}
+        </span>
+      </div>
+      <div className="mt-1 flex items-end justify-between gap-2">
+        <span
+          className={cn(
+            "font-mono text-[12.5px] leading-none",
+            active ? "text-white" : "text-[var(--ink)]",
+          )}>
+          {fmt(total)}
+        </span>
+        <Sparkline
+          values={spark}
+          stroke={active ? "rgba(255,255,255,0.95)" : "#5B5BF7"}
+        />
+      </div>
+    </button>
+  );
+}
+
+function Sparkline({ values, stroke }: { values: number[]; stroke: string }) {
+  const w = 56;
+  const h = 16;
+  const max = Math.max(1, ...values);
+  const step = w / (values.length - 1 || 1);
+  const path = values
+    .map((v, i) => `${i === 0 ? "M" : "L"} ${(i * step).toFixed(1)} ${(h - (v / max) * h).toFixed(1)}`)
+    .join(" ");
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="shrink-0">
+      <path d={path} fill="none" stroke={stroke} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// ─── 折线图 + 面积渐变 + hover crosshair + tooltip ─────
+function LineChart({ series }: { series: { x: string; v: number }[] }) {
   const width = 980;
-  const height = 220;
-  const padX = 28;
-  const padTop = 12;
-  const padBottom = 28;
-  const max = Math.max(1, ...series.map((p) => p.v));
+  const height = 240;
+  const padX = 36;
+  const padTop = 14;
+  const padBottom = 30;
   const innerW = width - padX * 2;
   const innerH = height - padTop - padBottom;
-  const barGap = gran === "月" ? 2 : 6;
-  const barW = (innerW - barGap * (series.length - 1)) / series.length;
+  const max = Math.max(1, ...series.map((p) => p.v));
+  const stepX = innerW / Math.max(1, series.length - 1);
 
-  // x 轴标签抽样：日每 4h 一个、月每 5 日一个、周全部
-  const labelEvery = gran === "日" ? 4 : gran === "月" ? 5 : 1;
+  const pts = series.map((p, i) => ({
+    cx: padX + i * stepX,
+    cy: padTop + innerH - (p.v / max) * innerH,
+    ...p,
+  }));
 
-  // y 轴 4 条网格
+  const linePath = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.cx.toFixed(1)} ${p.cy.toFixed(1)}`).join(" ");
+  const areaPath =
+    `M ${pts[0].cx.toFixed(1)} ${(padTop + innerH).toFixed(1)} ` +
+    pts.map((p) => `L ${p.cx.toFixed(1)} ${p.cy.toFixed(1)}`).join(" ") +
+    ` L ${pts[pts.length - 1].cx.toFixed(1)} ${(padTop + innerH).toFixed(1)} Z`;
+
   const ySteps = 4;
   const gridYs = Array.from({ length: ySteps + 1 }, (_, i) => padTop + (innerH * i) / ySteps);
+  const yLabels = Array.from({ length: ySteps + 1 }, (_, i) => Math.round((max * (ySteps - i)) / ySteps));
+  // x 轴 label 抽样
+  const labelEvery = series.length >= 24 && series.length < 30 ? 4 : series.length >= 30 ? 5 : 1;
+
+  // hover state
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [hover, setHover] = useState<number | null>(null);
+
+  const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const xRatio = (e.clientX - rect.left) / rect.width;
+    const xInVB = xRatio * width;
+    if (xInVB < padX || xInVB > width - padX) {
+      setHover(null);
+      return;
+    }
+    const idx = Math.round((xInVB - padX) / stepX);
+    const clamped = Math.max(0, Math.min(series.length - 1, idx));
+    setHover(clamped);
+  };
+
+  const hoverPt = hover !== null ? pts[hover] : null;
+  // tooltip 像素位置（基于 wrap 实际宽度）
+  const wrapW = wrapRef.current?.clientWidth ?? width;
+  const scale = wrapW / width;
+  const tipLeft = hoverPt ? hoverPt.cx * scale : 0;
+  const tipTop = hoverPt ? hoverPt.cy * scale : 0;
 
   return (
-    <div className="mt-4 -mx-1">
+    <div ref={wrapRef} className="mt-3 relative">
       <svg
+        ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
-        className="w-full h-[220px]"
-        preserveAspectRatio="none">
+        className="w-full h-[240px] block"
+        preserveAspectRatio="none"
+        onMouseMove={onMove}
+        onMouseLeave={() => setHover(null)}>
         <defs>
-          <linearGradient id="sv-bar" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#5B5BF7" stopOpacity="0.95" />
-            <stop offset="100%" stopColor="#5B5BF7" stopOpacity="0.55" />
+          <linearGradient id="sv-area" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#5B5BF7" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="#5B5BF7" stopOpacity="0" />
           </linearGradient>
         </defs>
-        {/* 网格 */}
+        {/* y 网格 + label */}
         {gridYs.map((y, i) => (
-          <line
-            key={i}
-            x1={padX}
-            x2={width - padX}
-            y1={y}
-            y2={y}
-            stroke="rgba(20,20,30,0.08)"
-            strokeDasharray={i === ySteps ? "0" : "2 4"}
-          />
+          <g key={i}>
+            <line
+              x1={padX}
+              x2={width - padX}
+              y1={y}
+              y2={y}
+              stroke="rgba(20,20,30,0.08)"
+              strokeDasharray={i === ySteps ? "0" : "2 4"}
+            />
+            <text
+              x={padX - 8}
+              y={y + 3}
+              textAnchor="end"
+              className="fill-[var(--ink-3)]"
+              style={{ fontSize: 9.5, fontFamily: "var(--font-mono, monospace)" }}>
+              {yLabels[i].toLocaleString("en-US")}
+            </text>
+          </g>
         ))}
-        {/* 柱体 */}
-        {series.map((p, i) => {
-          const x = padX + i * (barW + barGap);
-          const h = (p.v / max) * innerH;
-          const y = padTop + innerH - h;
-          return (
-            <g key={i}>
-              <rect
-                x={x}
-                y={y}
-                width={barW}
-                height={Math.max(2, h)}
-                rx={Math.min(3, barW / 2)}
-                fill="url(#sv-bar)">
-                <title>
-                  {p.x} · {p.v.toLocaleString("en-US")}
-                </title>
-              </rect>
-            </g>
-          );
-        })}
-        {/* x 轴标签 */}
-        {series.map((p, i) => {
-          if (i % labelEvery !== 0 && i !== series.length - 1) return null;
-          const x = padX + i * (barW + barGap) + barW / 2;
+        {/* 面积 */}
+        <path d={areaPath} fill="url(#sv-area)" />
+        {/* 折线 */}
+        <path
+          d={linePath}
+          fill="none"
+          stroke="#5B5BF7"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* x label */}
+        {pts.map((p, i) => {
+          if (i % labelEvery !== 0 && i !== pts.length - 1) return null;
           return (
             <text
-              key={`l-${i}`}
-              x={x}
-              y={height - 8}
+              key={`xl-${i}`}
+              x={p.cx}
+              y={height - 10}
               textAnchor="middle"
               className="fill-[var(--ink-3)]"
               style={{ fontSize: 10, fontFamily: "var(--font-mono, monospace)" }}>
@@ -416,7 +466,40 @@ function BarChart({
             </text>
           );
         })}
+        {/* hover crosshair + dot */}
+        {hoverPt && (
+          <g>
+            <line
+              x1={hoverPt.cx}
+              x2={hoverPt.cx}
+              y1={padTop}
+              y2={padTop + innerH}
+              stroke="rgba(20,20,30,0.18)"
+              strokeDasharray="3 3"
+            />
+            <circle cx={hoverPt.cx} cy={hoverPt.cy} r="6" fill="#5B5BF7" fillOpacity="0.18" />
+            <circle cx={hoverPt.cx} cy={hoverPt.cy} r="3" fill="#5B5BF7" stroke="white" strokeWidth="1.5" />
+          </g>
+        )}
       </svg>
+
+      {/* HTML tooltip — 跟随 hover 点 */}
+      {hoverPt && (
+        <div
+          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-[calc(100%+10px)] rounded-lg bg-[var(--ink)] text-white px-2.5 py-1.5 shadow-md"
+          style={{ left: tipLeft, top: tipTop }}>
+          <div className="font-mono text-[10px] tracking-[0.1em] uppercase opacity-70">
+            {hoverPt.x}
+          </div>
+          <div className="font-mono text-[13px] leading-tight">
+            {fmt(hoverPt.v)}
+          </div>
+          <div
+            className="absolute left-1/2 -bottom-1 -translate-x-1/2 w-2 h-2 rotate-45"
+            style={{ background: "var(--ink)" }}
+          />
+        </div>
+      )}
     </div>
   );
 }
