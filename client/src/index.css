@@ -478,3 +478,89 @@
 .result-scroll:hover::-webkit-scrollbar-thumb {
   background: #c9c5b8;
 }
+
+
+/* ──────────────────────────────────────────────
+ * Sciverse v8 · Search-Focus Ambient Feedback
+ * 搜索框 focus 时联动背景科学元素的微动效
+ * 全部尊重 prefers-reduced-motion，关闭后所有动效退化为静态
+ * ────────────────────────────────────────────── */
+
+/* 渐晕呼吸：focus 时柔和放大并提亮 */
+@keyframes sv-aura-breathe {
+  0%, 100% { transform: scale(1); opacity: var(--sv-aura-base, 0.55); }
+  50%      { transform: scale(1.08); opacity: var(--sv-aura-peak, 0.78); }
+}
+.sv-aura-active { animation: sv-aura-breathe 4.2s ease-in-out infinite; }
+
+/* DNA 螺旋：focus 时缓慢上下飘移并提色 */
+@keyframes sv-helix-drift {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+.sv-helix-active { animation: sv-helix-drift 3.6s ease-in-out infinite; }
+
+/* 苯环：focus 时极慢自转 */
+@keyframes sv-ring-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.sv-ring-active { animation: sv-ring-rotate 26s linear infinite; transform-origin: center; transform-box: fill-box; }
+
+/* 分子 ball-and-stick：focus 时键位呼吸 */
+@keyframes sv-mol-pulse {
+  0%, 100% { opacity: 0.18; }
+  50%      { opacity: 0.34; }
+}
+.sv-mol-active { animation: sv-mol-pulse 2.8s ease-in-out infinite; }
+
+/* 搜索框 focus 时外层柔光（条件化生效，placed on parent .sv-search-shell.is-focused） */
+.sv-search-shell {
+  position: relative;
+  transition: transform 360ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 360ms cubic-bezier(0.2,0.8,0.2,1);
+}
+.sv-search-shell::before {
+  content: "";
+  position: absolute;
+  inset: -18px;
+  border-radius: 22px;
+  background: radial-gradient(60% 80% at 50% 50%, rgba(91,91,247,0.18), rgba(91,91,247,0) 70%);
+  opacity: 0;
+  transition: opacity 360ms cubic-bezier(0.2,0.8,0.2,1);
+  pointer-events: none;
+  z-index: -1;
+}
+.sv-search-shell.is-focused::before { opacity: 1; }
+.sv-search-shell.is-focused {
+  transform: translateY(-2px);
+  box-shadow: 0 24px 56px -32px rgba(91,91,247,0.35), 0 2px 0 0 rgba(91,91,247,0.12) inset;
+}
+
+/* 扫描光线：focus 时一道极淡紫蓝光自左向右穿过输入框 */
+@keyframes sv-scan-line {
+  0%   { transform: translateX(-30%); opacity: 0; }
+  10%  { opacity: 0.6; }
+  90%  { opacity: 0.6; }
+  100% { transform: translateX(130%); opacity: 0; }
+}
+.sv-scan {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 38%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(91,91,247,0.10) 45%, rgba(122,108,255,0.18) 55%, transparent);
+  filter: blur(6px);
+  animation: sv-scan-line 2.6s cubic-bezier(0.65,0,0.35,1) infinite;
+  border-radius: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sv-aura-active,
+  .sv-helix-active,
+  .sv-ring-active,
+  .sv-mol-active,
+  .sv-scan { animation: none !important; }
+  .sv-search-shell.is-focused { transform: none; }
+}

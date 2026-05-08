@@ -200,8 +200,9 @@ function ResultCard({ r, q }: { r: Result; q: string }) {
   );
 }
 
-// v7: 科学学术蒙层组件 — 低透明度 SVG，纯装饰，不可交互
-function ScienceBackdrop() {
+// v7/v8: 科学学术蒙层组件 — 低透明度 SVG，纯装饰，不可交互
+// active=true 时（搜索框 focus）渐晕呼吸、DNA 飘移、苯环微转、分子脉动同步启动
+function ScienceBackdrop({ active = false }: { active?: boolean }) {
   return (
     <div
       aria-hidden
@@ -209,19 +210,30 @@ function ScienceBackdrop() {
       style={{ zIndex: 0 }}>
       {/* 柔和紫蓝渐晕 ×2 ，以及右下深调冷调增加站位质感 */}
       <div
-        className="absolute -top-40 -left-32 w-[640px] h-[640px] rounded-full opacity-[0.55]"
+        className={cn(
+          "absolute -top-40 -left-32 w-[640px] h-[640px] rounded-full opacity-[0.55] transition-opacity duration-500",
+          active && "sv-aura-active",
+        )}
         style={{
           background:
             "radial-gradient(closest-side, rgba(91,91,247,0.16), rgba(91,91,247,0) 70%)",
           filter: "blur(8px)",
+          ['--sv-aura-base' as any]: 0.55,
+          ['--sv-aura-peak' as any]: 0.85,
         }}
       />
       <div
-        className="absolute top-[180px] -right-40 w-[560px] h-[560px] rounded-full opacity-[0.5]"
+        className={cn(
+          "absolute top-[180px] -right-40 w-[560px] h-[560px] rounded-full opacity-[0.5] transition-opacity duration-500",
+          active && "sv-aura-active",
+        )}
         style={{
           background:
             "radial-gradient(closest-side, rgba(122,108,255,0.14), rgba(122,108,255,0) 70%)",
           filter: "blur(10px)",
+          animationDelay: "-1.5s",
+          ['--sv-aura-base' as any]: 0.5,
+          ['--sv-aura-peak' as any]: 0.78,
         }}
       />
       <div
@@ -255,8 +267,15 @@ function ScienceBackdrop() {
         {/* 极淡网格，带径向遮罩 */}
         <rect width="100%" height="100%" fill="url(#sv-grid)" mask="url(#sv-grid-mask-id)" />
 
-        {/* 右上：苯环 + 取代基×2 */}
-        <g transform="translate(1140, 90)" stroke="#5B5BF7" strokeWidth="1" fill="none" opacity="0.18">
+        {/* 右上：苯环 + 取代基×2（focus 时极慢自转） */}
+        <g
+          transform="translate(1140, 90)"
+          stroke="#5B5BF7"
+          strokeWidth="1"
+          fill="none"
+          opacity={active ? 0.28 : 0.18}
+          style={{ transition: "opacity 600ms ease" }}
+          className={active ? "sv-ring-active" : undefined}>
           <polygon points="0,0 52,0 78,45 52,90 0,90 -26,45" />
           <polygon points="110,30 162,30 188,75 162,120 110,120 84,75" />
           <line x1="52" y1="45" x2="110" y2="75" />
@@ -266,8 +285,15 @@ function ScienceBackdrop() {
           <text x="230" y="66" fontFamily="'JetBrains Mono', monospace" fontSize="11" fill="#5B5BF7" opacity="0.7">OH</text>
         </g>
 
-        {/* 左中：DNA 双螺旋 */}
-        <g transform="translate(40, 480)" stroke="#5B5BF7" strokeWidth="1" fill="none" opacity="0.16">
+        {/* 左中：DNA 双螺旋（focus 时上下飘移 + 提色） */}
+        <g
+          transform="translate(40, 480)"
+          stroke={active ? "#5B5BF7" : "#5B5BF7"}
+          strokeWidth="1"
+          fill="none"
+          opacity={active ? 0.28 : 0.16}
+          style={{ transition: "opacity 600ms ease" }}
+          className={active ? "sv-helix-active" : undefined}>
           {Array.from({ length: 14 }).map((_, i) => {
             const y = i * 26;
             const off = Math.sin(i * 0.55) * 26;
@@ -311,8 +337,15 @@ function ScienceBackdrop() {
           <text x="60" y="1264" fontSize="12">k_cat / K_M</text>
         </g>
 
-        {/* 中部偏右：分子 ball-and-stick 节点 */}
-        <g transform="translate(900, 1160)" stroke="#5B5BF7" strokeWidth="1" opacity="0.18" fill="#5B5BF7">
+        {/* 中部偏右：分子 ball-and-stick 节点（focus 时脉动） */}
+        <g
+          transform="translate(900, 1160)"
+          stroke="#5B5BF7"
+          strokeWidth="1"
+          opacity={active ? 0.30 : 0.18}
+          fill="#5B5BF7"
+          style={{ transition: "opacity 600ms ease" }}
+          className={active ? "sv-mol-active" : undefined}>
           <line x1="0" y1="0" x2="60" y2="30" fill="none" />
           <line x1="60" y1="30" x2="120" y2="-10" fill="none" />
           <line x1="60" y1="30" x2="50" y2="100" fill="none" />
@@ -491,8 +524,8 @@ export default function Experience() {
       <Sidebar active="experience" />
 
       <main className="flex-1 min-w-0 relative">
-        {/* v7: 科学学术蒙层 — 极淡分子/双螺旋/化学式贴纸 + 微噪点 + 柔和渐晕，仅环境质感，不影响主色与布局 */}
-        <ScienceBackdrop />
+        {/* v8: 科学学术蒙层，与搜索框 focus 状态联动 */}
+        <ScienceBackdrop active={focused} />
         <div className="relative flex-1 min-w-0 max-w-[960px] mx-auto px-8 lg:px-12 py-2">
           <HeroHeader />
 
@@ -500,9 +533,10 @@ export default function Experience() {
           <section className="relative">
             <div
               className={cn(
-                "card-paper px-5 pt-4 pb-3 flex flex-col gap-2 transition-all duration-300",
-                "focus-within:border-[var(--ink)] focus-within:shadow-[0_18px_42px_-28px_rgba(20,20,30,0.25)]",
+                "card-paper sv-search-shell px-5 pt-4 pb-3 flex flex-col gap-2",
+                focused && "is-focused",
               )}>
+              {focused && <span className="sv-scan" aria-hidden />}
               <textarea
                 ref={inputRef as unknown as React.RefObject<HTMLTextAreaElement>}
                 value={query}
