@@ -46,7 +46,7 @@ const NAV: {
   { key: "history", label: "历史", icon: History, hint: "近期搜索按时间分组" },
   { key: "tokens", label: "密钥", icon: KeyRound, href: "/tokens" },
   { key: "stats", label: "用量", icon: BarChart3, href: "/stats" },
-  { key: "docs", label: "文档", icon: BookOpen, href: "/docs", hint: "三接口 API 文档" },
+  { key: "docs", label: "接入指南", icon: BookOpen, href: "/docs", hint: "API · CLI/SDK · Skills 三种接入方式" },
 ];
 
 // v6: 二维码图片 URL 常量化 + 通过 new Image() 预加载（提前发起请求，避免点击 popover 才开始下载）
