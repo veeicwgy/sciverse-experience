@@ -554,8 +554,8 @@ export default function Experience() {
       <Sidebar active="experience" />
 
       <main className="flex-1 min-w-0 relative">
-        {/* v8: 科学学术蒙层，与搜索框 focus 状态联动 */}
-        <ScienceBackdrop active={focused} />
+        {/* v10: 背景蒙层保持静态装饰，不再跟随输入框 focus 动，避免干扰输入 */}
+        <ScienceBackdrop active={false} />
         <div className="relative flex-1 min-w-0 max-w-[960px] mx-auto px-8 lg:px-12 py-2">
           <HeroHeader />
 
@@ -566,7 +566,6 @@ export default function Experience() {
                 "card-paper sv-search-shell px-5 pt-4 pb-3 flex flex-col gap-2",
                 focused && "is-focused",
               )}>
-              {focused && <span className="sv-scan" aria-hidden />}
               <textarea
                 ref={inputRef as unknown as React.RefObject<HTMLTextAreaElement>}
                 value={query}

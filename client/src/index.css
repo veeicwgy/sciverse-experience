@@ -519,42 +519,25 @@
   position: relative;
   transition: transform 360ms cubic-bezier(0.2,0.8,0.2,1), box-shadow 360ms cubic-bezier(0.2,0.8,0.2,1);
 }
+/* v10: 弱化 focus 反馈 — 去掉紫蓝外光晕，改为中性微阴影 + 极淡边框，利于输入专注 */
 .sv-search-shell::before {
   content: "";
   position: absolute;
-  inset: -18px;
-  border-radius: 22px;
-  background: radial-gradient(60% 80% at 50% 50%, rgba(91,91,247,0.18), rgba(91,91,247,0) 70%);
+  inset: -10px;
+  border-radius: 18px;
+  background: radial-gradient(60% 80% at 50% 50%, rgba(20,20,30,0.05), rgba(20,20,30,0) 70%);
   opacity: 0;
-  transition: opacity 360ms cubic-bezier(0.2,0.8,0.2,1);
+  transition: opacity 280ms cubic-bezier(0.2,0.8,0.2,1);
   pointer-events: none;
   z-index: -1;
 }
 .sv-search-shell.is-focused::before { opacity: 1; }
 .sv-search-shell.is-focused {
-  transform: translateY(-2px);
-  box-shadow: 0 24px 56px -32px rgba(91,91,247,0.35), 0 2px 0 0 rgba(91,91,247,0.12) inset;
+  transform: translateY(-1px);
+  box-shadow: 0 18px 44px -32px rgba(20,20,30,0.22);
 }
 
-/* 扫描光线：focus 时一道极淡紫蓝光自左向右穿过输入框 */
-@keyframes sv-scan-line {
-  0%   { transform: translateX(-30%); opacity: 0; }
-  10%  { opacity: 0.6; }
-  90%  { opacity: 0.6; }
-  100% { transform: translateX(130%); opacity: 0; }
-}
-.sv-scan {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 38%;
-  pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(91,91,247,0.10) 45%, rgba(122,108,255,0.18) 55%, transparent);
-  filter: blur(6px);
-  animation: sv-scan-line 2.6s cubic-bezier(0.65,0,0.35,1) infinite;
-  border-radius: inherit;
-}
+/* v10: 扫描光线已移除（选择专注输入场景下不使用） */
 
 @media (prefers-reduced-motion: reduce) {
   .sv-aura-active,

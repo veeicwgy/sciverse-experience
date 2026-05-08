@@ -74,17 +74,29 @@ const HISTORY = [
 ];
 
 function Logo({ collapsed }: { collapsed: boolean }) {
+  // v10: 点击 logo+名称始终返回新对话主页，若已在 / 则清除 ?q 并刷新为初始态
+  const goHome = (e: React.MouseEvent) => {
+    if (typeof window === "undefined") return;
+    const onHome = window.location.pathname === "/";
+    if (onHome) {
+      e.preventDefault();
+      // 清除 ?q 并重载主页 — 让 Experience 重新进入初始态
+      window.location.href = "/";
+    }
+  };
   return (
     <Link
       href="/"
-      className="flex items-center gap-2.5 px-1 group cursor-pointer"
-      aria-label="返回新对话">
+      onClick={goHome as unknown as () => void}
+      className="flex items-center gap-2.5 px-1 group cursor-pointer rounded-md hover:bg-[#f1f0eb]/60 transition-colors py-1"
+      aria-label="返回新对话主页"
+      title="返回新对话主页">
       <img
         src="/manus-storage/sciverse-logo_532e83dd.svg"
         alt="Sciverse"
         className={cn(
           "select-none transition-transform group-hover:scale-[1.04]",
-          collapsed ? "h-7 w-7" : "h-8 w-8"
+          collapsed ? "h-7 w-7" : "h-8 w-8",
         )}
         draggable={false}
       />
