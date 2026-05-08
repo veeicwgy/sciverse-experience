@@ -75,7 +75,9 @@ export default function SkillsBubble() {
         </div>
         <div className="flex items-center gap-1 self-start shrink-0">
           <a
-            href="/docs"
+            href="https://clawhub.ai/gary-shen/sciverse-agent-tools"
+            target="_blank"
+            rel="noreferrer"
             className="inline-flex items-center gap-1 rounded-full bg-[var(--ink)] text-white px-3 py-1.5 text-[12px] hover:opacity-90 transition-opacity">
             获取 Skill
             <ArrowUpRight className="h-3 w-3" />

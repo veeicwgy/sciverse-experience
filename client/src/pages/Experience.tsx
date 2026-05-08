@@ -5,7 +5,6 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Search,
   X,
   ArrowRight,
   Loader2,
@@ -15,9 +14,6 @@ import {
   Check,
   FileText,
   Globe,
-  Beaker,
-  Dna,
-  Database,
   ExternalLink,
   Sparkles,
   Quote,
@@ -326,10 +322,9 @@ export default function Experience() {
           <section className="relative">
             <div
               className={cn(
-                "card-paper p-3 pl-4 flex items-end gap-3 transition-all duration-300",
+                "card-paper px-5 pt-4 pb-3 flex flex-col gap-2 transition-all duration-300",
                 "focus-within:border-[var(--ink)] focus-within:shadow-[0_18px_42px_-28px_rgba(20,20,30,0.25)]",
               )}>
-              <Search className="h-4 w-4 text-[var(--ink-3)] shrink-0 mb-3" />
               <textarea
                 ref={inputRef as unknown as React.RefObject<HTMLTextAreaElement>}
                 value={query}
@@ -337,40 +332,48 @@ export default function Experience() {
                   setQuery(e.target.value);
                   const el = e.currentTarget;
                   el.style.height = "auto";
-                  el.style.height = Math.min(el.scrollHeight, 200) + "px";
+                  el.style.height = Math.min(el.scrollHeight, 220) + "px";
                 }}
                 onKeyDown={onKey as unknown as React.KeyboardEventHandler<HTMLTextAreaElement>}
                 onCompositionStart={() => (composing.current = true)}
                 onCompositionEnd={() => (composing.current = false)}
                 disabled={loading}
-                rows={2}
-                placeholder="输入科学问题或关键词·例：mRNA 疫苗递送系统"
-                className="flex-1 bg-transparent outline-none py-2.5 text-[15px] leading-[1.65] placeholder:text-[var(--ink-3)] disabled:opacity-60 resize-none min-h-[60px] max-h-[200px]"
+                rows={3}
+                placeholder="输入科学问题或关键词，例：mRNA 疫苗递送系统"
+                className="w-full bg-transparent outline-none text-[15.5px] leading-[1.7] placeholder:text-[var(--ink-3)] disabled:opacity-60 resize-none min-h-[120px] max-h-[220px]"
               />
-              {query && (
-                <button
-                  onClick={clear}
-                  aria-label="清空"
-                  className="h-8 w-8 rounded-full hover:bg-[#f1f0eb] grid place-items-center text-[var(--ink-2)] transition-colors mb-1">
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-              <button
-                onClick={() => submit()}
-                disabled={!canSubmit}
-                className="btn-ink !py-2.5 !px-5 mb-1">
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    搜索中
-                  </>
-                ) : (
-                  <>
-                    搜索
-                    <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
-              </button>
+              <div className="flex items-center justify-between pt-1 border-t hairline">
+                <div className="font-mono text-[11px] tracking-[0.16em] uppercase text-[var(--ink-3)]">
+                  Enter 提交 · Shift+Enter 换行
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {query && (
+                    <button
+                      onClick={clear}
+                      aria-label="清空"
+                      className="h-8 px-3 inline-flex items-center gap-1 rounded-full hover:bg-[#f1f0eb] text-[12.5px] text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors">
+                      <X className="h-3.5 w-3.5" /> 清空
+                    </button>
+                  )}
+                  <button
+                    onClick={() => submit()}
+                    disabled={!canSubmit}
+                    className="h-8 px-3.5 inline-flex items-center gap-1.5 rounded-full border hairline bg-white text-[12.5px] text-[var(--ink)] hover:border-[var(--ink)] hover:bg-[var(--paper-2)] disabled:opacity-50 disabled:hover:border-[var(--border)] transition-all"
+                    aria-label="提交搜索">
+                    {loading ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <span>检索中</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>提交</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* sample tags */}
@@ -439,7 +442,7 @@ export default function Experience() {
             <div className="mt-5 grid md:grid-cols-3 gap-4">
               {[
                 {
-                  icon: Beaker,
+                  logo: "/manus-storage/dianshi_8cef3dfd.svg",
                   name: "点石 DianShi",
                   desc: "有机化学反应数据库",
                   bullets: ["10M+ 化学反应", "6M+ 化学物质", "1M+ 专利文献"],
@@ -448,7 +451,7 @@ export default function Experience() {
                   tag: "Reactions",
                 },
                 {
-                  icon: Dna,
+                  logo: "/manus-storage/seqstudio_3990637c.svg",
                   name: "SeqStudio",
                   desc: "蛋白质功能 AI 推理 + LLM 注释",
                   bullets: ["57万+ 蛋白注释", "BLAST · Foldseek 一体化", "AI 推理 + LLM 自动综述"],
@@ -457,7 +460,7 @@ export default function Experience() {
                   tag: "Proteins",
                 },
                 {
-                  icon: Database,
+                  logo: "/manus-storage/scibase_43bd98d3.svg",
                   name: "Sci-Base 数据集",
                   desc: "面向科学 Agent 的开源语料",
                   bullets: ["Sci-Base · 25M+ OA 文献", "SA-Prot-Annot · 蛋白注释", "SA-RxnDiagram-15k · 反应图示"],
@@ -466,7 +469,6 @@ export default function Experience() {
                   tag: "Datasets",
                 },
               ].map((c) => {
-                const Icon = c.icon;
                 return (
                   <a
                     key={c.name}
@@ -475,8 +477,8 @@ export default function Experience() {
                     rel="noreferrer"
                     className="card-paper p-5 group block">
                     <div className="flex items-center justify-between">
-                      <div className="h-9 w-9 rounded-full grid place-items-center bg-[var(--paper-2)] border hairline text-[var(--ink)]">
-                        <Icon className="h-4 w-4" />
+                      <div className="h-10 w-10 rounded-xl grid place-items-center bg-white border hairline overflow-hidden">
+                        <img src={c.logo} alt={c.name} className="h-7 w-7 object-contain" />
                       </div>
                       <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
                         {c.tag}

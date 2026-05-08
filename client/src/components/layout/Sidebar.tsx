@@ -72,24 +72,19 @@ const HISTORY = [
 function Logo({ collapsed }: { collapsed: boolean }) {
   return (
     <div className="flex items-center gap-2.5 px-1">
-      <div
-        className="relative h-8 w-8 rounded-full flex items-center justify-center"
-        style={{
-          background:
-            "radial-gradient(circle at 35% 30%, #8a8aff 0%, #5b5bf7 60%, #3a3acc 100%)",
-        }}>
-        <div className="absolute inset-[6px] rounded-full border border-white/70" />
-        <div className="absolute inset-[10px] rounded-full bg-white/0 border border-white/40 rotate-45" />
-      </div>
+      <img
+        src="/manus-storage/sciverse-logo_532e83dd.svg"
+        alt="Sciverse"
+        className={cn(
+          "select-none",
+          collapsed ? "h-7 w-7" : "h-8 w-8"
+        )}
+        draggable={false}
+      />
       {!collapsed && (
-        <div className="flex items-baseline gap-1.5">
-          <span className="font-display text-[18px] font-semibold text-[var(--ink)]">
-            Sciverse
-          </span>
-          <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
-            v0.1
-          </span>
-        </div>
+        <span className="font-display text-[18px] font-semibold text-[var(--ink)] tracking-tight">
+          Sciverse
+        </span>
       )}
     </div>
   );
@@ -273,12 +268,9 @@ export default function Sidebar({ active }: { active?: NavKey }) {
             {user ? (
               <Popover>
                 <PopoverTrigger asChild>
-                  <button className="flex-1 flex items-center gap-2 rounded-full border hairline bg-white pl-1 pr-3 py-1 hover:border-[var(--ink)] transition-colors text-left">
-                    <img src={user.avatar} alt={user.name} className="h-7 w-7 rounded-full" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[12.5px] text-[var(--ink)] truncate leading-tight">{user.name}</div>
-                      <div className="font-mono text-[10px] text-[var(--ink-3)] truncate leading-tight">{user.handle}</div>
-                    </div>
+                  <button className="flex-1 flex items-center gap-2 rounded-full border hairline bg-white px-3 py-1.5 hover:border-[var(--ink)] transition-colors text-left">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--brand)]" />
+                    <span className="text-[13px] text-[var(--ink)] truncate leading-tight">{user.name}</span>
                   </button>
                 </PopoverTrigger>
                 <PopoverContent side="top" align="start" className="w-[180px] p-1.5">
@@ -325,15 +317,12 @@ export default function Sidebar({ active }: { active?: NavKey }) {
             {user ? (
               <Popover>
                 <PopoverTrigger asChild>
-                  <button className="h-9 w-9 rounded-full overflow-hidden border hairline bg-white">
-                    <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                  <button className="h-9 w-9 rounded-full border hairline bg-white flex items-center justify-center text-[12px] font-medium text-[var(--ink)] hover:border-[var(--ink)] transition-colors" aria-label={user.name}>
+                    {user.name.slice(0, 1)}
                   </button>
                 </PopoverTrigger>
                 <PopoverContent side="right" align="end" className="w-[180px] p-1.5">
-                  <div className="px-2 py-1.5 text-[12px] text-[var(--ink-2)]">
-                    <span className="text-[var(--ink)]">{user.name}</span>
-                    <span className="font-mono text-[10px] text-[var(--ink-3)] ml-1">{user.handle}</span>
-                  </div>
+                  <div className="px-2 py-1.5 text-[12.5px] text-[var(--ink)]">{user.name}</div>
                   <button onClick={signOut} className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-[12.5px] text-[var(--ink-2)] hover:bg-[#f1f0eb] hover:text-[var(--ink)] transition-colors">
                     <LogOut className="h-3.5 w-3.5" /> 退出登录
                   </button>
