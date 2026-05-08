@@ -236,21 +236,10 @@ function ResultCard({ r, q }: { r: Result; q: string }) {
 
 function HeroHeader() {
   return (
-    <header className="relative pt-14 pb-10">
-      <div className="section-marker mb-6">§ 01 / Sciverse Experience</div>
-      <h1 className="font-display text-[44px] leading-[1.05] tracking-[-0.02em] text-[var(--ink)] max-w-[760px]">
-        一个搜索框，<span className="italic text-[var(--ink-2)]">三路引擎</span>，
-        <br />
+    <header className="relative pt-16 pb-8">
+      <h1 className="font-display text-[clamp(36px,4.6vw,52px)] leading-[1.06] tracking-[-0.02em] text-[var(--ink)] max-w-[840px]">
         让 Agent 真正读懂 <span className="text-[var(--brand)]">科学世界</span>。
       </h1>
-      <p className="mt-4 max-w-[640px] text-[15px] leading-[1.7] text-[var(--ink-2)]">
-        Sciverse 同时调用 <span className="code-chip">/agentic-search</span>
-        <span className="mx-1.5">·</span>
-        <span className="code-chip">/meta-search</span>
-        <span className="mx-1.5">·</span>
-        <span className="code-chip">/content</span> 三个接口，
-        由 LLM 清洗整合后输出干净、可引用、可直接接入 Agent 的结果。
-      </p>
     </header>
   );
 }
@@ -334,45 +323,58 @@ export default function Experience() {
           <section className="relative">
             <div
               className={cn(
-                "card-paper p-2 pl-4 flex items-center gap-3 transition-all duration-300",
+                "card-paper p-3 pl-4 flex items-start gap-3 transition-all duration-300",
                 "focus-within:border-[var(--ink)] focus-within:shadow-[0_18px_42px_-28px_rgba(20,20,30,0.25)]",
               )}>
-              <Search className="h-4 w-4 text-[var(--ink-3)] shrink-0" />
-              <input
-                ref={inputRef}
+              <Search className="h-4 w-4 text-[var(--ink-3)] shrink-0 mt-3" />
+              <textarea
+                ref={inputRef as unknown as React.RefObject<HTMLTextAreaElement>}
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={onKey}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  // 自动撑高
+                  const el = e.currentTarget;
+                  el.style.height = "auto";
+                  el.style.height = Math.min(el.scrollHeight, 200) + "px";
+                }}
+                onKeyDown={onKey as unknown as React.KeyboardEventHandler<HTMLTextAreaElement>}
                 onCompositionStart={() => (composing.current = true)}
                 onCompositionEnd={() => (composing.current = false)}
                 disabled={loading}
-                placeholder="输入科学问题或关键词，支持中英文 · 例：mRNA 疫苗递送系统"
-                className="flex-1 bg-transparent outline-none py-3 text-[15px] placeholder:text-[var(--ink-3)] disabled:opacity-60"
+                rows={3}
+                placeholder={`输入一段科学问题或关键词 · 支持中英文
+例：mRNA 疫苗递送系统在脂质纳米颗粒中的最新优化策略，按 2023 年起的高引文献排序
+Shift + Enter 换行，Enter 直接搜索`}
+                className="flex-1 bg-transparent outline-none py-2.5 text-[15px] leading-[1.65] placeholder:text-[var(--ink-3)] disabled:opacity-60 resize-none min-h-[88px] max-h-[200px]"
               />
-              {query && (
-                <button
-                  onClick={clear}
-                  aria-label="清空"
-                  className="h-7 w-7 rounded-full hover:bg-[#f1f0eb] grid place-items-center text-[var(--ink-2)] transition-colors">
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-              <button
-                onClick={() => submit()}
-                disabled={!canSubmit}
-                className="btn-ink !py-2.5 !px-5">
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    搜索中
-                  </>
+              <div className="flex flex-col items-end gap-2 self-stretch justify-between pt-1 pb-1">
+                {query ? (
+                  <button
+                    onClick={clear}
+                    aria-label="清空"
+                    className="h-7 w-7 rounded-full hover:bg-[#f1f0eb] grid place-items-center text-[var(--ink-2)] transition-colors">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 ) : (
-                  <>
-                    搜索
-                    <ArrowRight className="h-4 w-4" />
-                  </>
+                  <span className="font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--ink-3)] pr-1">⌘ ⏎</span>
                 )}
-              </button>
+                <button
+                  onClick={() => submit()}
+                  disabled={!canSubmit}
+                  className="btn-ink !py-2.5 !px-5">
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      搜索中
+                    </>
+                  ) : (
+                    <>
+                      搜索
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* sample tags */}
@@ -397,7 +399,7 @@ export default function Experience() {
           {/* STATUS + RESULTS */}
           {meta && committed && (
             <section className="mt-10">
-              <div className="section-marker mb-3">§ 02 / Results</div>
+
               <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[12.5px] text-[var(--ink-2)]">
                 <span>
                   搜索结果{" "}
@@ -431,7 +433,7 @@ export default function Experience() {
 
           {/* DRIFT CARDS */}
           <section className="mt-14">
-            <div className="section-marker mb-4">§ 03 / Sciverse Ecosystem</div>
+
             <h2 className="font-display text-[26px] text-[var(--ink)]">
               探索 <span className="italic">Sciverse</span> 生态
             </h2>
@@ -510,33 +512,31 @@ export default function Experience() {
 
           {/* DATA SCALE */}
           <section className="mt-14">
-            <div className="section-marker mb-4">§ 06 / Data Capability</div>
             <h2 className="font-display text-[26px] text-[var(--ink)]">
               Sciverse 数据能力<span className="italic"> 全景</span>
             </h2>
-            <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 border-t border-b hairline">
+            <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-2 border-t border-b hairline">
               {[
-                { num: "25,000,000", unit: "篇", label: "OA 文献", note: "10 大学科 · T+1 同步" },
-                { num: "50,000+", unit: "册", label: "教材书籍", note: "全量 40 万 持续接入" },
-                { num: "10,000,000+", unit: "条", label: "化学反应", note: "1976 - 2025 专利覆盖" },
-                { num: "570,000+", unit: "条", label: "蛋白注释", note: "23 维 functional axes" },
+                { num: "25M+", unit: "篇", label: "OA 文献", note: "10 大学科 · T+1 同步" },
+                { num: "50K+", unit: "册", label: "教材书籍", note: "全量 40 万 持续接入" },
+                { num: "10M+", unit: "条", label: "化学反应", note: "1976 — 2025 专利覆盖" },
+                { num: "570K+", unit: "条", label: "蛋白注释", note: "23 维 functional axes" },
               ].map((d, i) => (
                 <div
                   key={d.label}
                   className={cn(
-                    "py-7 px-5",
-                    i !== 0 && "lg:border-l hairline",
-                    i === 2 && "border-l hairline lg:border-l",
-                    i === 1 && "border-l hairline lg:border-l",
+                    "py-7 px-2 min-w-0",
+                    i !== 0 && "lg:border-l hairline lg:pl-6",
+                    (i === 1 || i === 3) && "border-l hairline pl-5",
                   )}>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="font-display text-[40px] leading-none tracking-[-0.02em] text-[var(--ink)]">
+                  <div className="flex items-baseline gap-2 min-w-0">
+                    <span className="font-display font-semibold leading-none tracking-[-0.02em] text-[var(--ink)] text-[clamp(28px,3.4vw,44px)] truncate">
                       {d.num}
                     </span>
-                    <span className="text-[13px] text-[var(--ink-2)]">{d.unit}</span>
+                    <span className="text-[12.5px] text-[var(--ink-2)] shrink-0">{d.unit}</span>
                   </div>
                   <div className="mt-2 text-[13px] text-[var(--ink)]">{d.label}</div>
-                  <div className="mt-0.5 font-mono text-[11px] tracking-[0.04em] text-[var(--ink-3)]">
+                  <div className="mt-0.5 font-mono text-[11px] tracking-[0.04em] text-[var(--ink-3)] truncate">
                     {d.note}
                   </div>
                 </div>

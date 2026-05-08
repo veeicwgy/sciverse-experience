@@ -272,7 +272,6 @@ export default function Docs() {
       <main className="flex-1 min-w-0 flex">
         {/* SUB-NAV: endpoint list + TOC */}
         <aside className="hidden lg:block w-[240px] shrink-0 border-r hairline px-5 py-8 sticky top-0 h-screen overflow-y-auto">
-          <div className="section-marker mb-4">§ Docs / v0.1</div>
           <div>
             <div className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)] mb-2">
               接口
@@ -330,7 +329,7 @@ export default function Docs() {
         <div className="flex-1 min-w-0 grid lg:grid-cols-[1fr_440px] gap-0">
           {/* center column */}
           <section className="px-8 lg:px-12 py-10 max-w-[760px]">
-            <div className="section-marker mb-4">§ {ep.id.toUpperCase()}</div>
+
             <div className="flex flex-wrap items-center gap-3">
               <MethodPill method={ep.method} />
               <span className="font-mono text-[13px] text-[var(--ink)] break-all">

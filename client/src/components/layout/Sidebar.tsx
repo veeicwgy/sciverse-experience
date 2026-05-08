@@ -1,10 +1,10 @@
 /*
- * Sciverse Sidebar — Editorial Lab
- * Layout: 260px expanded / 56px collapsed (icons-only with tooltips)
- * Pattern: Logo · 新对话 · 历史对话 · 文档中心 · API Key · 调用统计 · (spacer) · 用户中心
- * Style: paper bg #FAFAF7, active item white card with brand indigo accent bar
+ * Sciverse Sidebar — Editorial Lab (v2)
+ * - Collapsed state: clicking 历史对话 icon auto-expands sidebar + scrolls to history group
+ * - Login: single ink-pill button (no 注册), light "立即解锁" microcopy removed
+ * - 微信小助手: collapsed into a single Help icon → Popover with QR placeholder
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   ChevronsLeft,
@@ -14,9 +14,8 @@ import {
   BookOpen,
   KeyRound,
   BarChart3,
-  Settings,
   LogIn,
-  Sparkles,
+  HelpCircle,
   Globe,
 } from "lucide-react";
 import {
@@ -24,6 +23,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type NavKey = "experience" | "history" | "docs" | "tokens" | "stats";
@@ -93,6 +98,8 @@ export default function Sidebar({ active }: { active?: NavKey }) {
   const [location] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(true);
+  const historyRef = useRef<HTMLDivElement | null>(null);
+  const navRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("sciverse:sidebar:collapsed");
@@ -113,6 +120,21 @@ export default function Sidebar({ active }: { active?: NavKey }) {
     if (location.startsWith("/stats")) return "stats";
     return "experience";
   }, [active, location]);
+
+  // 收起态点击「历史对话」 → 自动展开 + 滚到历史 + toast 反馈
+  const handleHistoryClick = () => {
+    if (collapsed) {
+      setCollapsed(false);
+      setHistoryOpen(true);
+      toast("已展开历史对话", { description: "近期搜索按时间分组显示" });
+      // 等展开动画完后滚动到历史区
+      setTimeout(() => {
+        historyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 320);
+    } else {
+      setHistoryOpen((v) => !v);
+    }
+  };
 
   return (
     <aside
@@ -141,15 +163,21 @@ export default function Sidebar({ active }: { active?: NavKey }) {
       </div>
 
       {/* main nav */}
-      <nav className={cn("px-3 mt-1 flex-1 overflow-y-auto", collapsed && "px-2")}>
+      <nav
+        ref={navRef}
+        className={cn("px-3 mt-1 flex-1 overflow-y-auto", collapsed && "px-2")}>
         {NAV.map((n) => {
           const isHistory = n.key === "history";
           const Icon = n.icon;
-          const active = currentKey === n.key;
+          const isActive = currentKey === n.key;
           const item = (
             <div
-              className={cn("nav-item", active && "active", collapsed && "justify-center px-0")}
-              onClick={() => isHistory && !collapsed && setHistoryOpen((v) => !v)}>
+              className={cn(
+                "nav-item",
+                isActive && "active",
+                collapsed && "justify-center px-0"
+              )}
+              onClick={() => isHistory && handleHistoryClick()}>
               <Icon className="h-[15px] w-[15px] shrink-0" />
               {!collapsed && (
                 <span className="flex-1 truncate">{n.label}</span>
@@ -175,7 +203,9 @@ export default function Sidebar({ active }: { active?: NavKey }) {
               <div key={n.key}>
                 {wrapped}
                 {isHistory && historyOpen && (
-                  <div className="mt-1 mb-2 ml-2 pl-3 border-l hairline space-y-3">
+                  <div
+                    ref={historyRef}
+                    className="mt-1 mb-2 ml-2 pl-3 border-l hairline space-y-3">
                     {HISTORY.map((g) => (
                       <div key={g.bucket}>
                         <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--ink-3)] mb-1.5">
@@ -211,60 +241,81 @@ export default function Sidebar({ active }: { active?: NavKey }) {
         })}
       </nav>
 
-      {/* bottom: user / login */}
+      {/* bottom: 精简登录 + 微信 popover icon */}
       <div className={cn("p-3 border-t hairline", collapsed && "px-2")}>
         {!collapsed ? (
-          <div className="space-y-3">
-            <div className="rounded-xl border hairline bg-white p-3">
-              <div className="flex items-center gap-2 text-[12.5px] text-[var(--ink-2)]">
-                <Sparkles className="h-3.5 w-3.5 text-[var(--brand)]" />
-                未登录 · 立即解锁 API Key
-              </div>
-              <div className="mt-2 flex items-center gap-2">
-                <button className="btn-ink !py-1.5 !px-3 text-[12.5px]">
-                  <LogIn className="h-3.5 w-3.5" />
-                  登录
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => toast("登录功能即将开放", { description: "我们会先邀请内测开发者，敬请期待" })}
+              className="btn-ink !py-2 !px-4 text-[13px] flex-1 justify-center">
+              <LogIn className="h-3.5 w-3.5" />
+              登录
+            </button>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  aria-label="帮助 · 微信小助手"
+                  className="h-9 w-9 rounded-full border hairline bg-white flex items-center justify-center text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
+                  <HelpCircle className="h-4 w-4" />
                 </button>
-                <button className="btn-ghost !py-1.5 !px-3 text-[12.5px]">
-                  注册
-                </button>
-                <button className="ml-auto h-7 w-7 rounded-md flex items-center justify-center hover:bg-[#f1f0eb] text-[var(--ink-2)]">
-                  <Globe className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-            <div className="rounded-xl border hairline bg-white p-3">
-              <div className="text-[11px] tracking-[0.16em] uppercase font-mono text-[var(--ink-3)] mb-2">
-                微信小助手
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="h-[68px] w-[68px] rounded-md bg-[var(--paper-2)] grid-paper border hairline" />
-                <div className="text-[11.5px] leading-relaxed text-[var(--ink-2)]">
-                  扫码加入开发者群
-                  <br />
-                  抢先体验新接口
+              </PopoverTrigger>
+              <PopoverContent side="top" align="end" className="w-[220px] p-3">
+                <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--ink-3)] mb-2">
+                  微信小助手
                 </div>
-              </div>
-            </div>
+                <div className="rounded-md border hairline bg-[var(--paper-2)] grid-paper aspect-square w-full grid place-items-center">
+                  <span className="font-mono text-[10px] text-[var(--ink-3)]">QR PLACEHOLDER</span>
+                </div>
+                <div className="mt-2 text-[11.5px] leading-relaxed text-[var(--ink-2)]">
+                  扫码加入开发者群，抢先体验新接口与公测计划。
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => toast("已切换为 中文", { description: "EN 版本敬请期待" })}
+                  className="h-9 w-9 rounded-full border hairline bg-white flex items-center justify-center text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
+                  <Globe className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">中 / EN</TooltipContent>
+            </Tooltip>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <button className="h-9 w-9 rounded-full bg-[var(--ink)] text-white flex items-center justify-center">
+                <button
+                  onClick={() => toast("登录功能即将开放")}
+                  className="h-9 w-9 rounded-full bg-[var(--ink)] text-white flex items-center justify-center">
                   <LogIn className="h-4 w-4" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right" className="text-xs">登录</TooltipContent>
             </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button className="h-9 w-9 rounded-full border hairline bg-white flex items-center justify-center text-[var(--ink-2)]">
-                  <Settings className="h-4 w-4" />
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  aria-label="帮助 · 微信小助手"
+                  className="h-9 w-9 rounded-full border hairline bg-white flex items-center justify-center text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
+                  <HelpCircle className="h-4 w-4" />
                 </button>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="text-xs">设置</TooltipContent>
-            </Tooltip>
+              </PopoverTrigger>
+              <PopoverContent side="right" align="end" className="w-[220px] p-3">
+                <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--ink-3)] mb-2">
+                  微信小助手
+                </div>
+                <div className="rounded-md border hairline bg-[var(--paper-2)] grid-paper aspect-square w-full grid place-items-center">
+                  <span className="font-mono text-[10px] text-[var(--ink-3)]">QR PLACEHOLDER</span>
+                </div>
+                <div className="mt-2 text-[11.5px] leading-relaxed text-[var(--ink-2)]">
+                  扫码加入开发者群，抢先体验新接口与公测计划。
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         )}
       </div>

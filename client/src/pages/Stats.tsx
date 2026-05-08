@@ -71,7 +71,6 @@ export default function Stats() {
       <Sidebar active="stats" />
       <main className="flex-1 min-w-0">
         <div className="max-w-[1080px] mx-auto px-8 lg:px-12 py-10">
-          <div className="section-marker mb-4">§ Usage / Overview</div>
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h1 className="font-display text-[34px] tracking-[-0.02em] text-[var(--ink)]">

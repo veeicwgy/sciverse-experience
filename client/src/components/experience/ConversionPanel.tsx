@@ -32,7 +32,6 @@ export default function ConversionPanel({ query }: { query: string }) {
   return (
     <aside className="hidden xl:block sticky top-6 self-start w-[340px] shrink-0">
       <div className="card-paper p-5 ed-in">
-        <div className="section-marker mb-3">§ 04 / Integrate</div>
         <h3 className="font-display text-[20px] leading-[1.25] text-[var(--ink)]">
           把这次搜索 <br />
           <span className="italic">接入</span> 你的 Agent。
@@ -83,7 +82,6 @@ print(res.json())`}
       </div>
 
       <div className="mt-4 card-paper p-5">
-        <div className="section-marker mb-3">§ 05 / Quotas</div>
         <ul className="text-[12.5px] text-[var(--ink-2)] space-y-1.5">
           <li className="flex items-baseline gap-2">
             <span className="dot on" />
