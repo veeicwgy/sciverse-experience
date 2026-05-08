@@ -200,6 +200,152 @@ function ResultCard({ r, q }: { r: Result; q: string }) {
   );
 }
 
+// v7: 科学学术蒙层组件 — 低透明度 SVG，纯装饰，不可交互
+function ScienceBackdrop() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 overflow-hidden select-none"
+      style={{ zIndex: 0 }}>
+      {/* 柔和紫蓝渐晕 ×2 ，以及右下深调冷调增加站位质感 */}
+      <div
+        className="absolute -top-40 -left-32 w-[640px] h-[640px] rounded-full opacity-[0.55]"
+        style={{
+          background:
+            "radial-gradient(closest-side, rgba(91,91,247,0.16), rgba(91,91,247,0) 70%)",
+          filter: "blur(8px)",
+        }}
+      />
+      <div
+        className="absolute top-[180px] -right-40 w-[560px] h-[560px] rounded-full opacity-[0.5]"
+        style={{
+          background:
+            "radial-gradient(closest-side, rgba(122,108,255,0.14), rgba(122,108,255,0) 70%)",
+          filter: "blur(10px)",
+        }}
+      />
+      <div
+        className="absolute bottom-[-200px] left-[28%] w-[700px] h-[700px] rounded-full opacity-[0.4]"
+        style={{
+          background:
+            "radial-gradient(closest-side, rgba(36,42,86,0.10), rgba(36,42,86,0) 70%)",
+          filter: "blur(14px)",
+        }}
+      />
+
+      {/* 贴纸 SVG：苯环 + 分子 + 双螺旋 + 化学式 — 极淡 stroke #5B5BF7 */}
+      <svg
+        className="absolute inset-0 w-full h-full"
+        viewBox="0 0 1400 2000"
+        preserveAspectRatio="xMidYMin slice"
+        xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="sv-grid" width="56" height="56" patternUnits="userSpaceOnUse">
+            <path d="M 56 0 L 0 0 0 56" fill="none" stroke="#5B5BF7" strokeWidth="0.4" opacity="0.06" />
+          </pattern>
+          <radialGradient id="sv-grid-mask" cx="50%" cy="30%" r="70%">
+            <stop offset="0%" stopColor="white" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="white" stopOpacity="0" />
+          </radialGradient>
+          <mask id="sv-grid-mask-id">
+            <rect width="100%" height="100%" fill="url(#sv-grid-mask)" />
+          </mask>
+        </defs>
+
+        {/* 极淡网格，带径向遮罩 */}
+        <rect width="100%" height="100%" fill="url(#sv-grid)" mask="url(#sv-grid-mask-id)" />
+
+        {/* 右上：苯环 + 取代基×2 */}
+        <g transform="translate(1140, 90)" stroke="#5B5BF7" strokeWidth="1" fill="none" opacity="0.18">
+          <polygon points="0,0 52,0 78,45 52,90 0,90 -26,45" />
+          <polygon points="110,30 162,30 188,75 162,120 110,120 84,75" />
+          <line x1="52" y1="45" x2="110" y2="75" />
+          <line x1="-26" y1="45" x2="-60" y2="30" />
+          <line x1="188" y1="75" x2="222" y2="60" />
+          <text x="-78" y="24" fontFamily="'JetBrains Mono', monospace" fontSize="11" fill="#5B5BF7" opacity="0.7">CH₃</text>
+          <text x="230" y="66" fontFamily="'JetBrains Mono', monospace" fontSize="11" fill="#5B5BF7" opacity="0.7">OH</text>
+        </g>
+
+        {/* 左中：DNA 双螺旋 */}
+        <g transform="translate(40, 480)" stroke="#5B5BF7" strokeWidth="1" fill="none" opacity="0.16">
+          {Array.from({ length: 14 }).map((_, i) => {
+            const y = i * 26;
+            const off = Math.sin(i * 0.55) * 26;
+            return (
+              <g key={i}>
+                <line x1={20 + off} y1={y} x2={80 - off} y2={y} />
+                <circle cx={20 + off} cy={y} r="2" fill="#5B5BF7" opacity="0.6" />
+                <circle cx={80 - off} cy={y} r="2" fill="#5B5BF7" opacity="0.6" />
+              </g>
+            );
+          })}
+          <path
+            d={`M ${20 + Math.sin(0) * 26},0 ${Array.from({ length: 14 })
+              .map((_, i) => `L ${20 + Math.sin(i * 0.55) * 26},${i * 26}`)
+              .join(" ")}`}
+            stroke="#5B5BF7"
+            strokeWidth="0.8"
+          />
+          <path
+            d={`M ${80 - Math.sin(0) * 26},0 ${Array.from({ length: 14 })
+              .map((_, i) => `L ${80 - Math.sin(i * 0.55) * 26},${i * 26}`)
+              .join(" ")}`}
+            stroke="#5B5BF7"
+            strokeWidth="0.8"
+          />
+        </g>
+
+        {/* 右中：蛋白表面 · 带状折叠抽象 */}
+        <g transform="translate(1080, 760)" stroke="#5B5BF7" strokeWidth="1" fill="none" opacity="0.13">
+          <path d="M 0 0 C 60 -40, 140 40, 200 0 S 320 60, 380 20" />
+          <path d="M 0 30 C 60 -10, 140 70, 200 30 S 320 90, 380 50" />
+          <path d="M 0 60 C 60 20, 140 100, 200 60 S 320 120, 380 80" />
+          <path d="M 0 90 C 60 50, 140 130, 200 90 S 320 150, 380 110" />
+        </g>
+
+        {/* 左下：化学公式×3 + Greek letters */}
+        <g fontFamily="'JetBrains Mono', monospace" opacity="0.16" fill="#242A56">
+          <text x="60" y="1180" fontSize="13">E = mc²</text>
+          <text x="60" y="1208" fontSize="12">ΔG = ΔH − TΔS</text>
+          <text x="60" y="1236" fontSize="12">ψ(x,t) = A e^(i(kx−ωt))</text>
+          <text x="60" y="1264" fontSize="12">k_cat / K_M</text>
+        </g>
+
+        {/* 中部偏右：分子 ball-and-stick 节点 */}
+        <g transform="translate(900, 1160)" stroke="#5B5BF7" strokeWidth="1" opacity="0.18" fill="#5B5BF7">
+          <line x1="0" y1="0" x2="60" y2="30" fill="none" />
+          <line x1="60" y1="30" x2="120" y2="-10" fill="none" />
+          <line x1="60" y1="30" x2="50" y2="100" fill="none" />
+          <line x1="120" y1="-10" x2="190" y2="20" fill="none" />
+          <line x1="50" y1="100" x2="-10" y2="140" fill="none" />
+          <circle cx="0" cy="0" r="4" />
+          <circle cx="60" cy="30" r="5" />
+          <circle cx="120" cy="-10" r="4" />
+          <circle cx="50" cy="100" r="4" />
+          <circle cx="190" cy="20" r="3" />
+          <circle cx="-10" cy="140" r="3" />
+        </g>
+
+        {/* 下部：序列片段 ATCG · 贴纸低调 */}
+        <g fontFamily="'JetBrains Mono', monospace" opacity="0.10" fill="#5B5BF7" fontSize="11">
+          <text x="380" y="1620" letterSpacing="3">ATCGGAATTCAGCTAGCTAGGCTAATCGATCGTAGCTAGCAATCG</text>
+          <text x="380" y="1644" letterSpacing="3">CGTAATCGATCGGCTAGCTAGCATCGGAATTCAGCTAGCTAGCTA</text>
+          <text x="380" y="1668" letterSpacing="3">TGCATGCATCGTAGCTAGCATCGCTAGCTAATCGATCGCTAGCTA</text>
+        </g>
+      </svg>
+
+      {/* 上方极淡白鬼蒙层，使背景元素在主区隔离不干扰阅读 */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(250,250,247,0.0) 0%, rgba(250,250,247,0.55) 38%, rgba(250,250,247,0.30) 100%)",
+        }}
+      />
+    </div>
+  );
+}
+
 function HeroHeader() {
   return (
     <header className="relative pt-16 pb-8">
@@ -210,13 +356,13 @@ function HeroHeader() {
   );
 }
 
-// v6: 打字机 placeholder 循环示例
+// v7: 引导式打字机 placeholder 循环示例（动词开头，覆盖检索/对比/分析）
 const TYPE_SAMPLES = [
-  "mRNA 疫苗递送系统",
-  "CRISPR-Cas9 脱靶效应分析",
-  "AlphaFold-Multimer 预测精度",
-  "锂电池固态电解质最新进展",
-  "逆合成路径规划指令微调",
+  "检索 mRNA 疫苗递送系统的最新文献",
+  "对比 CRISPR-Cas9 与 Cas12a 的脱靶效应",
+  "分析 AlphaFold-Multimer 在跨膜受体上的预测精度",
+  "总结 2024 年锂电池固态电解质的突破",
+  "探索逆合成路径规划的指令微调策略",
 ];
 
 function useTypewriter(samples: string[], enabled: boolean) {
@@ -272,12 +418,13 @@ export default function Experience() {
   const [results, setResults] = useState<Result[] | null>(null);
   const [meta, setMeta] = useState<{ count: number; ms: number } | null>(null);
   const [page, setPage] = useState(1);
+  const [focused, setFocused] = useState(false);
   const PAGE_SIZE = 8;
   const composing = useRef(false);
-  // 仅在输入为空且未提交过查询时运行打字机
+  // 仅在输入为空、未提交过查询、且未 focus 时运行打字机
   const typedPlaceholder = useTypewriter(
     TYPE_SAMPLES,
-    query.length === 0 && !loading,
+    query.length === 0 && !loading && !focused,
   );
 
   // URL ?q=
@@ -343,8 +490,10 @@ export default function Experience() {
     <div className="min-h-screen flex">
       <Sidebar active="experience" />
 
-      <main className="flex-1 min-w-0">
-        <div className="flex-1 min-w-0 max-w-[960px] mx-auto px-8 lg:px-12 py-2">
+      <main className="flex-1 min-w-0 relative">
+        {/* v7: 科学学术蒙层 — 极淡分子/双螺旋/化学式贴纸 + 微噪点 + 柔和渐晕，仅环境质感，不影响主色与布局 */}
+        <ScienceBackdrop />
+        <div className="relative flex-1 min-w-0 max-w-[960px] mx-auto px-8 lg:px-12 py-2">
           <HeroHeader />
 
           {/* SEARCH */}
@@ -366,9 +515,11 @@ export default function Experience() {
                 onKeyDown={onKey as unknown as React.KeyboardEventHandler<HTMLTextAreaElement>}
                 onCompositionStart={() => (composing.current = true)}
                 onCompositionEnd={() => (composing.current = false)}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
                 disabled={loading}
                 rows={2}
-                placeholder={typedPlaceholder ? `${typedPlaceholder} ▊` : ""}
+                placeholder={focused ? "输入科学问题或关键词..." : (typedPlaceholder ? `${typedPlaceholder} ▊` : "")}
                 className="w-full bg-transparent outline-none text-[15.5px] leading-[1.7] placeholder:text-[var(--ink-3)] disabled:opacity-60 resize-none min-h-[88px] max-h-[220px]"
               />
               <div className="flex items-center justify-end pt-1">
