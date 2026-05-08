@@ -210,6 +210,60 @@ function HeroHeader() {
   );
 }
 
+// v6: 打字机 placeholder 循环示例
+const TYPE_SAMPLES = [
+  "mRNA 疫苗递送系统",
+  "CRISPR-Cas9 脱靶效应分析",
+  "AlphaFold-Multimer 预测精度",
+  "锂电池固态电解质最新进展",
+  "逆合成路径规划指令微调",
+];
+
+function useTypewriter(samples: string[], enabled: boolean) {
+  const [text, setText] = useState("");
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    let sIdx = 0;
+    let cIdx = 0;
+    let mode: "type" | "hold" | "erase" = "type";
+    const tick = () => {
+      if (cancelled) return;
+      const cur = samples[sIdx % samples.length];
+      let delay = 55 + Math.random() * 25; // 较快的输入节奏
+      if (mode === "type") {
+        cIdx++;
+        setText(cur.slice(0, cIdx));
+        if (cIdx >= cur.length) {
+          mode = "hold";
+          delay = 1400;
+        }
+      } else if (mode === "hold") {
+        mode = "erase";
+        delay = 280;
+      } else {
+        cIdx -= 2;
+        if (cIdx < 0) cIdx = 0;
+        setText(cur.slice(0, cIdx));
+        if (cIdx === 0) {
+          mode = "type";
+          sIdx++;
+          delay = 320;
+        } else {
+          delay = 24;
+        }
+      }
+      timer = window.setTimeout(tick, delay);
+    };
+    let timer = window.setTimeout(tick, 380);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [samples, enabled]);
+  return text;
+}
+
 export default function Experience() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -220,6 +274,11 @@ export default function Experience() {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 8;
   const composing = useRef(false);
+  // 仅在输入为空且未提交过查询时运行打字机
+  const typedPlaceholder = useTypewriter(
+    TYPE_SAMPLES,
+    query.length === 0 && !loading,
+  );
 
   // URL ?q=
   useEffect(() => {
@@ -309,8 +368,8 @@ export default function Experience() {
                 onCompositionEnd={() => (composing.current = false)}
                 disabled={loading}
                 rows={2}
-                placeholder="输入科学问题或关键词，例：mRNA 疫苗递送系统"
-                className="w-full bg-transparent outline-none text-[15.5px] leading-[1.7] placeholder-fade placeholder:text-[var(--ink-3)] disabled:opacity-60 resize-none min-h-[88px] max-h-[220px]"
+                placeholder={typedPlaceholder ? `${typedPlaceholder} ▊` : ""}
+                className="w-full bg-transparent outline-none text-[15.5px] leading-[1.7] placeholder:text-[var(--ink-3)] disabled:opacity-60 resize-none min-h-[88px] max-h-[220px]"
               />
               <div className="flex items-center justify-end pt-1">
                 <div className="flex items-center gap-1.5">

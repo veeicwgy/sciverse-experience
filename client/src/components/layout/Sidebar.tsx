@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 
 type NavKey = "experience" | "history" | "docs" | "tokens" | "stats";
 
+// v6: 菜单名简化（更接近常见命名）；文档调到最后
 const NAV: {
   key: NavKey;
   label: string;
@@ -42,11 +43,14 @@ const NAV: {
   hint?: string;
 }[] = [
   { key: "experience", label: "新对话", icon: PenSquare, href: "/experience", hint: "清空搜索 · 开始一次新查询" },
-  { key: "history", label: "历史对话", icon: History, hint: "近期搜索按时间分组" },
-  { key: "docs", label: "文档中心", icon: BookOpen, href: "/docs", hint: "三接口 API 文档" },
-  { key: "tokens", label: "API Key 管理", icon: KeyRound, href: "/tokens" },
-  { key: "stats", label: "调用统计", icon: BarChart3, href: "/stats" },
+  { key: "history", label: "历史", icon: History, hint: "近期搜索按时间分组" },
+  { key: "tokens", label: "密钥", icon: KeyRound, href: "/tokens" },
+  { key: "stats", label: "用量", icon: BarChart3, href: "/stats" },
+  { key: "docs", label: "文档", icon: BookOpen, href: "/docs", hint: "三接口 API 文档" },
 ];
+
+// v6: 二维码图片 URL 常量化 + 通过 new Image() 预加载（提前发起请求，避免点击 popover 才开始下载）
+const WECHAT_QR_URL = "/manus-storage/sciverse-wechat-qr_6f1a7ef6.png";
 
 const HISTORY = [
   {
@@ -119,6 +123,9 @@ export default function Sidebar({ active }: { active?: NavKey }) {
     const stored = localStorage.getItem("sciverse:sidebar:collapsed");
     if (stored === "1") setCollapsed(true);
     if (localStorage.getItem("sciverse:user") === "1") setUser(MOCK_USER);
+    // 预加载二维码：组件挂载即开始下载，点击 popover 时直接命中浏览器缓存，瞬时显示
+    const img = new Image();
+    img.src = WECHAT_QR_URL;
   }, []);
 
   const signIn = () => {
@@ -298,16 +305,21 @@ export default function Sidebar({ active }: { active?: NavKey }) {
             )}
 
             <Popover>
-              <PopoverTrigger asChild>
-                <button aria-label="开发者群" className="h-9 w-9 rounded-full border hairline bg-white flex items-center justify-center text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
-                  <HelpCircle className="h-4 w-4" />
-                </button>
-              </PopoverTrigger>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <button aria-label="加入开发者群" className="h-9 w-9 rounded-full border hairline bg-white flex items-center justify-center text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
+                      <HelpCircle className="h-4 w-4" />
+                    </button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">加入开发者群</TooltipContent>
+              </Tooltip>
               <PopoverContent side="top" align="end" className="w-[180px] p-2.5">
                 <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--ink-3)] mb-1.5">
                   开发者群
                 </div>
-                <img src="/manus-storage/sciverse-wechat-qr_6f1a7ef6.png" alt="微信开发者群二维码" className="w-full rounded-md border hairline bg-white" />
+                <img src={WECHAT_QR_URL} alt="微信开发者群二维码" className="w-full rounded-md border hairline bg-white" loading="eager" decoding="sync" />
                 <div className="mt-1.5 text-[11px] leading-relaxed text-[var(--ink-2)]">
                   扫码加入，抢先体验新接口与公测计划。
                 </div>
@@ -350,16 +362,21 @@ export default function Sidebar({ active }: { active?: NavKey }) {
               </Tooltip>
             )}
             <Popover>
-              <PopoverTrigger asChild>
-                <button aria-label="开发者群" className="h-9 w-9 rounded-full border hairline bg-white flex items-center justify-center text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
-                  <HelpCircle className="h-4 w-4" />
-                </button>
-              </PopoverTrigger>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <button aria-label="加入开发者群" className="h-9 w-9 rounded-full border hairline bg-white flex items-center justify-center text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
+                      <HelpCircle className="h-4 w-4" />
+                    </button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-xs">加入开发者群</TooltipContent>
+              </Tooltip>
               <PopoverContent side="right" align="end" className="w-[180px] p-2.5">
                 <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--ink-3)] mb-1.5">
                   开发者群
                 </div>
-                <img src="/manus-storage/sciverse-wechat-qr_6f1a7ef6.png" alt="微信开发者群二维码" className="w-full rounded-md border hairline bg-white" />
+                <img src={WECHAT_QR_URL} alt="微信开发者群二维码" className="w-full rounded-md border hairline bg-white" loading="eager" decoding="sync" />
                 <div className="mt-1.5 text-[11px] leading-relaxed text-[var(--ink-2)]">
                   扫码加入，抢先体验新接口与公测计划。
                 </div>

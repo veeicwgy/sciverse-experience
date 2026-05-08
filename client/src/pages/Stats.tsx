@@ -9,10 +9,16 @@ import { TrendingUp, CheckCircle2 } from "lucide-react";
 
 const LOGO_MAP: Record<string, string> = {
   sciverse: "/manus-storage/sciverse-logo_532e83dd.svg",
-  dianshi: "/manus-storage/dianshi-logo_a0c8c0fa.svg",
-  seqstudio: "/manus-storage/seqstudio-logo_aae3b06d.svg",
+  dianshi: "/manus-storage/dianshi_8cef3dfd.svg",
+  seqstudio: "/manus-storage/seqstudio_3990637c.svg",
 };
 
+// SVG 兜底：当外链 logo 加载失败时用品牌色首字母圆形头像
+const BRAND_COLOR: Record<string, string> = {
+  sciverse: "#5B5BF7",
+  dianshi: "#7C5CFC",
+  seqstudio: "#10B981",
+};
 const RANGES = ["今天", "本周", "本月"] as const;
 type Range = (typeof RANGES)[number];
 
@@ -150,6 +156,23 @@ export default function Stats() {
                         alt={row.name}
                         className="h-5 w-5 object-contain"
                         draggable={false}
+                        onError={(e) => {
+                          const img = e.currentTarget;
+                          const parent = img.parentElement;
+                          if (!parent) return;
+                          img.style.display = "none";
+                          if (parent.querySelector("[data-fb]")) return;
+                          const span = document.createElement("span");
+                          span.dataset.fb = "1";
+                          span.className =
+                            "h-5 w-5 rounded-md grid place-items-center text-white text-[11px] font-semibold leading-none";
+                          span.style.background = BRAND_COLOR[row.key] || "#5B5BF7";
+                          span.style.display = "grid";
+                          span.style.alignItems = "center";
+                          span.style.justifyContent = "center";
+                          span.textContent = row.name.slice(0, 1);
+                          parent.appendChild(span);
+                        }}
                       />
                     </span>
                     <div className="min-w-0">
