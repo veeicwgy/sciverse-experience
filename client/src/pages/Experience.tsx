@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import Sidebar from "@/components/layout/Sidebar";
-import SkillsBubble from "@/components/experience/SkillsBubble";
+import IntegrationBubble from "@/components/experience/IntegrationBubble";
 import { cn } from "@/lib/utils";
 
 type Result = {
@@ -641,7 +641,7 @@ export default function Experience() {
           {/* STATUS + RESULTS */}
           {meta && committed && (
             <section className="mt-10">
-              <SkillsBubble />
+              <IntegrationBubble />
               <div className="mt-5 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[12.5px] text-[var(--ink-2)]">
                 <span>
                   搜索结果{" "}

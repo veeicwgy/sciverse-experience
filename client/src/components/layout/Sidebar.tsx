@@ -240,10 +240,22 @@ export default function Sidebar({ active }: { active?: NavKey }) {
             </div>
           );
 
+          // 接入指南改为新开浏览器页打开 /docs，便于团队长独立维护，不写死在 Sciverse 产品壳里
           const wrapped = n.href ? (
-            <Link key={n.key} href={n.href}>
-              {item}
-            </Link>
+            n.key === "docs" ? (
+              <a
+                key={n.key}
+                href={n.href}
+                target="_blank"
+                rel="noreferrer"
+                title="在新窗口打开">
+                {item}
+              </a>
+            ) : (
+              <Link key={n.key} href={n.href}>
+                {item}
+              </Link>
+            )
           ) : (
             <div key={n.key}>{item}</div>
           );

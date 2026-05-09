@@ -1,26 +1,23 @@
 /*
- * Sciverse · Usage Stats (/stats) — v12
- * 顶部：标题 + 时间粒度 日/周/月（右上）
- * 总览：单卡 — 总调用次数（按所选粒度 + 当前密钥聚合）
- * 主图区：上方密钥胶囊条（含 sparkline + 调用量），下方折线+面积渐变图，鼠标 hover crosshair + tooltip
- * 明细：分接口调用量 + 占比
+ * Sciverse · Usage Stats (/stats) — v16
+ * 重构后仅保留单一核心模块：分应用堆叠柱状调用量趋势
+ *   - 顶部时间粒度：日 / 周 / 月
+ *   - 密钥胶囊条：全部密钥 + 各密钥（最多 10）调用量与 sparkline，点击切换图表
+ *   - 主图：每根柱子按子应用 Sciverse / 点石 / SeqStudio 堆叠分段，柱顶显示该时间点总量
+ *   - 图例 + hover tooltip：精确显示该时间点的总量 与 各应用分量
+ *   - 已删除：总调用次数大数字卡 / 分接口调用明细列表
  */
 import { useMemo, useRef, useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import { cn } from "@/lib/utils";
-import { TrendingUp } from "lucide-react";
 
-// ─── 资源 ──────────────────────────────────────────────
-const LOGO_MAP: Record<string, string> = {
-  sciverse: "/manus-storage/sciverse-logo_532e83dd.svg",
-  dianshi: "/manus-storage/dianshi_8cef3dfd.svg",
-  seqstudio: "/manus-storage/seqstudio_3990637c.svg",
-};
-const BRAND_COLOR: Record<string, string> = {
-  sciverse: "#5B5BF7",
-  dianshi: "#7C5CFC",
-  seqstudio: "#10B981",
-};
+// ─── 子应用配置 ────────────────────────────────────────
+type AppKey = "sciverse" | "dianshi" | "seqstudio";
+const APPS: { key: AppKey; name: string; color: string; weight: number }[] = [
+  { key: "sciverse",  name: "Sciverse",       color: "#5B5BF7", weight: 0.66 },
+  { key: "dianshi",   name: "点石 DianShi",   color: "#7C5CFC", weight: 0.20 },
+  { key: "seqstudio", name: "SeqStudio",      color: "#10B981", weight: 0.14 },
+];
 
 // ─── 时间粒度 ───────────────────────────────────────────
 const GRANS = ["日", "周", "月"] as const;
@@ -31,16 +28,16 @@ const GRAN_LABEL: Record<Gran, string> = {
   月: "本月 · 按日",
 };
 
-// ─── 密钥列表 ──────────────────────────────────────────
+// ─── 密钥列表（最多 10 个） ─────────────────────────────
 type KeyOpt = { id: string; name: string; weight: number };
 const KEYS: KeyOpt[] = [
-  { id: "all", name: "全部密钥", weight: 1 },
-  { id: "k1", name: "my-key", weight: 0.46 },
-  { id: "k2", name: "mcp test", weight: 0.22 },
-  { id: "k3", name: "research-bot", weight: 0.14 },
-  { id: "k4", name: "lab-prod", weight: 0.1 },
-  { id: "k5", name: "weekly-digest", weight: 0.05 },
-  { id: "k6", name: "ad-hoc", weight: 0.03 },
+  { id: "all", name: "全部密钥",       weight: 1 },
+  { id: "k1",  name: "my-key",         weight: 0.46 },
+  { id: "k2",  name: "mcp test",       weight: 0.22 },
+  { id: "k3",  name: "research-bot",   weight: 0.14 },
+  { id: "k4",  name: "lab-prod",       weight: 0.10 },
+  { id: "k5",  name: "weekly-digest",  weight: 0.05 },
+  { id: "k6",  name: "ad-hoc",         weight: 0.03 },
 ];
 
 // ─── 数据生成（确定性） ────────────────────────────────
@@ -51,51 +48,52 @@ function seedRandom(seed: number) {
     return s / 0xffffffff;
   };
 }
-function buildSeries(gran: Gran, keyId: string): { x: string; v: number }[] {
+type Stack = { x: string; total: number; parts: Record<AppKey, number> };
+function buildStack(gran: Gran, keyId: string): Stack[] {
   const w = KEYS.find((k) => k.id === keyId)?.weight ?? 1;
-  const seed = (gran.charCodeAt(0) * 31 + keyId.length * 7 + (keyId === "all" ? 11 : 1)) | 0;
+  const seed = (gran.charCodeAt(0) * 31 + keyId.length * 13 + (keyId === "all" ? 11 : 1)) | 0;
   const rng = seedRandom(seed);
-  if (gran === "日") {
-    return Array.from({ length: 24 }, (_, h) => {
-      const base = 220 + Math.sin(((h - 6) / 24) * Math.PI * 2) * 180;
-      const noise = (rng() - 0.5) * 80;
-      const v = Math.max(0, Math.round((base + noise) * w));
-      return { x: `${String(h).padStart(2, "0")}:00`, v };
+  const lengths: Record<Gran, { n: number; label: (i: number) => string; base: number; amp: number }> = {
+    日: { n: 24, label: (i) => `${String(i).padStart(2, "0")}:00`, base: 240, amp: 180 },
+    周: { n: 7,  label: (i) => ["周一","周二","周三","周四","周五","周六","周日"][i], base: 9000, amp: 4200 },
+    月: { n: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate(), label: (i) => String(i + 1), base: 9500, amp: 5000 },
+  };
+  const cfg = lengths[gran];
+  return Array.from({ length: cfg.n }, (_, i) => {
+    let total: number;
+    if (gran === "日") {
+      const wave = Math.sin(((i - 6) / 24) * Math.PI * 2);
+      total = Math.max(0, Math.round((cfg.base + wave * cfg.amp + (rng() - 0.5) * 80) * w));
+    } else {
+      total = Math.max(0, Math.round((cfg.base + (rng() - 0.4) * cfg.amp) * w));
+    }
+    // 子应用份额：在固定权重附近做 ±15% 抖动后归一化
+    const raw: Record<AppKey, number> = { sciverse: 0, dianshi: 0, seqstudio: 0 };
+    let sumRaw = 0;
+    APPS.forEach((a) => {
+      const jitter = 1 + (rng() - 0.5) * 0.3;
+      const v = Math.max(0.001, a.weight * jitter);
+      raw[a.key] = v;
+      sumRaw += v;
     });
-  }
-  if (gran === "周") {
-    const labels = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
-    return labels.map((d) => {
-      const base = 9000 + (rng() - 0.4) * 4200;
-      const v = Math.max(0, Math.round(base * w));
-      return { x: d, v };
+    const parts: Record<AppKey, number> = { sciverse: 0, dianshi: 0, seqstudio: 0 };
+    let used = 0;
+    APPS.forEach((a, idx) => {
+      if (idx === APPS.length - 1) parts[a.key] = Math.max(0, total - used);
+      else {
+        const share = raw[a.key] / sumRaw;
+        const v = Math.round(total * share);
+        parts[a.key] = v;
+        used += v;
+      }
     });
-  }
-  const today = new Date();
-  const days = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-  return Array.from({ length: days }, (_, i) => {
-    const base = 9500 + (rng() - 0.4) * 5000;
-    const v = Math.max(0, Math.round(base * w));
-    return { x: String(i + 1), v };
+    return { x: cfg.label(i), total, parts };
   });
 }
-// 胶囊里 mini sparkline 固定使用近 7 天（与时间粒度无关，仅做识别）
+// 胶囊里 mini sparkline 固定使用近 7 天总量
 function buildSparkline(keyId: string): number[] {
-  return buildSeries("周", keyId).map((p) => p.v);
+  return buildStack("周", keyId).map((p) => p.total);
 }
-
-// ─── 分接口明细 ────────────────────────────────────────
-type AppRow = {
-  key: "sciverse" | "dianshi" | "seqstudio";
-  name: string;
-  desc: string;
-  share: number;
-};
-const APP_BASE: AppRow[] = [
-  { key: "sciverse", name: "Sciverse", desc: "agentic-search · meta-search · content-search", share: 66 },
-  { key: "dianshi", name: "点石 DianShi", desc: "化学反应 / 物质 / 专利", share: 20 },
-  { key: "seqstudio", name: "SeqStudio", desc: "蛋白注释 · BLAST · Foldseek", share: 14 },
-];
 
 const fmt = (n: number) => n.toLocaleString("en-US");
 
@@ -104,9 +102,7 @@ export default function Stats() {
   const [gran, setGran] = useState<Gran>("周");
   const [keyId, setKeyId] = useState<string>("all");
 
-  const series = useMemo(() => buildSeries(gran, keyId), [gran, keyId]);
-  const total = useMemo(() => series.reduce((a, b) => a + b.v, 0), [series]);
-  const apps = APP_BASE.map((a) => ({ ...a, calls: Math.round(total * (a.share / 100)) }));
+  const stack = useMemo(() => buildStack(gran, keyId), [gran, keyId]);
   const currentKey = KEYS.find((k) => k.id === keyId) ?? KEYS[0];
 
   return (
@@ -121,7 +117,7 @@ export default function Stats() {
                 调用统计
               </h1>
               <p className="mt-1.5 text-[13.5px] text-[var(--ink-2)]">
-                按时间粒度查看调用量趋势 · 可切换至单个密钥维度（最多 10 个）
+                按时间粒度查看分应用调用量趋势 · 可切换至单个密钥维度（最多 10 个）
               </p>
             </div>
             <div className="inline-flex p-0.5 rounded-full border hairline bg-white">
@@ -141,37 +137,25 @@ export default function Stats() {
             </div>
           </div>
 
-          {/* OVERVIEW: 仅总调用次数 */}
-          <div className="mt-6 card-paper p-5">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-3.5 w-3.5 text-[var(--ink-3)]" />
-              <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
-                总调用次数
-              </span>
-            </div>
-            <div className="mt-3 flex items-baseline gap-3">
-              <div className="font-display text-[40px] tracking-[-0.02em] text-[var(--ink)] leading-none">
-                {fmt(total)}
-              </div>
-              <div className="text-[12.5px] text-[var(--ink-3)]">
-                {GRAN_LABEL[gran]} · {currentKey.name}
-              </div>
-            </div>
-          </div>
-
           {/* MAIN CHART CARD */}
           <div className="mt-8 card-paper p-5">
-            <div className="flex items-end justify-between gap-3">
+            <div className="flex items-end justify-between gap-3 flex-wrap">
               <div>
-                <div className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
-                  调用量趋势
+                <div className="font-display text-[20px] text-[var(--ink)]">
+                  调用量趋势 · {GRAN_LABEL[gran]}
                 </div>
-                <div className="mt-1 font-display text-[20px] text-[var(--ink)]">
-                  {GRAN_LABEL[gran]}
+                <div className="mt-1 text-[12.5px] text-[var(--ink-3)]">
+                  当前密钥：<span className="text-[var(--ink-2)]">{currentKey.name}</span>
                 </div>
               </div>
-              <div className="text-[11.5px] text-[var(--ink-3)] font-mono">
-                {series.length} pts · 鼠标悬停查看精确值
+              {/* 图例 */}
+              <div className="flex items-center gap-3">
+                {APPS.map((a) => (
+                  <div key={a.key} className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-sm" style={{ background: a.color }} />
+                    <span className="text-[12px] text-[var(--ink-2)]">{a.name}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -185,95 +169,13 @@ export default function Stats() {
                     active={keyId === k.id}
                     onClick={() => setKeyId(k.id)}
                     spark={buildSparkline(k.id)}
-                    total={
-                      k.id === "all"
-                        ? buildSeries(gran, "all").reduce((a, b) => a + b.v, 0)
-                        : buildSeries(gran, k.id).reduce((a, b) => a + b.v, 0)
-                    }
+                    total={buildStack(gran, k.id).reduce((a, b) => a + b.total, 0)}
                   />
                 ))}
               </div>
             </div>
 
-            <LineChart series={series} />
-          </div>
-
-          {/* APP BREAKDOWN */}
-          <div className="mt-10">
-            <div className="flex items-end justify-between gap-3">
-              <h2 className="font-display text-[22px] text-[var(--ink)]">
-                分接口调用明细
-              </h2>
-              <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
-                3 endpoints · {currentKey.name}
-              </span>
-            </div>
-
-            <div className="mt-3 card-paper overflow-hidden">
-              <div className="grid grid-cols-[1.8fr_1fr_1.4fr] text-[11.5px] tracking-[0.12em] uppercase font-mono text-[var(--ink-3)] px-5 py-3 bg-[var(--paper-2)] border-b hairline">
-                <span>接口 / 站点</span>
-                <span>调用量</span>
-                <span>占比</span>
-              </div>
-              {apps.map((row, i) => (
-                <div
-                  key={row.key}
-                  className={cn(
-                    "grid grid-cols-[1.8fr_1fr_1.4fr] px-5 py-4 items-center",
-                    i !== 0 && "border-t hairline",
-                  )}>
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="h-8 w-8 rounded-full border hairline grid place-items-center bg-white shrink-0 overflow-hidden">
-                      <img
-                        src={LOGO_MAP[row.key]}
-                        alt={row.name}
-                        className="h-5 w-5 object-contain"
-                        draggable={false}
-                        onError={(e) => {
-                          const img = e.currentTarget;
-                          const parent = img.parentElement;
-                          if (!parent) return;
-                          img.style.display = "none";
-                          if (parent.querySelector("[data-fb]")) return;
-                          const span = document.createElement("span");
-                          span.dataset.fb = "1";
-                          span.className =
-                            "h-5 w-5 rounded-md text-white text-[11px] font-semibold leading-none";
-                          span.style.background = BRAND_COLOR[row.key] || "#5B5BF7";
-                          span.style.display = "grid";
-                          span.style.alignItems = "center";
-                          span.style.justifyContent = "center";
-                          span.textContent = row.name.slice(0, 1);
-                          parent.appendChild(span);
-                        }}
-                      />
-                    </span>
-                    <div className="min-w-0">
-                      <div className="font-display text-[15px] text-[var(--ink)] truncate">
-                        {row.name}
-                      </div>
-                      <div className="font-mono text-[10.5px] tracking-[0.04em] text-[var(--ink-3)] truncate">
-                        {row.desc}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="font-mono text-[13px] text-[var(--ink)]">
-                    {fmt(row.calls)}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-[3px] rounded-full bg-[var(--ink-3)]/15 overflow-hidden">
-                      <div
-                        className="h-full bg-[var(--ink)] transition-[width] duration-700 ease-out"
-                        style={{ width: `${row.share}%` }}
-                      />
-                    </div>
-                    <span className="font-mono text-[11px] text-[var(--ink-2)] w-9 text-right">
-                      {row.share}%
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <StackedBar stack={stack} />
           </div>
         </div>
       </main>
@@ -347,35 +249,24 @@ function Sparkline({ values, stroke }: { values: number[]; stroke: string }) {
   );
 }
 
-// ─── 折线图 + 面积渐变 + hover crosshair + tooltip ─────
-function LineChart({ series }: { series: { x: string; v: number }[] }) {
+// ─── 堆叠柱状图 ────────────────────────────────────────
+function StackedBar({ stack }: { stack: Stack[] }) {
   const width = 980;
-  const height = 240;
-  const padX = 36;
-  const padTop = 14;
-  const padBottom = 30;
+  const height = 280;
+  const padX = 38;
+  const padTop = 26; // 给柱顶总量数字留空间
+  const padBottom = 32;
   const innerW = width - padX * 2;
   const innerH = height - padTop - padBottom;
-  const max = Math.max(1, ...series.map((p) => p.v));
-  const stepX = innerW / Math.max(1, series.length - 1);
-
-  const pts = series.map((p, i) => ({
-    cx: padX + i * stepX,
-    cy: padTop + innerH - (p.v / max) * innerH,
-    ...p,
-  }));
-
-  const linePath = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.cx.toFixed(1)} ${p.cy.toFixed(1)}`).join(" ");
-  const areaPath =
-    `M ${pts[0].cx.toFixed(1)} ${(padTop + innerH).toFixed(1)} ` +
-    pts.map((p) => `L ${p.cx.toFixed(1)} ${p.cy.toFixed(1)}`).join(" ") +
-    ` L ${pts[pts.length - 1].cx.toFixed(1)} ${(padTop + innerH).toFixed(1)} Z`;
+  const max = Math.max(1, ...stack.map((s) => s.total));
+  // 柱宽：等分 + gap
+  const slot = innerW / stack.length;
+  const barW = Math.max(6, Math.min(slot * 0.62, 28));
 
   const ySteps = 4;
   const gridYs = Array.from({ length: ySteps + 1 }, (_, i) => padTop + (innerH * i) / ySteps);
   const yLabels = Array.from({ length: ySteps + 1 }, (_, i) => Math.round((max * (ySteps - i)) / ySteps));
-  // x 轴 label 抽样
-  const labelEvery = series.length >= 24 && series.length < 30 ? 4 : series.length >= 30 ? 5 : 1;
+  const labelEvery = stack.length >= 24 && stack.length < 30 ? 4 : stack.length >= 30 ? 5 : 1;
 
   // hover state
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -392,33 +283,26 @@ function LineChart({ series }: { series: { x: string; v: number }[] }) {
       setHover(null);
       return;
     }
-    const idx = Math.round((xInVB - padX) / stepX);
-    const clamped = Math.max(0, Math.min(series.length - 1, idx));
+    const idx = Math.floor((xInVB - padX) / slot);
+    const clamped = Math.max(0, Math.min(stack.length - 1, idx));
     setHover(clamped);
   };
 
-  const hoverPt = hover !== null ? pts[hover] : null;
-  // tooltip 像素位置（基于 wrap 实际宽度）
   const wrapW = wrapRef.current?.clientWidth ?? width;
   const scale = wrapW / width;
-  const tipLeft = hoverPt ? hoverPt.cx * scale : 0;
-  const tipTop = hoverPt ? hoverPt.cy * scale : 0;
+  const hoverItem = hover !== null ? stack[hover] : null;
+  const hoverCx = hover !== null ? padX + slot * (hover + 0.5) : 0;
+  const hoverTop = hover !== null && hoverItem ? padTop + innerH - (hoverItem.total / max) * innerH : 0;
 
   return (
     <div ref={wrapRef} className="mt-3 relative">
       <svg
         ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
-        className="w-full h-[240px] block"
+        className="w-full h-[280px] block"
         preserveAspectRatio="none"
         onMouseMove={onMove}
         onMouseLeave={() => setHover(null)}>
-        <defs>
-          <linearGradient id="sv-area" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#5B5BF7" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="#5B5BF7" stopOpacity="0" />
-          </linearGradient>
-        </defs>
         {/* y 网格 + label */}
         {gridYs.map((y, i) => (
           <g key={i}>
@@ -440,59 +324,95 @@ function LineChart({ series }: { series: { x: string; v: number }[] }) {
             </text>
           </g>
         ))}
-        {/* 面积 */}
-        <path d={areaPath} fill="url(#sv-area)" />
-        {/* 折线 */}
-        <path
-          d={linePath}
-          fill="none"
-          stroke="#5B5BF7"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+
+        {/* 堆叠柱 + 柱顶总量 */}
+        {stack.map((s, i) => {
+          const cx = padX + slot * (i + 0.5);
+          const x = cx - barW / 2;
+          let yCursor = padTop + innerH;
+          const barTopY = padTop + innerH - (s.total / max) * innerH;
+          const isHover = hover === i;
+          return (
+            <g key={i}>
+              {APPS.map((a) => {
+                const part = s.parts[a.key];
+                const segH = (part / max) * innerH;
+                yCursor -= segH;
+                return (
+                  <rect
+                    key={a.key}
+                    x={x}
+                    y={yCursor}
+                    width={barW}
+                    height={Math.max(0, segH)}
+                    fill={a.color}
+                    fillOpacity={hover === null || isHover ? 1 : 0.45}
+                    rx={0.5}
+                  />
+                );
+              })}
+              {/* 柱顶总量数字 */}
+              <text
+                x={cx}
+                y={barTopY - 6}
+                textAnchor="middle"
+                className="fill-[var(--ink-2)]"
+                style={{ fontSize: 9.5, fontFamily: "var(--font-mono, monospace)", fontWeight: 600, opacity: isHover || hover === null ? 1 : 0.4 }}>
+                {fmt(s.total)}
+              </text>
+            </g>
+          );
+        })}
+
         {/* x label */}
-        {pts.map((p, i) => {
-          if (i % labelEvery !== 0 && i !== pts.length - 1) return null;
+        {stack.map((s, i) => {
+          if (i % labelEvery !== 0 && i !== stack.length - 1) return null;
+          const cx = padX + slot * (i + 0.5);
           return (
             <text
               key={`xl-${i}`}
-              x={p.cx}
+              x={cx}
               y={height - 10}
               textAnchor="middle"
               className="fill-[var(--ink-3)]"
               style={{ fontSize: 10, fontFamily: "var(--font-mono, monospace)" }}>
-              {p.x}
+              {s.x}
             </text>
           );
         })}
-        {/* hover crosshair + dot */}
-        {hoverPt && (
-          <g>
-            <line
-              x1={hoverPt.cx}
-              x2={hoverPt.cx}
-              y1={padTop}
-              y2={padTop + innerH}
-              stroke="rgba(20,20,30,0.18)"
-              strokeDasharray="3 3"
-            />
-            <circle cx={hoverPt.cx} cy={hoverPt.cy} r="6" fill="#5B5BF7" fillOpacity="0.18" />
-            <circle cx={hoverPt.cx} cy={hoverPt.cy} r="3" fill="#5B5BF7" stroke="white" strokeWidth="1.5" />
-          </g>
+
+        {/* hover crosshair */}
+        {hoverItem && (
+          <line
+            x1={hoverCx}
+            x2={hoverCx}
+            y1={padTop}
+            y2={padTop + innerH}
+            stroke="rgba(20,20,30,0.18)"
+            strokeDasharray="3 3"
+          />
         )}
       </svg>
 
-      {/* HTML tooltip — 跟随 hover 点 */}
-      {hoverPt && (
+      {/* HTML tooltip — 跟随 hover 柱 */}
+      {hoverItem && (
         <div
-          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-[calc(100%+10px)] rounded-lg bg-[var(--ink)] text-white px-2.5 py-1.5 shadow-md"
-          style={{ left: tipLeft, top: tipTop }}>
-          <div className="font-mono text-[10px] tracking-[0.1em] uppercase opacity-70">
-            {hoverPt.x}
+          className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-[calc(100%+10px)] rounded-lg bg-[var(--ink)] text-white px-3 py-2 shadow-md min-w-[160px]"
+          style={{ left: hoverCx * scale, top: hoverTop * scale }}>
+          <div className="font-mono text-[10px] tracking-[0.1em] opacity-70">
+            {hoverItem.x}
           </div>
-          <div className="font-mono text-[13px] leading-tight">
-            {fmt(hoverPt.v)}
+          <div className="mt-0.5 font-mono text-[14px] leading-tight">
+            合计 {fmt(hoverItem.total)}
+          </div>
+          <div className="mt-1.5 space-y-0.5">
+            {APPS.map((a) => (
+              <div key={a.key} className="flex items-center gap-1.5 text-[11.5px]">
+                <span className="h-1.5 w-1.5 rounded-sm" style={{ background: a.color }} />
+                <span className="opacity-80 flex-1">{a.name}</span>
+                <span className="font-mono opacity-95">{fmt(hoverItem.parts[a.key])}</span>
+              </div>
+            ))}
           </div>
           <div
             className="absolute left-1/2 -bottom-1 -translate-x-1/2 w-2 h-2 rotate-45"

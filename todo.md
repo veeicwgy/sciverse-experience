@@ -87,3 +87,14 @@
 - [ ] 2. 全站去除「计费 / 收费 / 按调用次数计费 / 未用不扣」措辞，统一为「免费调用」
 - [ ] 3. /docs 内 API Key 入口仅保留 1 处（概览页底部 CTA）
 - [ ] 4. IntegrationBubble 重做：去英文标题 + 文案精简 + 按钮换风格 + mini-card 改为单行避免截断
+
+
+---
+
+# Sciverse v16 · 大重构
+
+- [ ] 1. 用量页：只保留分应用堆叠柱状趋势（日/周/月），删掉总调用次数与分接口明细
+- [ ] 2. 接入指南：扩为三产品（Sciverse / 点石 / SeqStudio）× 接入方式二级菜单
+- [ ] 3. Sidebar 接入指南改为新开浏览器页（target=_blank）
+- [ ] 4. 代码清理：SkillsBubble 文件 → IntegrationBubble 实体改名 / 删除废弃字段 / 补 README
+- [ ] 5. 保存 v16 检查点并交付
