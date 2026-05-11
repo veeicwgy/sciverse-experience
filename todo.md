@@ -132,3 +132,15 @@
 - [ ] 折叠时显示提示胶囊 + 字数预估
 - [ ] 展开时按 content 接口规范展示 text；more=true 时显示「加载下一段」按钮使用 next_offset
 - [ ] 加载中：3 行 skeleton；错误：暖红微提示 + 重试
+
+
+---
+
+# Sciverse v19 · 原文片段高亮 + 折叠区结构 + 失败演示入口
+
+- [ ] ContentSnippet 接受 query 并在正文中高亮关键词（与摘要同款紫蓝下划底纹）
+- [ ] ResultCard 重组：取消独立「展开全文」按钮；摘要默认 3 行 clamp，末尾 ⋯ 就地展开摘要本身
+- [ ] 「展开原文片段」收起为底部更紧凑的微胶囊，展开高度上限 220px
+- [ ] sample chips 末尾追加「失败示例」chip，点击直接强制触发一次失败渲染
+- [ ] 支持 URL 参数 ?demo=fail&kind=server|network|maintenance 一键复现指定场景
+- [ ] 保存 v19 检查点

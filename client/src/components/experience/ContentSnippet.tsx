@@ -30,6 +30,8 @@ interface Props {
   approxLength?: number;
   /** 默认是否展开 */
   defaultOpen?: boolean;
+  /** v19: 用户检索关键词，用于在正文中高亮 */
+  query?: string;
 }
 
 type Slice = {
@@ -69,11 +71,41 @@ async function mockFetchSlice(
   };
 }
 
+// v19: 关键词高亮 — 与 ResultCard 摘要保持同款（紫蓝下划底纹），返回 React 节点数组
+function highlightKeywords(text: string, q?: string) {
+  const trimmed = (q ?? "").trim();
+  if (!trimmed) return text;
+  try {
+    // 拆分中英文/数字连续段作为关键词，去重 + 按长度降序以优先区分长词
+    const tokens = Array.from(
+      new Set(trimmed.split(/[\s,、。，；;:“”"'()【】\[\]]+/).filter((t) => t.length >= 1)),
+    ).sort((a, b) => b.length - a.length);
+    if (tokens.length === 0) return text;
+    const escaped = tokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    const re = new RegExp(`(${escaped.join("|")})`, "gi");
+    const parts = text.split(re);
+    return parts.map((p, i) =>
+      i % 2 === 1 ? (
+        <mark
+          key={i}
+          className="bg-transparent text-[var(--ink)] underline decoration-[var(--brand)] decoration-2 underline-offset-[3px] px-[1px]">
+          {p}
+        </mark>
+      ) : (
+        <span key={i}>{p}</span>
+      ),
+    );
+  } catch {
+    return text;
+  }
+}
+
 export default function ContentSnippet({
   docId,
   limit = 700,
   approxLength,
   defaultOpen = false,
+  query,
 }: Props) {
   const [open, setOpen] = useState(defaultOpen);
   const [chunks, setChunks] = useState<string[]>([]);
@@ -125,13 +157,13 @@ export default function ContentSnippet({
             className={cn("h-3.5 w-3.5", open ? "opacity-90" : "opacity-70")}
             strokeWidth={1.8}
           />
-          {open ? "原文片段（来自 content 接口）" : "展开原文片段"}
+          {open ? "原文片段" : "展开原文片段"}
           <span
             className={cn(
               "font-mono text-[10.5px] tracking-[0.12em] uppercase",
               open ? "text-white/60" : "text-[var(--ink-3)]",
             )}>
-            {open ? "已加载" : "含切片 · 支持分段读取"}
+            {open ? "content" : "可分段读取"}
           </span>
         </span>
         <span
@@ -166,8 +198,8 @@ export default function ContentSnippet({
             </span>
           </div>
 
-          {/* 正文 */}
-          <div className="px-4 py-3 max-h-[360px] overflow-y-auto result-scroll">
+          {/* 正文（v19：限高收紧至 220px） */}
+          <div className="px-4 py-3 max-h-[220px] overflow-y-auto result-scroll">
             {chunks.length === 0 && loading && (
               <div className="space-y-2 py-1">
                 <div className="h-3 w-[94%] rounded bg-[#EFEEE8] animate-pulse" />
@@ -189,10 +221,10 @@ export default function ContentSnippet({
               </div>
             )}
             {chunks.length > 0 && (
-              <div className="text-[13.5px] leading-[1.85] text-[var(--ink)] whitespace-pre-wrap font-[var(--font-sans)]">
+              <div className="text-[13.5px] leading-[1.8] text-[var(--ink)] whitespace-pre-wrap font-[var(--font-sans)]">
                 {chunks.map((c, i) => (
                   <p key={i} className="mb-3 last:mb-0">
-                    {c}
+                    {highlightKeywords(c, query)}
                   </p>
                 ))}
               </div>

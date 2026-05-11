@@ -7,9 +7,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   X,
   ArrowUp,
-  Loader2,
-  ChevronDown,
   ChevronUp,
+  Loader2,
+  AlertOctagon,
   FileText,
   Globe,
   ExternalLink,
@@ -198,26 +198,37 @@ function ResultCard({ r, q }: { r: Result; q: string }) {
         )}
       </div>
 
+      {/* v19: 摘要默认 3 行 clamp，末尾 ⋯ 就地展开 */}
+      <div className="mt-3 relative">
         <div
-        className={cn(
-          "mt-3 text-[14px] leading-[1.78] text-[var(--ink)]",
-          !expanded && "line-clamp-3",
-          expanded && "max-h-[320px] overflow-y-auto pr-2 result-scroll",
-        )}>
-        <span className="text-[var(--ink-3)] mr-1.5">“</span>
-        {highlightKeywords(r.abstract, q)}
-        <span className="text-[var(--ink-3)] ml-1">”</span>
+          className={cn(
+            "text-[14px] leading-[1.78] text-[var(--ink)]",
+            !expanded && "line-clamp-3",
+          )}>
+          <span className="text-[var(--ink-3)] mr-1.5">“</span>
+          {highlightKeywords(r.abstract, q)}
+          <span className="text-[var(--ink-3)] ml-1">”</span>
+          {expanded && (
+            <button
+              onClick={() => setExpanded(false)}
+              className="ml-1.5 inline-flex items-center text-[12px] text-[var(--ink-3)] hover:text-[var(--brand)]"
+              aria-label="收起摘要">
+              <ChevronUp className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+        {!expanded && (
+          <button
+            onClick={() => setExpanded(true)}
+            className="absolute right-0 bottom-0 px-1.5 leading-none rounded text-[14px] text-[var(--ink-3)] hover:text-[var(--brand)] bg-[var(--paper)]"
+            aria-label="展开摘要">
+            ···
+          </button>
+        )}
       </div>
-      <button
-        onClick={() => setExpanded((v) => !v)}
-        className="mt-2 inline-flex items-center gap-1 text-[12.5px] text-[var(--brand)] hover:underline">
-        {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-        {expanded ? "收起" : "展开全文"}
-      </button>
-
-      {/* v18: 原文片段（content 接口）— 默认折叠，点击展开按需分段拉取 */}
+      {/* v19: 原文片段（content 接口）— 默认折叠，点击展开按需分段拉取；传入 query 高亮 */}
       {r.doc_id && (
-        <ContentSnippet docId={r.doc_id} approxLength={r.approxLength} />
+        <ContentSnippet docId={r.doc_id} approxLength={r.approxLength} query={q} />
       )}
     </article>
   );
@@ -507,6 +518,8 @@ export default function Experience() {
   // v18: 失败兜底状态 — kind 区分场景，首次失败后 3s 自动重试一次
   const [errorKind, setErrorKind] = useState<SearchErrorKind | null>(null);
   const [retrying, setRetrying] = useState(false);
+  // v19: 强制失败演示场景—下一次 runSearch 必中，用于 「失败示例」 chip 与 ?demo=fail&kind= 一键复现
+  const forceFailRef = useRef<SearchErrorKind | null>(null);
   const autoRetriedRef = useRef(false);
   const PAGE_SIZE = 8;
   const composing = useRef(false);
@@ -530,6 +543,17 @@ export default function Experience() {
     const s = u.searchParams.get("s");
     const v = u.searchParams.get("v");
     const q = u.searchParams.get("q");
+    // v19: ?demo=fail&kind=server|network|maintenance — 开发/走查一键复现失败兜底
+    const demo = u.searchParams.get("demo");
+    if (demo === "fail") {
+      const k = (u.searchParams.get("kind") || "server") as SearchErrorKind;
+      forceFailRef.current = (["server", "network", "maintenance"] as SearchErrorKind[]).includes(k) ? k : "server";
+      autoRetriedRef.current = false;
+      const sample = q || "马德里 Sciverse 检索示例";
+      setQuery(sample);
+      submit(sample);
+      return;
+    }
     if (s && v) {
       const all = JSON.parse(localStorage.getItem("sciverse:sessions:v1") || "[]");
       const sess = findSession(all, s);
@@ -607,6 +631,25 @@ export default function Experience() {
       setErrorKind(kind);
       // 首次失败后自动重试一次（仅一次）
       if (!autoRetriedRef.current && !opts.isRetry) {
+        autoRetriedRef.current = true;
+        setRetrying(true);
+        window.setTimeout(() => {
+          runSearch(value, { silent: true, isRetry: true }).finally(() =>
+            setRetrying(false),
+          );
+        }, 3000);
+      }
+      return;
+    }
+    // v19: 如果设了强制失败，本次一定走失败分支（仅生效一次，重试后释放）
+    const forced = forceFailRef.current;
+    if (forced && !opts.isRetry) {
+      forceFailRef.current = null;
+      setLoading(false);
+      setResults(null);
+      setMeta(null);
+      setErrorKind(forced);
+      if (!autoRetriedRef.current) {
         autoRetriedRef.current = true;
         setRetrying(true);
         window.setTimeout(() => {
@@ -751,6 +794,38 @@ export default function Experience() {
                   {s}
                 </button>
               ))}
+              {/* v19: 失败示例 chip — 一键走失败兜底页，可选场景 */}
+              <span className="mx-1 h-3 w-px bg-[var(--hairline-strong)]" aria-hidden />
+              <details className="relative">
+                <summary className="list-none cursor-pointer inline-flex items-center gap-1 text-[12.5px] px-3 py-1.5 rounded-full border border-dashed border-[#D2BFB7] text-[#9F4A33] bg-[#FBF4F1] hover:bg-[#F8E9E2] transition-colors">
+                  <AlertOctagon className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  失败示例
+                </summary>
+                <div className="absolute z-10 mt-2 left-0 min-w-[200px] rounded-lg border hairline bg-white shadow-sm p-1 text-[12.5px]">
+                  {([
+                    ["server", "服务发布中"],
+                    ["network", "网络异常"],
+                    ["maintenance", "服务繁忙 / 限流"],
+                  ] as Array<[SearchErrorKind, string]>).map(([k, label]) => (
+                    <button
+                      key={k}
+                      onClick={(e) => {
+                        // 关闭 details
+                        const d = (e.currentTarget.closest("details") as HTMLDetailsElement | null);
+                        if (d) d.open = false;
+                        forceFailRef.current = k;
+                        autoRetriedRef.current = false;
+                        const sample = query.trim() || "马德里 Sciverse 检索示例";
+                        setQuery(sample);
+                        submit(sample);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 rounded hover:bg-[#FAFAF7] text-[var(--ink-2)] hover:text-[var(--ink)] inline-flex items-center justify-between gap-2">
+                      <span>{label}</span>
+                      <span className="font-mono text-[10.5px] text-[var(--ink-3)]">{k}</span>
+                    </button>
+                  ))}
+                </div>
+              </details>
             </div>
           </section>
 
