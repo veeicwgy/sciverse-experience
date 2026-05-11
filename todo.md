@@ -144,3 +144,14 @@
 - [ ] sample chips 末尾追加「失败示例」chip，点击直接强制触发一次失败渲染
 - [ ] 支持 URL 参数 ?demo=fail&kind=server|network|maintenance 一键复现指定场景
 - [ ] 保存 v19 检查点
+
+
+---
+
+# Sciverse v20 · 文案精简 + 可访问 + 状态联动
+
+- [ ] SearchErrorState 改为通用单一文案，去除 kind 分支
+- [ ] 失败示例 chip 简化为单击主控件
+- [ ] 摘要 ⋯ 改为可访问按钮 + 可见焦点环 + grid-rows 过渡
+- [ ] 搜索后（有 meta/results）隐藏底部 "试试" sample chips 与 "失败示例"
+- [ ] 保存 v20 检查点

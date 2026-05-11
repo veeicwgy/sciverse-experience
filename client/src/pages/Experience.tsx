@@ -198,33 +198,45 @@ function ResultCard({ r, q }: { r: Result; q: string }) {
         )}
       </div>
 
-      {/* v19: 摘要默认 3 行 clamp，末尾 ⋯ 就地展开 */}
-      <div className="mt-3 relative">
-        <div
-          className={cn(
-            "text-[14px] leading-[1.78] text-[var(--ink)]",
-            !expanded && "line-clamp-3",
-          )}>
-          <span className="text-[var(--ink-3)] mr-1.5">“</span>
-          {highlightKeywords(r.abstract, q)}
-          <span className="text-[var(--ink-3)] ml-1">”</span>
-          {expanded && (
+      {/* v20: 摘要 grid-rows 平滑过渡 + 可访问按钮（Tab 聚焦 / Enter・Space 触发 / 可见焦点环） */}
+      <div
+        className={cn(
+          "mt-3 grid transition-[grid-template-rows] duration-300 ease-out",
+          expanded ? "grid-rows-[1fr]" : "grid-rows-[4.5lh]",
+        )}>
+        <div className="relative overflow-hidden">
+          <div
+            className={cn(
+              "text-[14px] leading-[1.78] text-[var(--ink)]",
+              !expanded && "line-clamp-3",
+            )}>
+            <span className="text-[var(--ink-3)] mr-1.5">“</span>
+            {highlightKeywords(r.abstract, q)}
+            <span className="text-[var(--ink-3)] ml-1">”</span>
+            {expanded && (
+              <button
+                type="button"
+                onClick={() => setExpanded(false)}
+                aria-expanded="true"
+                aria-controls={`abs-${r.id}`}
+                className="ml-1.5 inline-flex items-center rounded text-[12px] text-[var(--ink-3)] hover:text-[var(--brand)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/40 focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--paper)]"
+                aria-label="收起摘要">
+                <ChevronUp className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          {!expanded && (
             <button
-              onClick={() => setExpanded(false)}
-              className="ml-1.5 inline-flex items-center text-[12px] text-[var(--ink-3)] hover:text-[var(--brand)]"
-              aria-label="收起摘要">
-              <ChevronUp className="h-3.5 w-3.5" />
+              type="button"
+              id={`abs-${r.id}`}
+              onClick={() => setExpanded(true)}
+              aria-expanded="false"
+              aria-label="展开摘要"
+              className="absolute right-0 bottom-0 px-1.5 leading-none rounded text-[14px] text-[var(--ink-3)] hover:text-[var(--brand)] bg-[var(--paper)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]/40 focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--paper)]">
+              ···
             </button>
           )}
         </div>
-        {!expanded && (
-          <button
-            onClick={() => setExpanded(true)}
-            className="absolute right-0 bottom-0 px-1.5 leading-none rounded text-[14px] text-[var(--ink-3)] hover:text-[var(--brand)] bg-[var(--paper)]"
-            aria-label="展开摘要">
-            ···
-          </button>
-        )}
       </div>
       {/* v19: 原文片段（content 接口）— 默认折叠，点击展开按需分段拉取；传入 query 高亮 */}
       {r.doc_id && (
@@ -778,55 +790,40 @@ export default function Experience() {
               </div>
             </div>
 
-            {/* sample tags */}
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="font-mono text-[11px] tracking-[0.16em] uppercase text-[var(--ink-3)] mr-1">
-                试试
-              </span>
-              {SAMPLES.map((s) => (
+            {/* sample tags — v20: 仅在未提交检索时呈现，避免与结果页资讯重复 */}
+            {!meta && !committed && !errorKind && (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="font-mono text-[11px] tracking-[0.16em] uppercase text-[var(--ink-3)] mr-1">
+                  试试
+                </span>
+                {SAMPLES.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => {
+                      setQuery(s);
+                      submit(s);
+                    }}
+                    className="text-[12.5px] px-3 py-1.5 rounded-full border hairline bg-white text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
+                    {s}
+                  </button>
+                ))}
+                {/* v20: 失败示例 chip — 单击直接走通用失败兜底页 */}
+                <span className="mx-1 h-3 w-px bg-[var(--hairline-strong)]" aria-hidden />
                 <button
-                  key={s}
+                  type="button"
                   onClick={() => {
-                    setQuery(s);
-                    submit(s);
+                    forceFailRef.current = "unknown";
+                    autoRetriedRef.current = false;
+                    const sample = query.trim() || "马德里 Sciverse 检索示例";
+                    setQuery(sample);
+                    submit(sample);
                   }}
-                  className="text-[12.5px] px-3 py-1.5 rounded-full border hairline bg-white text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
-                  {s}
-                </button>
-              ))}
-              {/* v19: 失败示例 chip — 一键走失败兜底页，可选场景 */}
-              <span className="mx-1 h-3 w-px bg-[var(--hairline-strong)]" aria-hidden />
-              <details className="relative">
-                <summary className="list-none cursor-pointer inline-flex items-center gap-1 text-[12.5px] px-3 py-1.5 rounded-full border border-dashed border-[#D2BFB7] text-[#9F4A33] bg-[#FBF4F1] hover:bg-[#F8E9E2] transition-colors">
+                  className="inline-flex items-center gap-1 text-[12.5px] px-3 py-1.5 rounded-full border border-dashed border-[#D2BFB7] text-[#9F4A33] bg-[#FBF4F1] hover:bg-[#F8E9E2] transition-colors">
                   <AlertOctagon className="h-3.5 w-3.5" strokeWidth={1.8} />
                   失败示例
-                </summary>
-                <div className="absolute z-10 mt-2 left-0 min-w-[200px] rounded-lg border hairline bg-white shadow-sm p-1 text-[12.5px]">
-                  {([
-                    ["server", "服务发布中"],
-                    ["network", "网络异常"],
-                    ["maintenance", "服务繁忙 / 限流"],
-                  ] as Array<[SearchErrorKind, string]>).map(([k, label]) => (
-                    <button
-                      key={k}
-                      onClick={(e) => {
-                        // 关闭 details
-                        const d = (e.currentTarget.closest("details") as HTMLDetailsElement | null);
-                        if (d) d.open = false;
-                        forceFailRef.current = k;
-                        autoRetriedRef.current = false;
-                        const sample = query.trim() || "马德里 Sciverse 检索示例";
-                        setQuery(sample);
-                        submit(sample);
-                      }}
-                      className="w-full text-left px-2.5 py-1.5 rounded hover:bg-[#FAFAF7] text-[var(--ink-2)] hover:text-[var(--ink)] inline-flex items-center justify-between gap-2">
-                      <span>{label}</span>
-                      <span className="font-mono text-[10.5px] text-[var(--ink-3)]">{k}</span>
-                    </button>
-                  ))}
-                </div>
-              </details>
-            </div>
+                </button>
+              </div>
+            )}
           </section>
 
           {/* v17: 结果页改词重搜模式切换（追加/另起） */}
@@ -873,7 +870,6 @@ export default function Experience() {
           {/* v18: 失败兜底页 — 仅在提交后失败且无 results 时出现 */}
           {errorKind && !meta && (
             <SearchErrorState
-              kind={errorKind}
               query={committed || query}
               retrying={retrying || loading}
               onRetry={() => {
