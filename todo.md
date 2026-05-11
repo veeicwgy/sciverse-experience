@@ -155,3 +155,11 @@
 - [ ] 摘要 ⋯ 改为可访问按钮 + 可见焦点环 + grid-rows 过渡
 - [ ] 搜索后（有 meta/results）隐藏底部 "试试" sample chips 与 "失败示例"
 - [ ] 保存 v20 检查点
+
+
+---
+
+# Sciverse v21 · Hero 亮点改写
+
+- [ ] 替换「最快 <600ms · Agentic Search 平均响应」为「Agent 一等公民 · 原生支持 Manus/Claude/Cursor」
+- [ ] 保存 v21 检查点
