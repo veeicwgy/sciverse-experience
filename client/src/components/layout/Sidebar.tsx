@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useSessionHistory, type Session } from "@/hooks/useSessionHistory";
+import { ChevronRight, Trash2 } from "lucide-react";
 
 type NavKey = "experience" | "history" | "docs" | "tokens" | "stats";
 
@@ -52,26 +54,36 @@ const NAV: {
 // v6: 二维码图片 URL 常量化 + 通过 new Image() 预加载（提前发起请求，避免点击 popover 才开始下载）
 const WECHAT_QR_URL = "/manus-storage/sciverse-wechat-qr_6f1a7ef6.png";
 
-const HISTORY = [
-  {
-    bucket: "今天",
-    items: [
-      { id: "h1", title: "CRISPR 基因编辑" },
-      { id: "h2", title: "阿尔茨海默症靶点" },
-    ],
-  },
-  {
-    bucket: "昨天",
-    items: [{ id: "h3", title: "蛋白质折叠预测" }],
-  },
-  {
-    bucket: "更早",
-    items: [
-      { id: "h4", title: "COVID-19 长期效应" },
-      { id: "h5", title: "逆合成路径规划" },
-    ],
-  },
-];
+// v17: 历史区分桶工具 — 按 lastActivityAt 分为 今天 / 昨天 / 本周 / 更早
+function bucketize(list: Session[]) {
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfYesterday = startOfToday - 86400000;
+  const startOfWeek = startOfToday - 6 * 86400000; // 近 7 天
+  const buckets: { bucket: string; items: Session[] }[] = [
+    { bucket: "今天", items: [] },
+    { bucket: "昨天", items: [] },
+    { bucket: "本周", items: [] },
+    { bucket: "更早", items: [] },
+  ];
+  // 已按 lastActivityAt 倒序（hook 返回顺序）
+  for (const s of list) {
+    const t = s.lastActivityAt;
+    if (t >= startOfToday) buckets[0].items.push(s);
+    else if (t >= startOfYesterday) buckets[1].items.push(s);
+    else if (t >= startOfWeek) buckets[2].items.push(s);
+    else buckets[3].items.push(s);
+  }
+  return buckets.filter((b) => b.items.length > 0);
+}
+
+function relativeTime(ts: number) {
+  const diff = Date.now() - ts;
+  if (diff < 60_000) return "刚刚";
+  if (diff < 3600_000) return `${Math.floor(diff / 60_000)} 分钟前`;
+  if (diff < 86400_000) return `${Math.floor(diff / 3600_000)} 小时前`;
+  return `${Math.floor(diff / 86400_000)} 天前`;
+}
 
 function Logo({ collapsed }: { collapsed: boolean }) {
   // v10: 点击 logo+名称始终返回新对话主页，若已在 / 则清除 ?q 并刷新为初始态
@@ -130,6 +142,25 @@ export default function Sidebar({ active }: { active?: NavKey }) {
   const [user, setUser] = useState<User | null>(null);
   const historyRef = useRef<HTMLDivElement | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
+
+  // v17: 会话历史
+  const { sessions, remove } = useSessionHistory();
+  const buckets = useMemo(() => bucketize(sessions), [sessions]);
+  // 当前路由中的 sessionId（?s=）用于高亮选中项
+  const currentSessionId = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("s");
+  }, [location]);
+  // 展开的会话 id 集合
+  const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
+  const toggleExpand = (id: string) => {
+    setExpandedSessions((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  };
 
   useEffect(() => {
     const stored = localStorage.getItem("sciverse:sidebar:collapsed");
@@ -268,19 +299,68 @@ export default function Sidebar({ active }: { active?: NavKey }) {
                   <div
                     ref={historyRef}
                     className="mt-1 mb-2 ml-2 pl-3 border-l hairline space-y-3">
-                    {HISTORY.map((g) => (
+                    {buckets.length === 0 && (
+                      <div className="text-[12px] text-[var(--ink-3)] py-1">
+                        还没有历史。在上方提问，这里就会出现。
+                      </div>
+                    )}
+                    {buckets.map((g) => (
                       <div key={g.bucket}>
                         <div className="font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--ink-3)] mb-1.5">
                           {g.bucket}
                         </div>
                         <ul className="space-y-0.5">
-                          {g.items.map((it) => (
-                            <li key={it.id}>
-                              <button className="w-full text-left text-[12.5px] text-[var(--ink-2)] hover:text-[var(--ink)] truncate py-1 px-1.5 rounded hover:bg-[#f1f0eb] transition-colors">
-                                {it.title}
-                              </button>
-                            </li>
-                          ))}
+                          {g.items.map((s) => {
+                            const isCur = s.id === currentSessionId;
+                            const isExpanded = expandedSessions.has(s.id);
+                            const latest = s.versions[s.versions.length - 1];
+                            return (
+                              <li key={s.id}>
+                                <div className={cn("group flex items-center gap-1 rounded transition-colors", isCur && "bg-[#f1f0eb]") }>
+                                  <a
+                                    href={`/?s=${s.id}&v=${latest.id}`}
+                                    className="flex-1 min-w-0 text-left text-[12.5px] text-[var(--ink-2)] hover:text-[var(--ink)] truncate py-1 px-1.5 rounded hover:bg-[#f1f0eb] transition-colors flex items-center gap-1.5"
+                                    title={`${s.title} · ${s.versions.length} 个版本 · ${relativeTime(s.lastActivityAt)}`}>
+                                    <span className="truncate">{s.title || latest.query}</span>
+                                    {s.versions.length > 1 && (
+                                      <span className="shrink-0 font-mono text-[10px] text-[var(--brand)] tabular-nums">
+                                        ·v{s.versions.length}
+                                      </span>
+                                    )}
+                                  </a>
+                                  {s.versions.length > 1 && (
+                                    <button
+                                      onClick={() => toggleExpand(s.id)}
+                                      className="shrink-0 h-6 w-6 flex items-center justify-center rounded text-[var(--ink-3)] hover:text-[var(--ink)] hover:bg-white/60"
+                                      aria-label={isExpanded ? "收起版本" : "展开版本"}>
+                                      <ChevronRight className={cn("h-3 w-3 transition-transform", isExpanded && "rotate-90")} />
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => { remove(s.id); toast("已删除历史会话"); }}
+                                    className="shrink-0 h-6 w-6 flex items-center justify-center rounded text-[var(--ink-3)] hover:text-red-500 hover:bg-white/60 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    aria-label="删除">
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+                                {isExpanded && s.versions.length > 1 && (
+                                  <ul className="mt-0.5 mb-1 ml-3 pl-2 border-l hairline space-y-0.5">
+                                    {s.versions.map((v, vi) => (
+                                      <li key={v.id}>
+                                        <a
+                                          href={`/?s=${s.id}&v=${v.id}`}
+                                          className="flex items-center gap-2 text-[11.5px] text-[var(--ink-3)] hover:text-[var(--ink)] py-0.5 px-1.5 rounded hover:bg-[#f1f0eb] transition-colors"
+                                          title={relativeTime(v.ts)}>
+                                          <span className="font-mono text-[10px] text-[var(--brand)] tabular-nums shrink-0">v{vi + 1}</span>
+                                          <span className="truncate flex-1">{v.query}</span>
+                                        </a>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </li>
+                            );
+                          })}
                         </ul>
                       </div>
                     ))}

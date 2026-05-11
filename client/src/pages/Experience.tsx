@@ -24,6 +24,8 @@ import { toast } from "sonner";
 import Sidebar from "@/components/layout/Sidebar";
 import IntegrationBubble from "@/components/experience/IntegrationBubble";
 import { cn } from "@/lib/utils";
+import { useSessionHistory, findSession, findVersion } from "@/hooks/useSessionHistory";
+import { GitBranch, Plus } from "lucide-react";
 
 type Result = {
   id: string;
@@ -483,30 +485,68 @@ export default function Experience() {
   const [burstId, setBurstId] = useState(0); // 递增 key 触发重新 mount 以重启粒子动画
   const PAGE_SIZE = 8;
   const composing = useRef(false);
+
+  // v17: 会话+版本历史模型 — 当前会话 id / 当前版本 id
+  const { sessions, createSession, appendVersion } = useSessionHistory();
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [currentVersionId, setCurrentVersionId] = useState<string | null>(null);
+  // 改词重搜的默认行为：true=追加到本会话，false=另起新会话
+  const [appendMode, setAppendMode] = useState(true);
   // 仅在输入为空、未提交过查询、且未 focus 时运行打字机
   const typedPlaceholder = useTypewriter(
     TYPE_SAMPLES,
     query.length === 0 && !loading && !focused,
   );
 
-  // URL ?q=
+  // URL ?q= / ?s= / ?v=
+  // 优先级：s+v 复现历史版本；q 兜底直接检索（也会创建会话）；都没有则空白主页
   useEffect(() => {
     const u = new URL(window.location.href);
+    const s = u.searchParams.get("s");
+    const v = u.searchParams.get("v");
     const q = u.searchParams.get("q");
+    if (s && v) {
+      const all = JSON.parse(localStorage.getItem("sciverse:sessions:v1") || "[]");
+      const sess = findSession(all, s);
+      const ver = findVersion(sess, v);
+      if (sess && ver) {
+        setCurrentSessionId(sess.id);
+        setCurrentVersionId(ver.id);
+        setQuery(ver.query);
+        // 复现该版本检索（无上下文，独立检索）
+        runSearch(ver.query);
+        return;
+      }
+    }
     if (q) {
       setQuery(q);
       submit(q);
     }
-    // popstate
     const onPop = () => {
       const nu = new URL(window.location.href);
+      const ns = nu.searchParams.get("s");
+      const nv = nu.searchParams.get("v");
       const nq = nu.searchParams.get("q") || "";
+      if (ns && nv) {
+        const all = JSON.parse(localStorage.getItem("sciverse:sessions:v1") || "[]");
+        const sess = findSession(all, ns);
+        const ver = findVersion(sess, nv);
+        if (sess && ver) {
+          setCurrentSessionId(sess.id);
+          setCurrentVersionId(ver.id);
+          setQuery(ver.query);
+          runSearch(ver.query);
+          return;
+        }
+      }
       setQuery(nq);
       if (nq) submit(nq);
       else {
         setResults(null);
         setMeta(null);
         setCommitted("");
+        setCurrentSessionId(null);
+        setCurrentVersionId(null);
       }
     };
     window.addEventListener("popstate", onPop);
@@ -516,25 +556,47 @@ export default function Experience() {
 
   const canSubmit = query.trim().length > 0 && !loading;
 
-  const submit = async (q?: string) => {
-    const value = (q ?? query).trim();
-    if (!value) return;
-    setBurstId((n) => n + 1); // 启动一次粒子反馈
+  // 内部：仅执行检索动作（不写历史、不改 URL）— 用于复现历史版本
+  const runSearch = async (value: string) => {
+    if (!value.trim()) return;
+    setBurstId((n) => n + 1);
     setLoading(true);
     setCommitted(value);
     setPage(1);
-    // sync URL
-    const url = new URL(window.location.href);
-    url.searchParams.set("q", value);
-    window.history.pushState({}, "", url.toString());
-
     const start = performance.now();
-    // 模拟检索（200-700ms）
     await new Promise((r) => setTimeout(r, 520 + Math.random() * 280));
-    const elapsed = Math.round(performance.now() - start) + 1200; // 加上"三路并行+LLM 清洗"的虚拟耗时
+    const elapsed = Math.round(performance.now() - start) + 1200;
     setResults(PRESET_RESULTS.default);
     setMeta({ count: PRESET_RESULTS.default.length, ms: elapsed });
     setLoading(false);
+  };
+
+  // 用户主动提交：写入历史（追加到本会话 / 另起新会话）+ 同步 URL
+  const submit = async (q?: string) => {
+    const value = (q ?? query).trim();
+    if (!value) return;
+    // 决定写入策略
+    let nextSessionId = currentSessionId;
+    let nextVersionId: string | null = null;
+    if (currentSessionId && appendMode) {
+      const r = appendVersion(currentSessionId, value);
+      nextSessionId = r.sessionId;
+      nextVersionId = r.versionId;
+    } else {
+      const r = createSession(value);
+      nextSessionId = r.sessionId;
+      nextVersionId = r.versionId;
+    }
+    setCurrentSessionId(nextSessionId);
+    setCurrentVersionId(nextVersionId);
+    // sync URL
+    const url = new URL(window.location.href);
+    url.searchParams.delete("q");
+    url.searchParams.set("s", nextSessionId!);
+    url.searchParams.set("v", nextVersionId!);
+    window.history.pushState({}, "", url.toString());
+    // 跑独立检索
+    await runSearch(value);
   };
 
   const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -638,9 +700,50 @@ export default function Experience() {
             </div>
           </section>
 
+          {/* v17: 结果页改词重搜模式切换（追加/另起） */}
+          {meta && committed && currentSessionId && (
+            <div className="mt-3 flex items-center gap-2 text-[12px] text-[var(--ink-3)]">
+              <span>修改关键词后</span>
+              <div className="inline-flex items-center rounded-full border hairline bg-white p-0.5">
+                <button
+                  onClick={() => setAppendMode(true)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-full inline-flex items-center gap-1 transition-colors",
+                    appendMode
+                      ? "bg-[var(--ink)] text-white"
+                      : "text-[var(--ink-2)] hover:text-[var(--ink)]",
+                  )}>
+                  <GitBranch className="h-3 w-3" />
+                  追加到本会话
+                </button>
+                <button
+                  onClick={() => setAppendMode(false)}
+                  className={cn(
+                    "px-2.5 py-1 rounded-full inline-flex items-center gap-1 transition-colors",
+                    !appendMode
+                      ? "bg-[var(--ink)] text-white"
+                      : "text-[var(--ink-2)] hover:text-[var(--ink)]",
+                  )}>
+                  <Plus className="h-3 w-3" />
+                  另起新会话
+                </button>
+              </div>
+              {(() => {
+                const sess = findSession(sessions, currentSessionId);
+                if (!sess) return null;
+                const vIdx = sess.versions.findIndex((x) => x.id === currentVersionId);
+                return (
+                  <span className="ml-1">
+                    当前 v{vIdx >= 0 ? vIdx + 1 : sess.versions.length} / 共 {sess.versions.length} 个版本
+                  </span>
+                );
+              })()}
+            </div>
+          )}
+
           {/* STATUS + RESULTS */}
           {meta && committed && (
-            <section className="mt-10">
+            <section className="mt-6">
               <IntegrationBubble />
               <div className="mt-5 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[12.5px] text-[var(--ink-2)]">
                 <span>

@@ -98,3 +98,16 @@
 - [ ] 3. Sidebar 接入指南改为新开浏览器页（target=_blank）
 - [ ] 4. 代码清理：SkillsBubble 文件 → IntegrationBubble 实体改名 / 删除废弃字段 / 补 README
 - [ ] 5. 保存 v16 检查点并交付
+
+
+---
+
+# Sciverse v17 · 会话+版本历史模型（方案 B）
+
+- [ ] 状态模型：sessions[{id, title, versions:[{id, query, ts}], createdAt, lastActivityAt}]，localStorage 持久化
+- [ ] 默认行为：新对话页提交→新建会话；结果页改词重搜→在当前会话追加版本（默认）
+- [ ] 结果页搜索框旁加「追加到本会话 / 另起新会话」微切换
+- [ ] 每个版本都是独立检索（无上下文），点击任一版本可复现其结果
+- [ ] Sidebar 历史区按 lastActivityAt 倒序；会话项右侧版本计数 chip（·v3）
+- [ ] 会话项可展开显示版本时间线（v1/v2/v3 + 时间 + 关键词），点击跳到该版本
+- [ ] URL 同步：?s={sessionId}&v={versionId} 便于分享与刷新复现
