@@ -44,7 +44,7 @@ const NAV: {
   href?: string;
   hint?: string;
 }[] = [
-  { key: "experience", label: "新对话", icon: PenSquare, href: "/experience", hint: "清空搜索 · 开始一次新查询" },
+  { key: "experience", label: "新对话", icon: PenSquare, href: "/", hint: "清空搜索 · 开始一次新查询" },
   { key: "history", label: "历史", icon: History, hint: "近期搜索按时间分组" },
   { key: "tokens", label: "密钥", icon: KeyRound, href: "/tokens" },
   { key: "stats", label: "用量", icon: BarChart3, href: "/stats" },
@@ -271,7 +271,12 @@ export default function Sidebar({ active }: { active?: NavKey }) {
             </div>
           );
 
-          // 接入指南改为新开浏览器页打开 /docs，便于团队长独立维护，不写死在 Sciverse 产品壳里
+          // v17.1: 「新对话」点击事件 — 同时清空 ?s&v 与重置 Experience 状态
+          const goNewChat = (e: React.MouseEvent) => {
+            e.preventDefault();
+            // 总是跳 / 并干净化 query，以保证 Experience 进入初始态
+            window.location.href = "/";
+          };
           const wrapped = n.href ? (
             n.key === "docs" ? (
               <a
@@ -280,6 +285,10 @@ export default function Sidebar({ active }: { active?: NavKey }) {
                 target="_blank"
                 rel="noreferrer"
                 title="在新窗口打开">
+                {item}
+              </a>
+            ) : n.key === "experience" ? (
+              <a key={n.key} href={n.href} onClick={goNewChat}>
                 {item}
               </a>
             ) : (

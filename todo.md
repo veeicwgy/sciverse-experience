@@ -111,3 +111,13 @@
 - [ ] Sidebar 历史区按 lastActivityAt 倒序；会话项右侧版本计数 chip（·v3）
 - [ ] 会话项可展开显示版本时间线（v1/v2/v3 + 时间 + 关键词），点击跳到该版本
 - [ ] URL 同步：?s={sessionId}&v={versionId} 便于分享与刷新复现
+
+
+---
+
+# Sciverse v17.1 · 修复
+
+- [ ] 同窗口下 Sidebar 与 Experience 共享 useSessionHistory 状态：localStorage `storage` 事件不会在同源同窗口触发，需要自定义事件或在 hook 内手动广播
+- [ ] 「新对话」菜单点击应清空 ?s&v 并重置 Experience 状态（不仅 push /experience）
+- [ ] 「追加到本会话」提交后 Sidebar 高亮当前会话项 + 自动展开版本时间线
+- [ ] 验证 ?s&v URL 共享/刷新可复现历史版本

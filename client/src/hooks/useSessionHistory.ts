@@ -1,37 +1,35 @@
 /*
- * Sciverse · useSessionHistory (v17)
+ * Sciverse · useSessionHistory (v17.1)
  * 方案 B：会话+版本历史模型
  *
  * 核心约定：
  * - 一个 Session 对应一条侧边栏历史项，含若干 Version
  * - 每个 Version 都是独立检索（无上下文记忆），可单独复现
- * - 排序按 lastActivityAt 倒序（老会话被修改也会自然回到顶部）
+ * - 排序按 lastActivityAt 倒序
  * - localStorage key: "sciverse:sessions:v1"
  *
- * 行为：
- * - createSession(query): 新对话页提交 → 新建会话 + 首版本
- * - appendVersion(sessionId, query): 结果页"追加到本会话" → 在已有会话末尾加 vN
- * - touch(sessionId): 仅切换浏览版本时更新 lastActivityAt，不影响 versions
- * - rename(sessionId, title): 改会话标题（默认取首版本 query）
- * - remove(sessionId): 删除整条会话
+ * v17.1 修复：
+ * - 浏览器 `storage` 事件只跨标签页生效，同窗口内 Sidebar 与 Experience 不会自动同步
+ * - 改为自定义事件 + EventTarget 广播：每次写入都 dispatch，所有 hook 实例订阅刷新
  */
 import { useCallback, useEffect, useState } from "react";
 
 export type Version = {
-  id: string;          // v_xxx
-  query: string;       // 该版本的关键词
-  ts: number;          // 创建时间戳
+  id: string;
+  query: string;
+  ts: number;
 };
 
 export type Session = {
-  id: string;          // s_xxx
-  title: string;       // 默认 = 首版本 query
-  versions: Version[]; // 至少 1 个
+  id: string;
+  title: string;
+  versions: Version[];
   createdAt: number;
   lastActivityAt: number;
 };
 
 const STORAGE_KEY = "sciverse:sessions:v1";
+const EVENT_NAME = "sciverse:sessions:changed";
 
 function uid(prefix: string) {
   return `${prefix}_${Date.now().toString(36)}${Math.random()
@@ -56,6 +54,8 @@ function writeAll(list: Session[]) {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    // v17.1：同窗口广播，让本窗口内的其他 hook 实例同步刷新
+    window.dispatchEvent(new CustomEvent(EVENT_NAME));
   } catch {
     // ignore quota
   }
@@ -64,13 +64,18 @@ function writeAll(list: Session[]) {
 export function useSessionHistory() {
   const [sessions, setSessions] = useState<Session[]>(() => readAll());
 
-  // 跨标签同步
+  // 跨标签 + 同窗口同步
   useEffect(() => {
+    const reload = () => setSessions(readAll());
     const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setSessions(readAll());
+      if (e.key === STORAGE_KEY) reload();
     };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener(EVENT_NAME, reload as EventListener);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(EVENT_NAME, reload as EventListener);
+    };
   }, []);
 
   const persist = useCallback((next: Session[]) => {
@@ -99,10 +104,7 @@ export function useSessionHistory() {
     (sessionId: string, query: string): { sessionId: string; versionId: string } => {
       const all = readAll();
       const idx = all.findIndex((s) => s.id === sessionId);
-      if (idx < 0) {
-        // 安全降级：会话不存在则当作新建
-        return createSession(query);
-      }
+      if (idx < 0) return createSession(query);
       const now = Date.now();
       const v: Version = { id: uid("v"), query: query.trim(), ts: now };
       const updated: Session = {
@@ -158,7 +160,6 @@ export function useSessionHistory() {
   };
 }
 
-// helper：在 hook 之外读取（如 Sidebar 需要订阅，亦走 hook；此 helper 用于一次性查询）
 export function findSession(sessions: Session[], id: string | null) {
   if (!id) return undefined;
   return sessions.find((s) => s.id === id);
