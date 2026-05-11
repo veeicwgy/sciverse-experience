@@ -23,6 +23,10 @@ import {
 import { toast } from "sonner";
 import Sidebar from "@/components/layout/Sidebar";
 import IntegrationBubble from "@/components/experience/IntegrationBubble";
+import SearchErrorState, {
+  type SearchErrorKind,
+} from "@/components/experience/SearchErrorState";
+import ContentSnippet from "@/components/experience/ContentSnippet";
 import { cn } from "@/lib/utils";
 import { useSessionHistory, findSession, findVersion } from "@/hooks/useSessionHistory";
 import { GitBranch, Plus } from "lucide-react";
@@ -38,6 +42,10 @@ type Result = {
   score: number; // 0-1
   abstract: string;
   doi?: string;
+  /** v18: 含 doc_id 表示可调用 content 接口拉取原文片段 */
+  doc_id?: string;
+  /** v18: 估算字数（仅展示提示） */
+  approxLength?: number;
 };
 
 const SAMPLES = [
@@ -63,6 +71,8 @@ const PRESET_RESULTS: Record<string, Result[]> = {
       abstract:
         "在 12 个月随访时，23% 患者的 DLCO 较健康对照下降，提示病毒感染后存在持续性肺损伤。研究在 24 个月仍观察到弥散功能未完全恢复的亚群，且与急性期严重程度独立相关。",
       doi: "10.1038/s41591-024-02873-2",
+      doc_id: "nat-med-2024-02873-2",
+      approxLength: 4280,
     },
     {
       id: "r2",
@@ -77,6 +87,8 @@ const PRESET_RESULTS: Record<string, Result[]> = {
       abstract:
         "通过引入界面残基的注意力先验，AlphaFold-Multimer 在 GPCR-G 蛋白复合物上的中位 DockQ 提升 0.21；对未公开测试集的盲评显示该方法在跨膜受体上的稳健性显著优于早期版本。",
       doi: "10.1016/j.cell.2023.08.022",
+      doc_id: "cell-2023-08-022",
+      approxLength: 5120,
     },
     {
       id: "r3",
@@ -89,6 +101,8 @@ const PRESET_RESULTS: Record<string, Result[]> = {
       score: 0.81,
       abstract:
         "提出一种结合 SMILES 模板与 reaction-aware 重排序的逆合成模型，在 USPTO-50K 上 top-10 命中率达到 92.4%；并在 1976-2024 专利反应中验证了对长链复杂分子的可扩展性。",
+      doc_id: "jacs-au-2024-retro-tpl",
+      approxLength: 3640,
     },
     {
       id: "r4",
@@ -102,6 +116,8 @@ const PRESET_RESULTS: Record<string, Result[]> = {
       score: 0.74,
       abstract:
         "针对磷酸化 Tau 设计的 PROTAC 双功能降解剂在 P301S 模型中显著降低 pS396 水平，并在 8 周给药后恢复海马 LTP；剂量-效应曲线提示存在治疗窗口的可调性。",
+      doc_id: "stm-2025-tau-protac",
+      approxLength: 4760,
     },
   ],
 };
@@ -149,7 +165,7 @@ function RelevanceDots({ score }: { score: number }) {
 function ResultCard({ r, q }: { r: Result; q: string }) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <article className="card-paper p-5 ed-in">
+    <article className="card-paper p-5 ed-in" data-doc-id={r.doc_id}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="method-badge method-post">{r.source_type}</span>
@@ -198,6 +214,11 @@ function ResultCard({ r, q }: { r: Result; q: string }) {
         {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
         {expanded ? "收起" : "展开全文"}
       </button>
+
+      {/* v18: 原文片段（content 接口）— 默认折叠，点击展开按需分段拉取 */}
+      {r.doc_id && (
+        <ContentSnippet docId={r.doc_id} approxLength={r.approxLength} />
+      )}
     </article>
   );
 }
@@ -483,6 +504,10 @@ export default function Experience() {
   const [page, setPage] = useState(1);
   const [focused, setFocused] = useState(false);
   const [burstId, setBurstId] = useState(0); // 递增 key 触发重新 mount 以重启粒子动画
+  // v18: 失败兜底状态 — kind 区分场景，首次失败后 3s 自动重试一次
+  const [errorKind, setErrorKind] = useState<SearchErrorKind | null>(null);
+  const [retrying, setRetrying] = useState(false);
+  const autoRetriedRef = useRef(false);
   const PAGE_SIZE = 8;
   const composing = useRef(false);
 
@@ -557,18 +582,47 @@ export default function Experience() {
   const canSubmit = query.trim().length > 0 && !loading;
 
   // 内部：仅执行检索动作（不写历史、不改 URL）— 用于复现历史版本
-  const runSearch = async (value: string) => {
+  // v18: 加入失败概率与自动重试一次；opts.silent=true 不重置 burst
+  const runSearch = async (
+    value: string,
+    opts: { silent?: boolean; isRetry?: boolean } = {},
+  ) => {
     if (!value.trim()) return;
-    setBurstId((n) => n + 1);
+    if (!opts.silent) setBurstId((n) => n + 1);
     setLoading(true);
     setCommitted(value);
     setPage(1);
+    setErrorKind(null);
     const start = performance.now();
     await new Promise((r) => setTimeout(r, 520 + Math.random() * 280));
+    // 模拟失败：首次提交 ~12% 失败概率；手动重试调低至 4%。
+    const failChance = opts.isRetry ? 0.04 : 0.12;
+    if (Math.random() < failChance) {
+      setLoading(false);
+      setResults(null);
+      setMeta(null);
+      // 随机分配场景
+      const pool: SearchErrorKind[] = ["server", "network", "maintenance"];
+      const kind = pool[Math.floor(Math.random() * pool.length)];
+      setErrorKind(kind);
+      // 首次失败后自动重试一次（仅一次）
+      if (!autoRetriedRef.current && !opts.isRetry) {
+        autoRetriedRef.current = true;
+        setRetrying(true);
+        window.setTimeout(() => {
+          runSearch(value, { silent: true, isRetry: true }).finally(() =>
+            setRetrying(false),
+          );
+        }, 3000);
+      }
+      return;
+    }
     const elapsed = Math.round(performance.now() - start) + 1200;
     setResults(PRESET_RESULTS.default);
     setMeta({ count: PRESET_RESULTS.default.length, ms: elapsed });
     setLoading(false);
+    // 成功则释放自动重试锁，以便下一次提交后可重新启用
+    autoRetriedRef.current = false;
   };
 
   // 用户主动提交：写入历史（追加到本会话 / 另起新会话）+ 同步 URL
@@ -739,6 +793,24 @@ export default function Experience() {
                 );
               })()}
             </div>
+          )}
+
+          {/* v18: 失败兜底页 — 仅在提交后失败且无 results 时出现 */}
+          {errorKind && !meta && (
+            <SearchErrorState
+              kind={errorKind}
+              query={committed || query}
+              retrying={retrying || loading}
+              onRetry={() => {
+                if (loading || retrying) return;
+                autoRetriedRef.current = true; // 手动重试不再触发自动重试
+                runSearch(committed || query, { isRetry: true });
+              }}
+              onEdit={() => {
+                setErrorKind(null);
+                inputRef.current?.focus();
+              }}
+            />
           )}
 
           {/* STATUS + RESULTS */}
