@@ -14,6 +14,7 @@ import Experience from "./pages/Experience";
 import Docs from "./pages/Docs";
 import Tokens from "./pages/Tokens";
 import Stats from "./pages/Stats";
+import Depth from "./pages/Depth";
 
 function Router() {
   return (
@@ -23,6 +24,7 @@ function Router() {
       <Route path={"/docs"} component={Docs} />
       <Route path={"/tokens"} component={Tokens} />
       <Route path={"/stats"} component={Stats} />
+      <Route path={"/depth"} component={Depth} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

@@ -14,6 +14,7 @@ import {
   BookOpen,
   KeyRound,
   BarChart3,
+  Layers3,
   LogIn,
   LogOut,
   HelpCircle,
@@ -34,7 +35,7 @@ import { cn } from "@/lib/utils";
 import { useSessionHistory, type Session } from "@/hooks/useSessionHistory";
 import { ChevronRight, Trash2 } from "lucide-react";
 
-type NavKey = "experience" | "history" | "docs" | "tokens" | "stats";
+type NavKey = "experience" | "history" | "docs" | "tokens" | "stats" | "depth";
 
 // v6: 菜单名简化（更接近常见命名）；文档调到最后
 const NAV: {
@@ -48,6 +49,7 @@ const NAV: {
   { key: "history", label: "历史", icon: History, hint: "近期搜索按时间分组" },
   { key: "tokens", label: "密钥", icon: KeyRound, href: "/tokens" },
   { key: "stats", label: "用量", icon: BarChart3, href: "/stats" },
+  { key: "depth", label: "数据深度", icon: Layers3, href: "/depth", hint: "全学科 · 顶刊 · AI 专题 · 语言覆盖" },
   { key: "docs", label: "接入指南", icon: BookOpen, href: "/docs", hint: "API · CLI/SDK · Skills 三种接入方式" },
 ];
 
@@ -199,6 +201,7 @@ export default function Sidebar({ active }: { active?: NavKey }) {
     if (location.startsWith("/docs")) return "docs";
     if (location.startsWith("/tokens")) return "tokens";
     if (location.startsWith("/stats")) return "stats";
+    if (location.startsWith("/depth")) return "depth";
     return "experience";
   }, [active, location]);
 

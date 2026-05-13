@@ -215,3 +215,15 @@
 - [ ] 4. 生态 SciBase 卡：25M+ → 125M+，"蛋白" → 570K+
 - [ ] 5. CountUp 扩展支持 100M+ / 1.3M+ / 814 等量级
 - [ ] 6. 保存 v28 checkpoint
+
+
+---
+
+# v29 · 数据深度二级页面
+
+- [ ] 1. 新建 client/src/pages/Depth.tsx
+- [ ] 2. App.tsx 增加 /depth 路由
+- [ ] 3. 侧边栏「接入指南」下方新增「数据深度」入口
+- [ ] 4. Depth 页内容：Hero · 总览数字 / 四大学科域 / Top 20 学科 / 顶刊 159 / AI 子领域 / AI 顶会顶刊 / 语言 Top 5 / 时间跨度
+- [ ] 5. 保持 Editorial Lab 设计语言，复用 hairline / brand / 衬线
+- [ ] 6. 保存 v29 checkpoint
