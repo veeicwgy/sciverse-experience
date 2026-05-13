@@ -163,3 +163,12 @@
 
 - [ ] 替换「最快 <600ms · Agentic Search 平均响应」为「Agent 一等公民 · 原生支持 Manus/Claude/Cursor」
 - [ ] 保存 v21 检查点
+
+
+---
+
+# v24 · 两区块克制微调（不改结构）
+
+- [ ] 1. 生态卡片：加 hover 轻微阴影（shadow 由 0 → 0 6px 24px -8px rgba(91,91,247,0.18)）+ -translate-y-0.5 + 边框由 hairline → brand/35 + ArrowUpRight 微位移；整卡 transition-all duration-500 ease-out
+- [ ] 2. 数据能力全景：进度条由 #ink 改为 brand/65；底部三宫格 hover 圆环边框由 hairline → brand/45，标题颜色由 ink 改为 brand（仅 hover）；保留所有结构与文案
+- [ ] 3. 保存 v24 checkpoint 并验证 GitHub 同步

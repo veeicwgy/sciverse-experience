@@ -312,12 +312,20 @@
     background: #fff;
     border: 1px solid var(--hairline);
     border-radius: 14px;
-    transition: border-color 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
-      box-shadow 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition:
+      border-color 360ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 360ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      transform 360ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    will-change: transform, box-shadow;
   }
   .card-paper:hover {
-    border-color: #1a1a1a33;
-    box-shadow: 0 18px 40px -28px rgba(20, 20, 30, 0.18);
+    border-color: rgba(91, 91, 247, 0.28);
+    box-shadow:
+      0 1px 0 rgba(91, 91, 247, 0.04),
+      0 12px 28px -16px rgba(91, 91, 247, 0.22),
+      0 24px 56px -32px rgba(20, 20, 30, 0.14);
+    transform: translateY(-2px);
   }
 
   /* relevance dots */

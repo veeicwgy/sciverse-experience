@@ -992,8 +992,8 @@ export default function Experience() {
                     rel="noreferrer"
                     className="card-paper p-5 group block">
                     <div className="flex items-center justify-between">
-                      <div className="h-10 w-10 rounded-xl grid place-items-center bg-white border hairline overflow-hidden">
-                        <img src={c.logo} alt={c.name} className="h-7 w-7 object-contain" />
+                      <div className="h-10 w-10 rounded-xl grid place-items-center bg-white border hairline overflow-hidden transition-colors duration-300 group-hover:border-[var(--brand)]/40">
+                        <img src={c.logo} alt={c.name} className="h-7 w-7 object-contain transition-transform duration-500 ease-out group-hover:scale-[1.04]" />
                       </div>
                       <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
                         {c.tag}
@@ -1013,9 +1013,9 @@ export default function Experience() {
                         </li>
                       ))}
                     </ul>
-                    <div className="mt-4 inline-flex items-center gap-1 text-[12.5px] text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors">
+                    <div className="mt-4 inline-flex items-center gap-1 text-[12.5px] text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors duration-300">
                       {c.cta}
-                      <ExternalLink className="h-3 w-3" />
+                      <ExternalLink className="h-3 w-3 transition-transform duration-300 ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                     </div>
                   </a>
                 );
@@ -1053,7 +1053,7 @@ export default function Experience() {
                       <span className="font-mono text-[10px] tracking-[0.18em] text-[var(--ink-3)]">{d.idx}</span>
                     </div>
                     <div className="mt-3 flex items-baseline gap-1.5 min-w-0">
-                      <span className="font-display font-semibold leading-none tracking-[-0.025em] text-[var(--ink)] text-[clamp(30px,3.2vw,44px)] truncate">
+                      <span className="font-display font-semibold leading-none tracking-[-0.025em] text-[var(--ink)] text-[clamp(30px,3.2vw,44px)] truncate transition-colors duration-300 group-hover:text-[var(--brand)]">
                         {d.num}
                       </span>
                       <span className="text-[12px] text-[var(--ink-2)] shrink-0">{d.unit}</span>
@@ -1062,10 +1062,14 @@ export default function Experience() {
                     <div className="mt-1 font-mono text-[10.5px] tracking-[0.02em] text-[var(--ink-3)] truncate">
                       {d.note}
                     </div>
-                    <div className="mt-4 h-[2px] w-full bg-[var(--ink-3)]/15 overflow-hidden rounded-full">
+                    <div className="mt-4 h-[2px] w-full bg-[var(--brand)]/12 overflow-hidden rounded-full">
                       <div
-                        className="h-full bg-[var(--ink)] transition-[width] duration-700 ease-out"
-                        style={{ width: `${d.pct}%` }}
+                        className="h-full rounded-full transition-[width] duration-700 ease-out"
+                        style={{
+                          width: `${d.pct}%`,
+                          background:
+                            "linear-gradient(90deg, rgba(91,91,247,0.85) 0%, rgba(91,91,247,0.55) 100%)",
+                        }}
                       />
                     </div>
                   </div>
@@ -1073,13 +1077,13 @@ export default function Experience() {
               </div>
             </div>
 
-            <div className="mt-5 grid md:grid-cols-3 gap-px bg-[var(--ink-3)]/15 rounded-xl overflow-hidden border hairline">
+            <div className="mt-5 grid md:grid-cols-3 gap-px bg-[var(--brand)]/10 rounded-xl overflow-hidden border hairline">
               {[
                 { k: "原生", en: "Agent-Native", metric: "一等公民", unit: "", v: "原生支持 Manus / Claude / Cursor", Icon: Zap },
                 { k: "最新", en: "Freshest", metric: "T+1", unit: "同步", v: "每日增量文献与专利自动入库", Icon: Activity },
                 { k: "最全", en: "Broadest", metric: "2,000", unit: "万+ 元数据", v: "覆盖文献 · 专利 · 反应 · 蛋白", Icon: Globe2 },
               ].map((it) => (
-                <div key={it.k} className="bg-[var(--paper)] p-5 group transition-colors hover:bg-[#f7f6f1]">
+                <div key={it.k} className="bg-[var(--paper)] p-5 group transition-colors duration-300 hover:bg-[var(--brand-soft)]/40">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="h-7 w-7 rounded-full border hairline grid place-items-center text-[var(--ink-2)] group-hover:text-[var(--brand)] group-hover:border-[var(--brand)] transition-colors">
