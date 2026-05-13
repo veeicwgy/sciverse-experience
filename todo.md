@@ -191,3 +191,15 @@
 - [ ] 1. 定位三宫格 metric 元素（一等公民 / T+1 / 2,000）
 - [ ] 2. 加 group-hover：translateY(-1px) + text 主色 + 300ms ease-out
 - [ ] 3. 保存 v26 checkpoint
+
+
+---
+
+# v27 · 借鉴参考图（不要英文/编号小标）
+
+- [ ] 1. 生态卡副文升级为一句话定位（一站式化学反应检索 / 蛋白功能 AI 推理 / 面向 Agent 的开源科学语料）
+- [ ] 2. 生态卡 3 条要点改成「mono 数字 · 维度词」结构
+- [ ] 3. 数据能力 4 列：移除 01/02/03/04 编号、在数字上方加 14px line icon（FileText/Layers/Atom/Boxes）
+- [ ] 4. 移除生态卡右上 REACTIONS/PROTEINS/DATASETS 英文 tag
+- [ ] 5. UPDATED · MAY 2026 → 中文「更新于 2026 年 5 月」、移除短分隔线英文味
+- [ ] 6. 保存 v27 checkpoint

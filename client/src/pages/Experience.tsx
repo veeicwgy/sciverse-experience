@@ -19,6 +19,9 @@ import {
   Globe2,
   ChevronLeft,
   ChevronRight,
+  Layers,
+  Atom,
+  Boxes,
 } from "lucide-react";
 import { toast } from "sonner";
 import Sidebar from "@/components/layout/Sidebar";
@@ -1032,29 +1035,38 @@ export default function Experience() {
                 {
                   logo: "/manus-storage/dianshi_8cef3dfd.svg",
                   name: "点石 DianShi",
-                  desc: "有机化学反应数据库",
-                  bullets: ["10M+ 化学反应", "6M+ 化学物质", "1M+ 专利文献"],
+                  desc: "一站式化学物质、反应与专利文献检索平台",
+                  bullets: [
+                    { num: "10M+", dim: "化学反应" },
+                    { num: "6M+", dim: "化学物质" },
+                    { num: "1M+", dim: "专利文献" },
+                  ],
                   cta: "前往点石",
                   href: "https://dianshi.opendatalab.org.cn/",
-                  tag: "Reactions",
                 },
                 {
                   logo: "/manus-storage/seqstudio_3990637c.svg",
                   name: "SeqStudio",
-                  desc: "蛋白质功能 AI 推理 + LLM 注释",
-                  bullets: ["57万+ 蛋白注释", "BLAST · Foldseek 一体化", "AI 推理 + LLM 自动综述"],
+                  desc: "解码生命·智享菁阔 · 一体化蛋白功能 AI 分析平台",
+                  bullets: [
+                    { num: "57万+", dim: "蛋白注释" },
+                    { num: "BLAST", dim: "Foldseek 一体化" },
+                    { num: "AI", dim: "推理 + LLM 综述" },
+                  ],
                   cta: "前往分析",
                   href: "https://seqstudio.opendatalab.org.cn/home",
-                  tag: "Proteins",
                 },
                 {
                   logo: "/manus-storage/scibase_43bd98d3.svg",
                   name: "Sci-Base 数据集",
-                  desc: "面向科学 Agent 的开源语料",
-                  bullets: ["Sci-Base · 25M+ OA 文献", "SA-Prot-Annot · 蛋白注释", "SA-RxnDiagram-15k · 反应图示"],
+                  desc: "AI-Ready 科学数据集，面向 Agent 的开源语料",
+                  bullets: [
+                    { num: "25M+", dim: "OA 文献" },
+                    { num: "蛋白", dim: "SA-Prot-Annot 注释" },
+                    { num: "15k", dim: "SA-RxnDiagram 反应图" },
+                  ],
                   cta: "浏览数据集",
                   href: "https://sciverse.space/",
-                  tag: "Datasets",
                 },
               ].map((c) => {
                 return (
@@ -1064,25 +1076,24 @@ export default function Experience() {
                     target="_blank"
                     rel="noreferrer"
                     className="card-paper p-5 group block">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center">
                       <div className="h-10 w-10 rounded-xl grid place-items-center bg-white border hairline overflow-hidden transition-colors duration-300 group-hover:border-[var(--brand)]/40">
                         <img src={c.logo} alt={c.name} className="h-7 w-7 object-contain transition-transform duration-500 ease-out group-hover:scale-[1.04]" />
                       </div>
-                      <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)] transition-colors duration-300 group-hover:text-[var(--brand)]">
-                        {c.tag}
-                      </span>
                     </div>
-                    <div className="mt-4 font-display text-[19px] text-[var(--ink)]">
+                    <div className="mt-4 font-display text-[20px] text-[var(--ink)] leading-snug">
                       {c.name}
                     </div>
-                    <div className="text-[12.5px] text-[var(--ink-2)] mt-0.5">
+                    <div className="text-[12.5px] text-[var(--ink-2)] mt-1 leading-relaxed">
                       {c.desc}
                     </div>
-                    <ul className="mt-3 space-y-1 text-[12.5px] text-[var(--ink-2)]">
+                    <ul className="mt-3 space-y-1.5 text-[12.5px] text-[var(--ink-2)]">
                       {c.bullets.map((b) => (
-                        <li key={b} className="flex items-baseline gap-2">
+                        <li key={b.num + b.dim} className="flex items-baseline gap-2">
                           <span className="dot on" />
-                          {b}
+                          <span className="font-mono text-[12.5px] text-[var(--ink)] tracking-[-0.01em]">{b.num}</span>
+                          <span className="text-[var(--ink-3)]">·</span>
+                          <span>{b.dim}</span>
                         </li>
                       ))}
                     </ul>
@@ -1102,18 +1113,18 @@ export default function Experience() {
               <h2 className="font-display text-[26px] text-[var(--ink)]">
                 Sciverse 数据能力<span className="italic"> 全景</span>
               </h2>
-              <div className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)] flex items-center gap-2">
+              <div className="text-[12px] text-[var(--ink-3)] flex items-center gap-2">
                 <span className="inline-block h-px w-8 bg-[var(--ink-3)]/40" />
-                Updated · May 2026
+                更新于 2026 年 5 月
               </div>
             </div>
             <div className="mt-6 border-y hairline">
               <div className="grid grid-cols-2 lg:grid-cols-4">
                 {[
-                  { num: "25M+", unit: "篇", label: "OA 文献", note: "10 大学科 · T+1 同步", pct: 92, idx: "01" },
-                  { num: "50K+", unit: "册", label: "教材书籍", note: "全量 40 万 · 持续接入", pct: 12, idx: "02" },
-                  { num: "10M+", unit: "条", label: "化学反应", note: "1976 — 2025 专利覆盖", pct: 78, idx: "03" },
-                  { num: "570K+", unit: "条", label: "蛋白注释", note: "23 维 functional axes", pct: 64, idx: "04" },
+                  { num: "25M+", unit: "篇", label: "OA 文献", note: "10 大学科 · T+1 同步", pct: 92, Icon: FileText },
+                  { num: "50K+", unit: "册", label: "教材书籍", note: "全量 40 万 · 持续接入", pct: 12, Icon: Layers },
+                  { num: "10M+", unit: "条", label: "化学反应", note: "1976 — 2025 专利覆盖", pct: 78, Icon: Atom },
+                  { num: "570K+", unit: "条", label: "蛋白注释", note: "23 维 functional axes", pct: 64, Icon: Boxes },
                 ].map((d, i) => (
                   <div
                     key={d.label}
@@ -1122,8 +1133,11 @@ export default function Experience() {
                       i !== 0 && "lg:border-l hairline",
                       (i === 1 || i === 3) && "border-l hairline lg:border-l",
                     )}>
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-[10px] tracking-[0.18em] text-[var(--ink-3)]">{d.idx}</span>
+                    <div className="flex items-center">
+                      <d.Icon
+                        className="h-[14px] w-[14px] text-[var(--ink-3)] transition-colors duration-300 group-hover:text-[var(--brand)]"
+                        strokeWidth={1.4}
+                      />
                     </div>
                     <div className="mt-3 flex items-baseline gap-1.5 min-w-0">
                       <span className="font-display font-semibold leading-none tracking-[-0.025em] text-[var(--ink)] text-[clamp(30px,3.2vw,44px)] truncate transition-colors duration-300 group-hover:text-[var(--brand)]">
