@@ -19,7 +19,6 @@ import {
   Globe2,
   ChevronLeft,
   ChevronRight,
-  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import Sidebar from "@/components/layout/Sidebar";
@@ -946,140 +945,161 @@ export default function Experience() {
             </section>
           )}
 
-          {/* DRIFT CARDS · Editorial */}
-          <section className="mt-24">
-            <header className="max-w-3xl">
-              <h2 className="font-display text-[44px] md:text-[52px] leading-[1.05] tracking-[-0.03em] text-[var(--ink)]">
-                探索 <span className="italic font-normal">Sciverse</span> 生态
-              </h2>
-              <p className="mt-5 text-[15px] leading-[1.7] text-[var(--ink-2)] max-w-md">
-                三条主线，覆盖分子到文献的全栈科研语料。
-              </p>
-            </header>
+          {/* DRIFT CARDS */}
+          <section className="mt-14">
 
-            <div className="mt-16 border-t hairline">
-              <div className="grid md:grid-cols-3">
-                {[
-                  {
-                    idx: "01",
-                    name: "点石 DianShi",
-                    desc: "有机化学反应数据库",
-                    metric: "10M+",
-                    metricLabel: "化学反应 · 6M 物质 · 1M 专利",
-                    cta: "前往探索",
-                    href: "https://dianshi.opendatalab.org.cn/",
-                  },
-                  {
-                    idx: "02",
-                    name: "SeqStudio",
-                    desc: "蛋白功能 AI 推理与 LLM 注释",
-                    metric: "57万+",
-                    metricLabel: "蛋白注释 · BLAST · Foldseek 一体化",
-                    cta: "前往分析",
-                    href: "https://seqstudio.opendatalab.org.cn/home",
-                  },
-                  {
-                    idx: "03",
-                    name: "Sci-Base 数据集",
-                    desc: "面向科学 Agent 的开源语料",
-                    metric: "25M+",
-                    metricLabel: "OA 文献 · 蛋白注释 · 反应图示",
-                    cta: "浏览数据集",
-                    href: "https://sciverse.space/",
-                  },
-                ].map((c, i) => (
+            <h2 className="font-display text-[26px] text-[var(--ink)]">
+              探索 <span className="italic">Sciverse</span> 生态
+            </h2>
+            <p className="mt-1.5 text-[13.5px] text-[var(--ink-2)]">
+              当一次检索不够时，下钻到反应数据库、蛋白功能分析、开源数据集。
+            </p>
+            <div className="mt-5 grid md:grid-cols-3 gap-4">
+              {[
+                {
+                  logo: "/manus-storage/dianshi_8cef3dfd.svg",
+                  name: "点石 DianShi",
+                  desc: "有机化学反应数据库",
+                  bullets: ["10M+ 化学反应", "6M+ 化学物质", "1M+ 专利文献"],
+                  cta: "前往点石",
+                  href: "https://dianshi.opendatalab.org.cn/",
+                  tag: "Reactions",
+                },
+                {
+                  logo: "/manus-storage/seqstudio_3990637c.svg",
+                  name: "SeqStudio",
+                  desc: "蛋白质功能 AI 推理 + LLM 注释",
+                  bullets: ["57万+ 蛋白注释", "BLAST · Foldseek 一体化", "AI 推理 + LLM 自动综述"],
+                  cta: "前往分析",
+                  href: "https://seqstudio.opendatalab.org.cn/home",
+                  tag: "Proteins",
+                },
+                {
+                  logo: "/manus-storage/scibase_43bd98d3.svg",
+                  name: "Sci-Base 数据集",
+                  desc: "面向科学 Agent 的开源语料",
+                  bullets: ["Sci-Base · 25M+ OA 文献", "SA-Prot-Annot · 蛋白注释", "SA-RxnDiagram-15k · 反应图示"],
+                  cta: "浏览数据集",
+                  href: "https://sciverse.space/",
+                  tag: "Datasets",
+                },
+              ].map((c) => {
+                return (
                   <a
                     key={c.name}
                     href={c.href}
                     target="_blank"
                     rel="noreferrer"
-                    className={cn(
-                      "group relative flex flex-col py-12 px-8 -mt-px border-t hairline transition-colors duration-300 hover:bg-white",
-                      i !== 0 && "md:border-l md:border-t-0 md:mt-0 md:ml-px",
-                    )}>
-                    <div className="flex items-start justify-between">
-                      <span className="font-display italic text-[18px] text-[var(--ink-3)]">
-                        {c.idx}
+                    className="card-paper p-5 group block">
+                    <div className="flex items-center justify-between">
+                      <div className="h-10 w-10 rounded-xl grid place-items-center bg-white border hairline overflow-hidden">
+                        <img src={c.logo} alt={c.name} className="h-7 w-7 object-contain" />
+                      </div>
+                      <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
+                        {c.tag}
                       </span>
-                      <ArrowRight className="h-4 w-4 text-[var(--ink-3)] transition-all duration-500 group-hover:text-[var(--brand)] group-hover:translate-x-1.5 group-hover:-translate-y-1.5" />
                     </div>
-
-                    <h3 className="mt-12 font-display text-[30px] leading-[1.1] tracking-[-0.02em] text-[var(--ink)]">
+                    <div className="mt-4 font-display text-[19px] text-[var(--ink)]">
                       {c.name}
-                    </h3>
-                    <p className="mt-3 text-[14px] leading-[1.6] text-[var(--ink-2)]">
-                      {c.desc}
-                    </p>
-
-                    <div className="mt-10 pt-6 border-t hairline">
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-display text-[36px] leading-none tracking-[-0.025em] text-[var(--ink)] transition-colors duration-300 group-hover:text-[var(--brand)]">
-                          {c.metric}
-                        </span>
-                      </div>
-                      <div className="mt-2 text-[12.5px] leading-[1.55] text-[var(--ink-3)]">
-                        {c.metricLabel}
-                      </div>
                     </div>
-
-                    <div className="mt-10 inline-flex items-center gap-2 text-[13px] text-[var(--ink)]">
-                      <span className="relative">
-                        {c.cta}
-                        <span className="absolute -bottom-1 left-0 h-px w-full bg-[var(--ink)]/30 transition-all duration-500 group-hover:bg-[var(--brand)]" />
-                      </span>
+                    <div className="text-[12.5px] text-[var(--ink-2)] mt-0.5">
+                      {c.desc}
+                    </div>
+                    <ul className="mt-3 space-y-1 text-[12.5px] text-[var(--ink-2)]">
+                      {c.bullets.map((b) => (
+                        <li key={b} className="flex items-baseline gap-2">
+                          <span className="dot on" />
+                          {b}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-4 inline-flex items-center gap-1 text-[12.5px] text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors">
+                      {c.cta}
+                      <ExternalLink className="h-3 w-3" />
                     </div>
                   </a>
-                ))}
-              </div>
+                );
+              })}
             </div>
           </section>
 
           {/* DATA SCALE */}
-          <section className="mt-24">
-            <header className="max-w-3xl">
-              <h2 className="font-display text-[44px] md:text-[52px] leading-[1.05] tracking-[-0.03em] text-[var(--ink)]">
-                数据能力<span className="italic font-normal"> 全景</span>
+          <section className="mt-14">
+            <div className="flex items-end justify-between gap-4 flex-wrap">
+              <h2 className="font-display text-[26px] text-[var(--ink)]">
+                Sciverse 数据能力<span className="italic"> 全景</span>
               </h2>
-              <p className="mt-5 text-[15px] leading-[1.7] text-[var(--ink-2)] max-w-md">
-                一等公民的数据资产，每日以 T+1 同步。
-              </p>
-            </header>
-
-            <div className="mt-16 border-t hairline">
+              <div className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)] flex items-center gap-2">
+                <span className="inline-block h-px w-8 bg-[var(--ink-3)]/40" />
+                Updated · May 2026
+              </div>
+            </div>
+            <div className="mt-6 border-y hairline">
               <div className="grid grid-cols-2 lg:grid-cols-4">
                 {[
-                  { num: "25M+", unit: "篇", label: "OA 文献", note: "10 大学科覆盖" },
-                  { num: "50K+", unit: "册", label: "教材书籍", note: "持续接入中" },
-                  { num: "10M+", unit: "条", label: "化学反应", note: "横跨 50 年专利" },
-                  { num: "570K+", unit: "条", label: "蛋白注释", note: "23 维 functional axes" },
+                  { num: "25M+", unit: "篇", label: "OA 文献", note: "10 大学科 · T+1 同步", pct: 92, idx: "01" },
+                  { num: "50K+", unit: "册", label: "教材书籍", note: "全量 40 万 · 持续接入", pct: 12, idx: "02" },
+                  { num: "10M+", unit: "条", label: "化学反应", note: "1976 — 2025 专利覆盖", pct: 78, idx: "03" },
+                  { num: "570K+", unit: "条", label: "蛋白注释", note: "23 维 functional axes", pct: 64, idx: "04" },
                 ].map((d, i) => (
                   <div
                     key={d.label}
                     className={cn(
-                      "group relative px-6 py-12 min-w-0 transition-colors duration-300 hover:bg-white -mt-px border-t hairline",
-                      i !== 0 && "lg:border-l lg:mt-0 lg:border-t lg:-ml-px",
-                      (i === 1 || i === 3) && "border-l lg:border-l",
+                      "group relative px-5 py-7 min-w-0 transition-colors hover:bg-[#f7f6f1]",
+                      i !== 0 && "lg:border-l hairline",
+                      (i === 1 || i === 3) && "border-l hairline lg:border-l",
                     )}>
-                    <div className="flex items-baseline gap-2 min-w-0">
-                      <span className="font-display font-medium leading-none tracking-[-0.035em] text-[var(--ink)] text-[clamp(40px,4.2vw,60px)] transition-colors duration-300 group-hover:text-[var(--brand)]">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[10px] tracking-[0.18em] text-[var(--ink-3)]">{d.idx}</span>
+                    </div>
+                    <div className="mt-3 flex items-baseline gap-1.5 min-w-0">
+                      <span className="font-display font-semibold leading-none tracking-[-0.025em] text-[var(--ink)] text-[clamp(30px,3.2vw,44px)] truncate">
                         {d.num}
                       </span>
-                      <span className="text-[13px] text-[var(--ink-2)] shrink-0">{d.unit}</span>
+                      <span className="text-[12px] text-[var(--ink-2)] shrink-0">{d.unit}</span>
                     </div>
-                    <div className="mt-6 text-[15px] text-[var(--ink)]">{d.label}</div>
-                    <div className="mt-1.5 text-[12.5px] text-[var(--ink-3)]">
+                    <div className="mt-3 text-[13px] text-[var(--ink)]">{d.label}</div>
+                    <div className="mt-1 font-mono text-[10.5px] tracking-[0.02em] text-[var(--ink-3)] truncate">
                       {d.note}
+                    </div>
+                    <div className="mt-4 h-[2px] w-full bg-[var(--ink-3)]/15 overflow-hidden rounded-full">
+                      <div
+                        className="h-full bg-[var(--ink)] transition-[width] duration-700 ease-out"
+                        style={{ width: `${d.pct}%` }}
+                      />
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="border-t hairline" />
             </div>
 
-            <div className="mt-8 flex items-center gap-6 text-[12.5px] text-[var(--ink-3)]">
-              <span>原生接入 Manus · Claude · Cursor</span>
-              <span className="h-3 w-px bg-[var(--ink-3)]/30" />
-              <span>2026 年 5 月更新</span>
+            <div className="mt-5 grid md:grid-cols-3 gap-px bg-[var(--ink-3)]/15 rounded-xl overflow-hidden border hairline">
+              {[
+                { k: "原生", en: "Agent-Native", metric: "一等公民", unit: "", v: "原生支持 Manus / Claude / Cursor", Icon: Zap },
+                { k: "最新", en: "Freshest", metric: "T+1", unit: "同步", v: "每日增量文献与专利自动入库", Icon: Activity },
+                { k: "最全", en: "Broadest", metric: "2,000", unit: "万+ 元数据", v: "覆盖文献 · 专利 · 反应 · 蛋白", Icon: Globe2 },
+              ].map((it) => (
+                <div key={it.k} className="bg-[var(--paper)] p-5 group transition-colors hover:bg-[#f7f6f1]">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="h-7 w-7 rounded-full border hairline grid place-items-center text-[var(--ink-2)] group-hover:text-[var(--brand)] group-hover:border-[var(--brand)] transition-colors">
+                        <it.Icon className="h-3.5 w-3.5" strokeWidth={1.6} />
+                      </span>
+                      <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
+                        {it.en}
+                      </span>
+                    </div>
+                    <span className="font-display italic text-[12px] text-[var(--ink-3)]">{it.k}</span>
+                  </div>
+                  <div className="mt-4 flex items-baseline gap-1">
+                    <span className="font-display text-[30px] font-semibold leading-none tracking-[-0.02em] text-[var(--ink)]">
+                      {it.metric}
+                    </span>
+                    <span className="text-[12px] text-[var(--ink-2)]">{it.unit}</span>
+                  </div>
+                  <div className="mt-2 text-[12.5px] text-[var(--ink-2)] leading-relaxed">{it.v}</div>
+                </div>
+              ))}
             </div>
           </section>
 
