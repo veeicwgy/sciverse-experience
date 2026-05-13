@@ -1061,8 +1061,8 @@ export default function Experience() {
                   name: "Sci-Base 数据集",
                   desc: "AI-Ready 科学数据集，面向 Agent 的开源语料",
                   bullets: [
-                    { num: "25M+", dim: "OA 文献" },
-                    { num: "蛋白", dim: "SA-Prot-Annot 注释" },
+                    { num: "125M+", dim: "OA 文献" },
+                    { num: "570K+", dim: "SA-Prot-Annot 蛋白注释" },
                     { num: "15k", dim: "SA-RxnDiagram 反应图" },
                   ],
                   cta: "浏览数据集",
@@ -1121,10 +1121,10 @@ export default function Experience() {
             <div className="mt-6 border-y hairline">
               <div className="grid grid-cols-2 lg:grid-cols-4">
                 {[
-                  { num: "25M+", unit: "篇", label: "OA 文献", note: "10 大学科 · T+1 同步", pct: 92, Icon: FileText },
-                  { num: "50K+", unit: "册", label: "教材书籍", note: "全量 40 万 · 持续接入", pct: 12, Icon: Layers },
-                  { num: "10M+", unit: "条", label: "化学反应", note: "1976 — 2025 专利覆盖", pct: 78, Icon: Atom },
-                  { num: "570K+", unit: "条", label: "蛋白注释", note: "23 维 functional axes", pct: 64, Icon: Boxes },
+                  { num: "341M+", unit: "篇", label: "学术文献", note: "1400 — 2026 · 跨越六个世纪", pct: 96, Icon: FileText },
+                  { num: "105M+", unit: "册", label: "图书", note: "含古籍与手稿", pct: 78, Icon: Layers },
+                  { num: "70M+", unit: "件", label: "全球专利", note: "与文献交叉引用", pct: 70, Icon: Atom },
+                  { num: "102M+", unit: "篇", label: "AI-Ready 全文", note: "Agent 可直接消费", pct: 88, Icon: Boxes },
                 ].map((d, i) => (
                   <div
                     key={d.label}
@@ -1165,10 +1165,9 @@ export default function Experience() {
             </div>
 
             <div className="mt-5 grid md:grid-cols-3 gap-px bg-[var(--brand)]/10 rounded-xl overflow-hidden border hairline">
-              {[
-                { k: "原生", en: "Agent-Native", metric: "一等公民", unit: "", v: "原生支持 Manus / Claude / Cursor", Icon: Zap },
-                { k: "最新", en: "Freshest", metric: "T+1", unit: "同步", v: "每日增量文献与专利自动入库", Icon: Activity },
-                { k: "最全", en: "Broadest", metric: "2,000", unit: "万+ 元数据", v: "覆盖文献 · 专利 · 反应 · 蛋白", Icon: Globe2 },
+              {[                { k: "原生", en: "Agent-Native", metric: "一等公民", unit: "", v: "原生支持 Manus / Claude / Cursor", Icon: Zap },
+                { k: "最新", en: "Freshest", metric: "T+1", unit: "同步", v: "每日新增百万级文献与专利入库", Icon: Activity },
+                { k: "最全", en: "Broadest", metric: "516M+", unit: "知识记录", v: "814 种语言 · 1.3M+ 期刊与会议覆盖", Icon: Globe2 },
               ].map((it) => (
                 <div key={it.k} className="bg-[var(--paper)] p-5 group transition-colors duration-300 hover:bg-[var(--brand-soft)]/40">
                   <div className="flex items-center justify-between">
