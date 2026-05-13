@@ -1,20 +1,24 @@
 /*
- * Sciverse · IntegrationBubble (v15)
+ * Sciverse · IntegrationBubble (v16 / v30)
  * 结果页顶部的可关闭引导卡。
- * v15: 去掉英文 UPPERCASE 标题；文案精简为一句话；按钮换成品牌紫蓝小药丸；
- *      mini-card 改为单行紧凑横排（图标 + 中文标签 + 副字），避免「API ... / RES ...」截断
- * - 关闭后 localStorage 持久化（key 升级到 v15），不再出现
+ * v16 改造：
+ * - 去除"查看接入指南"主紫色按钮 → 与下方三种方式重复
+ * - 标题独占一行，避免被按钮挤压换行；副标"三种方式 · 全部免费"作为 eyebrow 上提
+ * - 三种方式 mini-card 视觉权重对齐 Editorial 主版面：浮起 logo 容器（hover 主色描边 + 微动）、
+ *   单行标题 + 一句话定位、右侧 hairline 箭头 → 主色箭头
+ * - 关闭按钮收为右上角极小 X（hairline 圆，不抢戏）
+ * - localStorage key 升级到 v16，旧用户重新看到一次新版
  */
 import { useEffect, useState } from "react";
 import { Cable, Terminal, Sparkles, ArrowRight, X } from "lucide-react";
 import { Link } from "wouter";
 
-const KEY = "sciverse:integrationBubble:dismissed:v15";
+const KEY = "sciverse:integrationBubble:dismissed:v16";
 
 const PATHS = [
-  { icon: Cable,     label: "API 接口",   sub: "任意语言可调",    hash: "api" },
-  { icon: Terminal,  label: "CLI · SDK",  sub: "一行命令安装",    hash: "cli" },
-  { icon: Sparkles,  label: "Skills",     sub: "装到主流 Agent",  hash: "skills" },
+  { icon: Cable,    label: "API 接口",   sub: "RESTful · 任意语言可调",     hash: "api" },
+  { icon: Terminal, label: "CLI · SDK",  sub: "一行命令安装 · 本地集成",     hash: "cli" },
+  { icon: Sparkles, label: "Skills",     sub: "装到 Manus / Claude / Cursor", hash: "skills" },
 ];
 
 export default function IntegrationBubble() {
@@ -37,64 +41,66 @@ export default function IntegrationBubble() {
       className="ed-in mt-4 relative overflow-hidden rounded-2xl border hairline bg-white"
       style={{
         backgroundImage:
-          "linear-gradient(180deg, rgba(91,91,247,0.025) 0%, rgba(91,91,247,0) 60%)",
+          "linear-gradient(135deg, rgba(91,91,247,0.045) 0%, rgba(91,91,247,0) 55%)",
       }}>
-      {/* 左侧 2px 品牌色指示条 */}
+      {/* 左侧 brand 竖条 */}
       <div
         aria-hidden
-        className="absolute left-0 top-3 bottom-3 w-[2px] rounded-r"
+        className="absolute left-0 top-4 bottom-4 w-[2px] rounded-r"
         style={{ background: "var(--brand)" }}
       />
-      <div className="relative px-5 py-4 pl-6">
-        {/* 顶部一行：标题 + CTA + 关闭 */}
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex-1 min-w-0">
-            <div className="font-display text-[15.5px] text-[var(--ink)] leading-snug">
-              想把这种检索能力接入你的应用？
-              <span className="ml-1.5 text-[var(--ink-2)] text-[13.5px]">
-                三种方式可选 · 全部免费调用
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <Link
-              href="/docs"
-              className="inline-flex items-center gap-1 rounded-full px-3.5 py-1.5 text-[12.5px] text-white hover:opacity-90 transition-opacity"
-              style={{ background: "var(--brand)" }}>
-              查看接入指南
-              <ArrowRight className="h-3 w-3" />
-            </Link>
-            <button
-              onClick={dismiss}
-              aria-label="不再提示"
-              title="不再提示"
-              className="h-7 w-7 rounded-full grid place-items-center text-[var(--ink-3)] hover:text-[var(--ink)] hover:bg-[#f1f0eb] transition-colors">
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
+
+      {/* 关闭按钮 · 极小、右上 */}
+      <button
+        onClick={dismiss}
+        aria-label="不再提示"
+        title="不再提示"
+        className="absolute top-3 right-3 h-6 w-6 rounded-full grid place-items-center text-[var(--ink-3)] hover:text-[var(--ink)] hover:bg-[var(--paper-2)] transition-colors z-10">
+        <X className="h-3 w-3" strokeWidth={1.8} />
+      </button>
+
+      <div className="relative px-6 pt-5 pb-5 pl-7">
+        {/* eyebrow 小字 */}
+        <div className="flex items-center gap-2 text-[11px] tracking-[0.2em] uppercase text-[var(--ink-3)] font-mono">
+          <span className="inline-block h-px w-5 bg-[var(--ink-3)]/50" />
+          INTEGRATION · 三种方式 · 全部免费
         </div>
 
-        {/* 三条路径 mini-cards：紧凑横排 */}
-        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+        {/* 主标题独占一行 */}
+        <h3 className="mt-2.5 font-display text-[20px] md:text-[22px] leading-snug tracking-tight text-[var(--ink)] pr-10">
+          把这种检索能力接入你的应用
+        </h3>
+        <p className="mt-1 text-[13px] leading-relaxed text-[var(--ink-2)]">
+          按团队偏好选一种接入方式，所有方式共享同一份 1.02 亿 AI-Ready 全文索引。
+        </p>
+
+        {/* 三种方式 · Editorial mini-card */}
+        <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           {PATHS.map((p) => {
             const Icon = p.icon;
             return (
               <Link
                 key={p.hash}
                 href={`/docs#${p.hash}`}
-                className="group flex items-center gap-2.5 rounded-xl border hairline bg-white px-3 py-2 hover:border-[var(--brand)] hover:bg-[var(--paper-2)]/50 transition-colors">
-                <span className="h-7 w-7 rounded-lg bg-[#f4f3ff] grid place-items-center text-[var(--brand)] shrink-0">
-                  <Icon className="h-3.5 w-3.5" />
+                className="group relative flex items-center gap-3 rounded-xl border hairline bg-white px-3.5 py-3 hover:border-[var(--brand)]/45 hover:bg-[var(--brand-soft)]/40 transition-all duration-300 hover:-translate-y-[1px]"
+                style={{ willChange: "transform" }}>
+                <span
+                  className="h-9 w-9 rounded-lg border hairline grid place-items-center text-[var(--brand)] shrink-0 group-hover:border-[var(--brand)]/55 group-hover:bg-white transition-all duration-300"
+                  style={{ background: "var(--brand-soft)" }}>
+                  <Icon className="h-4 w-4" strokeWidth={1.7} />
                 </span>
-                <span className="min-w-0 flex-1 flex items-baseline gap-1.5 whitespace-nowrap">
-                  <span className="text-[13px] text-[var(--ink)] font-medium">
+                <span className="min-w-0 flex-1 flex flex-col leading-tight">
+                  <span className="text-[13.5px] text-[var(--ink)] font-medium tracking-tight">
                     {p.label}
                   </span>
-                  <span className="text-[11.5px] text-[var(--ink-3)] truncate">
-                    · {p.sub}
+                  <span className="mt-0.5 text-[11.5px] text-[var(--ink-3)] truncate group-hover:text-[var(--ink-2)] transition-colors">
+                    {p.sub}
                   </span>
                 </span>
-                <ArrowRight className="h-3 w-3 text-[var(--ink-3)] group-hover:text-[var(--brand)] transition-colors shrink-0" />
+                <ArrowRight
+                  className="h-3.5 w-3.5 text-[var(--ink-3)] group-hover:text-[var(--brand)] group-hover:translate-x-0.5 transition-all duration-300 shrink-0"
+                  strokeWidth={1.8}
+                />
               </Link>
             );
           })}
