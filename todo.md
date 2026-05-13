@@ -182,3 +182,12 @@
 - [ ] 2. 生态卡 hover 时大写 tag (REACTIONS / PROTEINS / DATASETS) 颜色由 ink-3 渐变为 brand
 - [ ] 3. 底部 3 宫格小圆环 hover 旋转 6° + 描边 1.6 → 2.0，整体 350ms ease-out
 - [ ] 4. 保存 v25 checkpoint 并验证 GitHub 同步
+
+
+---
+
+# v26 · 三宫格 metric 数字 hover 动效
+
+- [ ] 1. 定位三宫格 metric 元素（一等公民 / T+1 / 2,000）
+- [ ] 2. 加 group-hover：translateY(-1px) + text 主色 + 300ms ease-out
+- [ ] 3. 保存 v26 checkpoint

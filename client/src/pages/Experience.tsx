@@ -1168,11 +1168,11 @@ export default function Experience() {
                     </div>
                     <span className="font-display italic text-[12px] text-[var(--ink-3)]">{it.k}</span>
                   </div>
-                  <div className="mt-4 flex items-baseline gap-1">
-                    <span className="font-display text-[30px] font-semibold leading-none tracking-[-0.02em] text-[var(--ink)]">
+                  <div className="mt-4 flex items-baseline gap-1 transition-transform duration-500 ease-out group-hover:-translate-y-[2px]">
+                    <span className="font-display text-[30px] font-semibold leading-none tracking-[-0.02em] text-[var(--ink)] transition-colors duration-300 group-hover:text-[var(--brand)]">
                       {it.metric}
                     </span>
-                    <span className="text-[12px] text-[var(--ink-2)]">{it.unit}</span>
+                    <span className="text-[12px] text-[var(--ink-2)] transition-colors duration-300 group-hover:text-[var(--brand)]/70">{it.unit}</span>
                   </div>
                   <div className="mt-2 text-[12.5px] text-[var(--ink-2)] leading-relaxed">{it.v}</div>
                 </div>
