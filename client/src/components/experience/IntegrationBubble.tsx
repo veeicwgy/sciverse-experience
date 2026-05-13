@@ -16,13 +16,14 @@ import { Link } from "wouter";
 const KEY = "sciverse:integrationBubble:dismissed:v16";
 
 const PATHS = [
-  { icon: Cable,    label: "API 接口",   sub: "RESTful · 任意语言可调",     hash: "api" },
-  { icon: Terminal, label: "CLI · SDK",  sub: "一行命令安装 · 本地集成",     hash: "cli" },
-  { icon: Sparkles, label: "Skills",     sub: "装到 Manus / Claude / Cursor", hash: "skills" },
+  { icon: Cable,    label: "API 接口",   sub: "RESTful · 任意语言可调",     hash: "api",    kbd: "API"   },
+  { icon: Terminal, label: "CLI · SDK",  sub: "一行命令安装 · 本地集成",     hash: "cli",    kbd: "CLI"   },
+  { icon: Sparkles, label: "Skills",     sub: "装到 Manus / Claude / Cursor", hash: "skills", kbd: "SKILL" },
 ];
 
 export default function IntegrationBubble() {
   const [show, setShow] = useState(false);
+  const [closing, setClosing] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -33,15 +34,20 @@ export default function IntegrationBubble() {
 
   const dismiss = () => {
     localStorage.setItem(KEY, "1");
-    setShow(false);
+    setClosing(true);
+    window.setTimeout(() => setShow(false), 200);
   };
 
   return (
     <div
-      className="ed-in mt-4 relative overflow-hidden rounded-2xl border hairline bg-white"
+      className={`ed-in mt-4 relative overflow-hidden rounded-2xl border hairline bg-white transition-all duration-200 ease-out ${
+        closing ? "opacity-0 scale-[0.985]" : "opacity-100 scale-100"
+      }`}
       style={{
         backgroundImage:
           "linear-gradient(135deg, rgba(91,91,247,0.045) 0%, rgba(91,91,247,0) 55%)",
+        transformOrigin: "top right",
+        willChange: "transform, opacity",
       }}>
       {/* 左侧 brand 竖条 */}
       <div
@@ -60,10 +66,10 @@ export default function IntegrationBubble() {
       </button>
 
       <div className="relative px-6 pt-5 pb-5 pl-7">
-        {/* eyebrow 小字 */}
-        <div className="flex items-center gap-2 text-[11px] tracking-[0.2em] uppercase text-[var(--ink-3)] font-mono">
+        {/* eyebrow 小字 · 中文化 */}
+        <div className="flex items-center gap-2 text-[11.5px] tracking-[0.32em] text-[var(--ink-3)]">
           <span className="inline-block h-px w-5 bg-[var(--ink-3)]/50" />
-          INTEGRATION · 三种方式 · 全部免费
+          接入 · 三种方式 · 全部免费
         </div>
 
         {/* 主标题独占一行 */}
@@ -84,6 +90,12 @@ export default function IntegrationBubble() {
                 href={`/docs#${p.hash}`}
                 className="group relative flex items-center gap-3 rounded-xl border hairline bg-white px-3.5 py-3 hover:border-[var(--brand)]/45 hover:bg-[var(--brand-soft)]/40 transition-all duration-300 hover:-translate-y-[1px]"
                 style={{ willChange: "transform" }}>
+                {/* hover 工程感 kbd 标签 */}
+                <span
+                  aria-hidden
+                  className="absolute top-1.5 right-2 px-1.5 py-[1px] rounded-[4px] border hairline bg-white text-[9.5px] tracking-[0.18em] text-[var(--ink-3)] font-mono opacity-0 -translate-y-0.5 group-hover:opacity-100 group-hover:translate-y-0 group-hover:text-[var(--brand)] group-hover:border-[var(--brand)]/40 transition-all duration-300">
+                  {p.kbd}
+                </span>
                 <span
                   className="h-9 w-9 rounded-lg border hairline grid place-items-center text-[var(--brand)] shrink-0 group-hover:border-[var(--brand)]/55 group-hover:bg-white transition-all duration-300"
                   style={{ background: "var(--brand-soft)" }}>

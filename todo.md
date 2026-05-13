@@ -247,3 +247,12 @@
 - [ ] 三种方式卡视觉权重提升（icon · 标题 · 一句话定位 · 右箭头）
 - [ ] 关闭按钮移到右上角且更克制
 - [ ] 整张卡视觉调和，左侧 brand 竖条保留
+
+
+---
+
+# v31 · IntegrationBubble 三处微调
+
+- [ ] mini-card 加 kbd 标签 API/CLI/SKILL，hover 显示
+- [ ] 关闭按钮加 200ms 缩放消失动画（CSS keyframes 或 state 控制）
+- [ ] eyebrow INTEGRATION 改中文「接入」
