@@ -31,6 +31,79 @@ import { cn } from "@/lib/utils";
 import { useSessionHistory, findSession, findVersion } from "@/hooks/useSessionHistory";
 import { GitBranch, Plus } from "lucide-react";
 
+/**
+ * CountUp · IntersectionObserver 首次入视口才跳动。
+ * 支持 "25M+" / "570K+" / "50K+" / "10M+" 以及中文数量单位 "万" 。
+ */
+function CountUp({ value, duration = 1400 }: { value: string; duration?: number }) {
+  // 拆解原字符串为：前缀数字 + 单位后缀（保留 + 等符号）
+  const parsed = useMemo(() => {
+    const m = value.match(/^([\d,.]+)(.*)$/);
+    if (!m) return { target: 0, suffix: value };
+    const numStr = m[1].replace(/,/g, "");
+    const suffixRaw = m[2] || "";
+    let target = parseFloat(numStr);
+    let suffix = suffixRaw;
+    if (/M/i.test(suffixRaw)) {
+      // 25M+ -> 动画到 25，单位 M+
+      target = parseFloat(numStr);
+      suffix = suffixRaw;
+    } else if (/K/i.test(suffixRaw)) {
+      target = parseFloat(numStr);
+      suffix = suffixRaw;
+    } else if (/万/.test(suffixRaw)) {
+      target = parseFloat(numStr);
+      suffix = suffixRaw;
+    }
+    return { target, suffix };
+  }, [value]);
+
+  const ref = useRef<HTMLSpanElement | null>(null);
+  const [display, setDisplay] = useState<number>(0);
+  const startedRef = useRef(false);
+
+  useEffect(() => {
+    if (!ref.current || startedRef.current) return;
+    const el = ref.current;
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !startedRef.current) {
+            startedRef.current = true;
+            const start = performance.now();
+            const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+            const tick = (now: number) => {
+              const p = Math.min(1, (now - start) / duration);
+              setDisplay(parsed.target * easeOut(p));
+              if (p < 1) requestAnimationFrame(tick);
+              else setDisplay(parsed.target);
+            };
+            requestAnimationFrame(tick);
+            io.disconnect();
+          }
+        });
+      },
+      { threshold: 0.4 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [duration, parsed.target]);
+
+  // 格式化：整数保留原始小数位（最多 1 位）
+  const formatted = useMemo(() => {
+    if (parsed.target >= 100) return Math.round(display).toString();
+    if (Number.isInteger(parsed.target)) return Math.round(display).toString();
+    return display.toFixed(1);
+  }, [display, parsed.target]);
+
+  return (
+    <span ref={ref}>
+      {formatted}
+      {parsed.suffix}
+    </span>
+  );
+}
+
 type Result = {
   id: string;
   source_type: "PDF" | "Web" | "Patent" | "Book";
@@ -995,7 +1068,7 @@ export default function Experience() {
                       <div className="h-10 w-10 rounded-xl grid place-items-center bg-white border hairline overflow-hidden transition-colors duration-300 group-hover:border-[var(--brand)]/40">
                         <img src={c.logo} alt={c.name} className="h-7 w-7 object-contain transition-transform duration-500 ease-out group-hover:scale-[1.04]" />
                       </div>
-                      <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
+                      <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)] transition-colors duration-300 group-hover:text-[var(--brand)]">
                         {c.tag}
                       </span>
                     </div>
@@ -1054,7 +1127,7 @@ export default function Experience() {
                     </div>
                     <div className="mt-3 flex items-baseline gap-1.5 min-w-0">
                       <span className="font-display font-semibold leading-none tracking-[-0.025em] text-[var(--ink)] text-[clamp(30px,3.2vw,44px)] truncate transition-colors duration-300 group-hover:text-[var(--brand)]">
-                        {d.num}
+                        <CountUp value={d.num} />
                       </span>
                       <span className="text-[12px] text-[var(--ink-2)] shrink-0">{d.unit}</span>
                     </div>
@@ -1086,8 +1159,8 @@ export default function Experience() {
                 <div key={it.k} className="bg-[var(--paper)] p-5 group transition-colors duration-300 hover:bg-[var(--brand-soft)]/40">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="h-7 w-7 rounded-full border hairline grid place-items-center text-[var(--ink-2)] group-hover:text-[var(--brand)] group-hover:border-[var(--brand)] transition-colors">
-                        <it.Icon className="h-3.5 w-3.5" strokeWidth={1.6} />
+                      <span className="h-7 w-7 rounded-full border hairline grid place-items-center text-[var(--ink-2)] group-hover:text-[var(--brand)] group-hover:border-[var(--brand)] transition-all duration-500 ease-out group-hover:rotate-[8deg] group-hover:scale-[1.06]">
+                        <it.Icon className="h-3.5 w-3.5 transition-[stroke-width] duration-500 ease-out group-hover:[stroke-width:2]" strokeWidth={1.6} />
                       </span>
                       <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
                         {it.en}

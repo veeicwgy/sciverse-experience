@@ -172,3 +172,13 @@
 - [ ] 1. 生态卡片：加 hover 轻微阴影（shadow 由 0 → 0 6px 24px -8px rgba(91,91,247,0.18)）+ -translate-y-0.5 + 边框由 hairline → brand/35 + ArrowUpRight 微位移；整卡 transition-all duration-500 ease-out
 - [ ] 2. 数据能力全景：进度条由 #ink 改为 brand/65；底部三宫格 hover 圆环边框由 hairline → brand/45，标题颜色由 ink 改为 brand（仅 hover）；保留所有结构与文案
 - [ ] 3. 保存 v24 checkpoint 并验证 GitHub 同步
+
+
+---
+
+# v25 · 三处克制微动效
+
+- [ ] 1. 数据能力 4 列大数字加 CountUp（IntersectionObserver 首次入视口、1.2s ease-out、单位/+ 后缀保留）
+- [ ] 2. 生态卡 hover 时大写 tag (REACTIONS / PROTEINS / DATASETS) 颜色由 ink-3 渐变为 brand
+- [ ] 3. 底部 3 宫格小圆环 hover 旋转 6° + 描边 1.6 → 2.0，整体 350ms ease-out
+- [ ] 4. 保存 v25 checkpoint 并验证 GitHub 同步
