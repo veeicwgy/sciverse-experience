@@ -19,6 +19,7 @@ import {
   Globe2,
   ChevronLeft,
   ChevronRight,
+  ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import Sidebar from "@/components/layout/Sidebar";
@@ -945,77 +946,109 @@ export default function Experience() {
             </section>
           )}
 
-          {/* DRIFT CARDS */}
-          <section className="mt-14">
+          {/* DRIFT CARDS · Editorial */}
+          <section className="mt-20">
+            <header className="max-w-2xl">
+              <div className="section-marker mb-5">Ecosystem · 003</div>
+              <h2 className="font-display text-[40px] md:text-[44px] leading-[1.08] tracking-[-0.025em] text-[var(--ink)]">
+                探索 <span className="italic font-normal">Sciverse</span> 生态
+              </h2>
+              <p className="mt-3 text-[14px] leading-[1.7] text-[var(--ink-2)] max-w-xl">
+                当一次检索不够时，下钻到反应数据库、蛋白功能分析、开源数据集——三条互补的科研主线，覆盖从分子到文献的全栈语料。
+              </p>
+              <div className="mt-6 h-px w-16 bg-[var(--ink)]/70" />
+            </header>
 
-            <h2 className="font-display text-[26px] text-[var(--ink)]">
-              探索 <span className="italic">Sciverse</span> 生态
-            </h2>
-            <p className="mt-1.5 text-[13.5px] text-[var(--ink-2)]">
-              当一次检索不够时，下钻到反应数据库、蛋白功能分析、开源数据集。
-            </p>
-            <div className="mt-5 grid md:grid-cols-3 gap-4">
+            <div className="mt-12 grid md:grid-cols-3 gap-x-12 gap-y-14">
               {[
                 {
-                  logo: "/manus-storage/dianshi_8cef3dfd.svg",
                   name: "点石 DianShi",
+                  nameEn: "DianShi",
                   desc: "有机化学反应数据库",
                   bullets: ["10M+ 化学反应", "6M+ 化学物质", "1M+ 专利文献"],
-                  cta: "前往点石",
+                  cta: "前往探索",
                   href: "https://dianshi.opendatalab.org.cn/",
                   tag: "Reactions",
+                  Icon: () => (
+                    <svg viewBox="0 0 48 48" className="h-9 w-9" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M24 6 L40 16 L40 34 L24 44 L8 34 L8 16 Z" />
+                      <path d="M24 6 L24 24 L40 16" />
+                      <path d="M24 24 L8 16" opacity="0.55" />
+                      <path d="M24 24 L24 44" opacity="0.55" />
+                    </svg>
+                  ),
                 },
                 {
-                  logo: "/manus-storage/seqstudio_3990637c.svg",
                   name: "SeqStudio",
+                  nameEn: "SeqStudio",
                   desc: "蛋白质功能 AI 推理 + LLM 注释",
                   bullets: ["57万+ 蛋白注释", "BLAST · Foldseek 一体化", "AI 推理 + LLM 自动综述"],
                   cta: "前往分析",
                   href: "https://seqstudio.opendatalab.org.cn/home",
                   tag: "Proteins",
+                  Icon: () => (
+                    <svg viewBox="0 0 48 48" className="h-9 w-9" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round">
+                      <path d="M8 30 Q24 18 40 30" />
+                      <path d="M10 36 Q24 24 38 36" opacity="0.7" />
+                      <path d="M12 42 Q24 30 36 42" opacity="0.45" />
+                      <circle cx="24" cy="15" r="1.6" fill="currentColor" stroke="none" />
+                    </svg>
+                  ),
                 },
                 {
-                  logo: "/manus-storage/scibase_43bd98d3.svg",
                   name: "Sci-Base 数据集",
+                  nameEn: "Sci-Base",
                   desc: "面向科学 Agent 的开源语料",
                   bullets: ["Sci-Base · 25M+ OA 文献", "SA-Prot-Annot · 蛋白注释", "SA-RxnDiagram-15k · 反应图示"],
                   cta: "浏览数据集",
                   href: "https://sciverse.space/",
                   tag: "Datasets",
+                  Icon: () => (
+                    <svg viewBox="0 0 48 48" className="h-9 w-9" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8 16 L24 8 L40 16 L24 24 Z" />
+                      <path d="M8 24 L24 32 L40 24" opacity="0.7" />
+                      <path d="M8 32 L24 40 L40 32" opacity="0.45" />
+                    </svg>
+                  ),
                 },
               ].map((c) => {
+                const Icon = c.Icon;
                 return (
                   <a
                     key={c.name}
                     href={c.href}
                     target="_blank"
                     rel="noreferrer"
-                    className="card-paper p-5 group block">
-                    <div className="flex items-center justify-between">
-                      <div className="h-10 w-10 rounded-xl grid place-items-center bg-white border hairline overflow-hidden">
-                        <img src={c.logo} alt={c.name} className="h-7 w-7 object-contain" />
-                      </div>
-                      <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
-                        {c.tag}
-                      </span>
+                    className="group block relative">
+                    <div className="text-[var(--brand)]/85 transition-colors duration-300 group-hover:text-[var(--brand)]">
+                      <Icon />
                     </div>
-                    <div className="mt-4 font-display text-[19px] text-[var(--ink)]">
+
+                    <div className="mt-7 font-mono text-[10.5px] tracking-[0.22em] uppercase text-[var(--ink-3)]">
+                      {c.tag}
+                    </div>
+
+                    <h3 className="mt-3 font-display text-[26px] leading-[1.15] tracking-[-0.015em] text-[var(--ink)]">
                       {c.name}
-                    </div>
-                    <div className="text-[12.5px] text-[var(--ink-2)] mt-0.5">
+                    </h3>
+                    <p className="mt-2 text-[13.5px] leading-[1.6] text-[var(--ink-2)]">
                       {c.desc}
-                    </div>
-                    <ul className="mt-3 space-y-1 text-[12.5px] text-[var(--ink-2)]">
+                    </p>
+
+                    <div className="mt-5 h-px w-10 bg-[var(--ink)]/30 transition-all duration-500 group-hover:w-20 group-hover:bg-[var(--brand)]" />
+
+                    <ul className="mt-5 space-y-2 text-[13px] leading-[1.55] text-[var(--ink-2)]">
                       {c.bullets.map((b) => (
-                        <li key={b} className="flex items-baseline gap-2">
-                          <span className="dot on" />
-                          {b}
+                        <li key={b} className="flex items-baseline gap-2.5">
+                          <span className="text-[var(--ink-3)] select-none">·</span>
+                          <span>{b}</span>
                         </li>
                       ))}
                     </ul>
-                    <div className="mt-4 inline-flex items-center gap-1 text-[12.5px] text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors">
-                      {c.cta}
-                      <ExternalLink className="h-3 w-3" />
+
+                    <div className="mt-8 inline-flex items-center gap-3 text-[13px] text-[var(--brand)]">
+                      <span className="font-medium">{c.cta}</span>
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1.5" />
                     </div>
                   </a>
                 );
