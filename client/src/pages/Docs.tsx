@@ -40,6 +40,7 @@ import {
   HelpCircle,
   BookOpen,
   Layers,
+  Github,
 } from "lucide-react";
 import Sidebar from "@/components/layout/Sidebar";
 import { cn } from "@/lib/utils";
@@ -122,6 +123,16 @@ type Product = {
     quickStart?: CodeSample[];
     notes?: string[];
   };
+  repo?: {
+    name: string;            // 包名 / 仓库名
+    title: string;           // 仓库标题
+    version: string;         // 当前版本
+    baseUrl: string;         // 仓库默认 base URL
+    url?: string;            // GitHub / GitLab 地址
+    status: "stable" | "beta" | "preview"; // 状态
+    description: string;     // 一句话介绍
+    changelog?: { version: string; date: string; notes: string[] }[];
+  };
   endpoints?: Endpoint[];          // REST API 列表
   skills?: {
     transport: string;
@@ -145,6 +156,399 @@ type Product = {
     entries?: { name: string; desc: string }[];
   };
 };
+
+// ─── Sciverse 接口数据（贴合开发者文档 docx 字段表） ────────
+const SCIVERSE_BASE = "https://api.sciverse.space";
+
+const SCIVERSE_ENDPOINTS: Endpoint[] = [
+  {
+    key: "agentic-search",
+    method: "POST",
+    path: "/agentic-search",
+    title: "agentic-search 智能检索与片段返回",
+    summary: "传入一句自然语言问题，返回可引用的文献片段（chunk）与元信息。",
+    desc: "agentic-search 面向 LLM Agent 与 RAG 场景，平台会自动对 query 进行查询改写、检索与片段抽取，返回与问题最相关的 chunk、原文定位（page_no / offset）、所属文献与摸底打分。",
+    useCases: [
+      "RAG 应用：为 LLM 补充含引用的文献证据",
+      "Agent 工具调用：一屏拿到可回链的片段与原文位置",
+      "问答系统：结合文献原文与片段生成带出处的回答",
+    ],
+    paramsTitle: "请求体（JSON）",
+    params: [
+      { name: "query", type: "string", required: true, desc: "你的检索问题；不能为空。", range: "最大 4096 字符" },
+      { name: "top_k", type: "integer", required: false, default: "10", range: "1–100", desc: "返回片段数量。" },
+      { name: "sub_queries", type: "integer", required: false, default: "0", desc: "查询改写数量，0 表示不改写。" },
+      { name: "request_id", type: "string", required: false, desc: "你的请求追踪 ID，会在响应 / 日志中原样返回。" },
+    ],
+    response: [
+      { name: "hits", type: "array", desc: "命中片段列表。" },
+      { name: "hits[].chunk_id", type: "string", desc: "片段 ID。" },
+      { name: "hits[].chunk", type: "string", desc: "片段文本内容。" },
+      { name: "hits[].doc_id", type: "string", desc: "所属文献 ID，可传给 /content 读取原文。" },
+      { name: "hits[].title", type: "string", desc: "文献标题。" },
+      { name: "hits[].abstract", type: "string", desc: "文献摘要。" },
+      { name: "hits[].score", type: "float", desc: "相关度得分。" },
+      { name: "hits[].source_type", type: "string", desc: "pdf / web 等来源类型。" },
+      { name: "hits[].offset", type: "integer", desc: "片段在原文中的字节偏移。" },
+      { name: "hits[].page_no", type: "integer", desc: "原文页码（仅 pdf 类有）。" },
+      { name: "hits[].model_name", type: "string", desc: "用于打分的模型名。" },
+      { name: "hits[].model_version", type: "string", desc: "模型版本。" },
+    ],
+    errors: [
+      { code: "400", msg: "INVALID_REQUEST", desc: "请求参数错误，检查 query / top_k 等取值。" },
+      { code: "401", msg: "UNAUTHORIZED", desc: "鉴权失败，检查 Authorization 请求头。" },
+      { code: "429", msg: "RATE_LIMITED", desc: "触发限流或配额耗尽，等窗口恢复后重试。" },
+      { code: "500", msg: "INTERNAL_ERROR", desc: "服务错误，指数退避重试。" },
+      { code: "502/503", msg: "UPSTREAM_UNAVAILABLE", desc: "服务暂不可用，指数退避重试。" },
+    ],
+    limits: [
+      { name: "query 长度", value: "≤ 4096 字符" },
+      { name: "top_k 上限", value: "100" },
+      { name: "默认限流", value: "60 次 / 分钟" },
+    ],
+    retry: [
+      "建议重试：500 / 502 / 503",
+      "不应重试：400 / 401；429 请等窗口恢复",
+    ],
+    samples: [
+      {
+        lang: "bash",
+        label: "curl",
+        code: `curl -X POST https://api.sciverse.space/agentic-search \\
+  -H "Authorization: Bearer YOUR_API_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "query": "graphene battery cycle stability",
+    "top_k": 10
+  }'`,
+      },
+      {
+        lang: "python",
+        label: "Python",
+        code: `import requests
+
+resp = requests.post(
+    "https://api.sciverse.space/agentic-search",
+    headers={"Authorization": "Bearer YOUR_API_TOKEN"},
+    json={"query": "graphene battery cycle stability", "top_k": 10},
+)
+print(resp.json())`,
+      },
+    ],
+    responseExample: `{
+  "hits": [
+    {
+      "chunk_id": "c_8c1f...",
+      "chunk": "Graphene-based cathodes exhibit improved cycle stability ...",
+      "doc_id": "d_2a91...",
+      "title": "Cycle stability of graphene composite cathodes",
+      "abstract": "...",
+      "score": 0.873,
+      "source_type": "pdf",
+      "offset": 18432,
+      "page_no": 4,
+      "model_name": "sciverse-retriever",
+      "model_version": "v2.3"
+    }
+  ]
+}`,
+  },
+  {
+    key: "content",
+    method: "GET",
+    path: "/content",
+    title: "content 按 doc_id 读取原文",
+    summary: "按 doc_id 读取文献原文文本内容，支持分段读取。",
+    desc: "content 接口按 doc_id 读取该文献的原文文本（Markdown / 纯文本）。支持 offset / limit 分段拉取以适配长上下文场景，默认返回全文。",
+    useCases: [
+      "以 agentic-search 返回的 doc_id 拉取原文打二次摘要",
+      "分段读取超长文献以避免超出上下文窗口",
+      "根据 next_offset / more 完成多轮流式读取",
+    ],
+    paramsTitle: "请求参数（URL query）",
+    params: [
+      { name: "doc_id", type: "string", required: true, desc: "文献 ID（由 agentic-search / meta-search 返回）。" },
+      { name: "offset", type: "integer", required: false, default: "0", range: "≥ 0", desc: "字节偏移。" },
+      { name: "limit", type: "integer", required: false, range: "≤ 524288", desc: "单次最大字节数；未传时返回全文。" },
+    ],
+    response: [
+      { name: "text", type: "string", desc: "文本内容（Markdown 或纯文本）。" },
+      { name: "bytes_returned", type: "integer", desc: "本次返回的字节数。" },
+      { name: "next_offset", type: "integer", desc: "下一段读取的 offset。" },
+      { name: "more", type: "bool", desc: "是否还有更多内容。" },
+    ],
+    errors: [
+      { code: "400", msg: "INVALID_REQUEST", desc: "doc_id 缺失或参数非法。" },
+      { code: "401", msg: "UNAUTHORIZED", desc: "鉴权失败。" },
+      { code: "404", msg: "NOT_FOUND", desc: "文档不存在。" },
+      { code: "405", msg: "METHOD_NOT_ALLOWED", desc: "仅支持 GET。" },
+      { code: "429", msg: "RATE_LIMITED", desc: "触发限流。" },
+      { code: "502/503", msg: "UPSTREAM_UNAVAILABLE", desc: "服务暂不可用。" },
+    ],
+    limits: [
+      { name: "offset 下限", value: "≥ 0" },
+      { name: "limit 上限", value: "524288 字节" },
+      { name: "默认行为", value: "未传 offset 时返回全文" },
+    ],
+    retry: [
+      "建议重试：502 / 503",
+      "不应重试：400 / 401 / 405",
+    ],
+    samples: [
+      {
+        lang: "bash",
+        label: "curl",
+        code: `curl -G https://api.sciverse.space/content \\
+  -H "Authorization: Bearer YOUR_API_TOKEN" \\
+  --data-urlencode "doc_id=YOUR_DOC_ID" \\
+  --data-urlencode "offset=0" \\
+  --data-urlencode "limit=8192"`,
+      },
+      {
+        lang: "python",
+        label: "Python 流式拉取",
+        code: `import requests
+
+base = "https://api.sciverse.space/content"
+headers = {"Authorization": "Bearer YOUR_API_TOKEN"}
+offset, parts = 0, []
+while True:
+    r = requests.get(base, headers=headers,
+                     params={"doc_id": "YOUR_DOC_ID", "offset": offset, "limit": 8192}).json()
+    parts.append(r["text"])
+    if not r.get("more"):
+        break
+    offset = r["next_offset"]
+print("".join(parts))`,
+      },
+    ],
+  },
+  {
+    key: "resource",
+    method: "GET",
+    path: "/resource",
+    title: "resource 按相对路径下载附件",
+    summary: "按资源相对路径下载与文献关联的二进制文件。",
+    desc: "resource 接口用于拉取文献相关的二进制附件（图片 / 表格 / PDF 等）。响应为二进制流，带 Content-Type 与 Content-Disposition，以及跟踪用 X-Request-ID。",
+    paramsTitle: "请求参数（URL query）",
+    params: [
+      { name: "file_name", type: "string", required: true, desc: "资源相对路径；不得以 / 开头，不允许 \\ 或 ..。" },
+    ],
+    responseNote: "响应为二进制流；常见 Content-Type：image/jpeg、image/png、application/pdf 等。",
+    response: [
+      { name: "Content-Type", type: "header", desc: "附件的 MIME 类型。" },
+      { name: "Content-Disposition", type: "header", desc: "文件名与下载提示。" },
+      { name: "X-Request-ID", type: "header", desc: "请求追踪 ID。" },
+      { name: "body", type: "binary", desc: "附件原始二进制内容。" },
+    ],
+    errors: [
+      { code: "400", msg: "INVALID_REQUEST", desc: "file_name 缺失或路径非法。" },
+      { code: "401", msg: "UNAUTHORIZED", desc: "鉴权失败。" },
+      { code: "404", msg: "NOT_FOUND", desc: "资源不存在。" },
+      { code: "429", msg: "RATE_LIMITED", desc: "限流。" },
+      { code: "500/502/503", msg: "UPSTREAM_UNAVAILABLE", desc: "服务异常。" },
+    ],
+    limits: [
+      { name: "默认限流", value: "60 次 / 分钟" },
+      { name: "路径限制", value: "不得含 .. / \\\\ / 以 / 开头" },
+    ],
+    retry: [
+      "建议重试：500 / 502 / 503",
+      "不应重试：400 / 401",
+    ],
+    samples: [
+      {
+        lang: "bash",
+        label: "curl",
+        code: `curl -G https://api.sciverse.space/resource \\
+  -H "Authorization: Bearer YOUR_API_TOKEN" \\
+  --data-urlencode "file_name=papers/2025/abcd/fig1.png" \\
+  -o fig1.png`,
+      },
+    ],
+  },
+  {
+    key: "meta-catalog",
+    method: "GET",
+    path: "/meta-catalog",
+    title: "meta-catalog 查看元数据字段目录",
+    summary: "返回 meta-search 可用全部字段、字段能力与枚举样本，用于动态构造过滤器。",
+    desc: "meta-catalog 返回 meta-search 可用的全部字段及其能力（可过滤 / 可排序 / 可检索）、默认返回字段集合、全局支持的过滤算子，以及选择是否返回枚举样本值。推荐在运行期实时读取，勿硬编码字段名。",
+    paramsTitle: "请求参数（URL query）",
+    params: [
+      { name: "include_sample_values", type: "bool", required: false, default: "false", desc: "是否返回枚举字段的样本值（OpenSearch terms aggregation，24h 缓存）。" },
+    ],
+    response: [
+      { name: "fields", type: "array", desc: "字段列表。" },
+      { name: "fields[].name", type: "string", desc: "字段名。" },
+      { name: "fields[].type", type: "string", desc: "类型：String / Integer / Float / List[...]。" },
+      { name: "fields[].filterable", type: "bool", desc: "是否可作为 filters 字段。" },
+      { name: "fields[].sortable", type: "bool", desc: "是否可排序。" },
+      { name: "fields[].searchable", type: "bool", desc: "是否可被全文检索。" },
+      { name: "fields[].default_returned", type: "bool", desc: "是否为默认返回字段。" },
+      { name: "fields[].description", type: "string", desc: "字段说明。" },
+      { name: "fields[].sample_values", type: "array", desc: "枚举样本值，仅在 include_sample_values=true 时返回。" },
+      { name: "fields[].operators", type: "array", desc: "该字段支持的算子；Integer/Float 通常全集，List 类型多为 IN/NIN/CONTAINS，不可过滤字段为空数组。" },
+      { name: "default_fields", type: "array", desc: "默认返回的字段集合。" },
+      { name: "filter_operators", type: "array", desc: "全局支持的过滤算子：EQ / NE / GT / GTE / LT / LTE / IN / NIN / CONTAINS。" },
+    ],
+    errors: [
+      { code: "401", msg: "UNAUTHORIZED", desc: "鉴权失败。" },
+      { code: "429", msg: "RATE_LIMITED", desc: "限流。" },
+      { code: "502", msg: "UPSTREAM_UNAVAILABLE", desc: "服务异常。" },
+      { code: "503", msg: "METADATA_GRPC_NOT_CONFIGURED / UPSTREAM_ERROR", desc: "元数据 gRPC 未配置或上游错误。" },
+    ],
+    limits: [
+      { name: "样本值默认", value: "默认不拉取，需 include_sample_values=true" },
+      { name: "doc_id", value: "始终可见" },
+      { name: "默认限流", value: "60 次 / 分钟" },
+    ],
+    retry: [
+      "建议重试：502 / 503 / 504",
+      "不应重试：401",
+    ],
+    samples: [
+      {
+        lang: "bash",
+        label: "curl",
+        code: `curl -G https://api.sciverse.space/meta-catalog \\
+  -H "Authorization: Bearer YOUR_API_TOKEN" \\
+  --data-urlencode "include_sample_values=true"`,
+      },
+    ],
+  },
+  {
+    key: "meta-search",
+    method: "POST",
+    path: "/meta-search",
+    title: "meta-search 按字段过滤与排序检索元数据",
+    summary: "支持全文模糊检索、多维 filters / sort 与分页 / 游标翻页的文献元数据检索。",
+    desc: "meta-search 提供基于字段的检索与检索质量控制。你可以不传 query 仅以 filters / sort 进行精准检索；也可以传入 query 进行全文模糊检索（此时不能同时使用 sort，由相关性接管排序）。为了性能，深翻页必须使用 cursor 而非 page。",
+    useCases: [
+      "按学科 / 年份 / 期刊 / 语言等字段筛选文献列表",
+      "结合 meta-catalog 动态生成 UI 过滤器",
+      "需要跨页检索的场景，使用 cursor 翻页",
+    ],
+    paramsTitle: "请求体（JSON）",
+    paramsNote: "FilterItem：{ field, operator?, value }，operator 默认 EQ，可选值 FILTER_OP_EQ/NE/GT/GTE/LT/LTE/IN/NIN/CONTAINS。SortItem：{ field, order }，order 默认 SORT_ORDER_DESC。",
+    params: [
+      { name: "query", type: "string", required: false, desc: "全文模糊检索词；与 sort 不能同时使用。" },
+      { name: "filters", type: "array<FilterItem>", required: false, desc: "字段过滤条件列表。" },
+      { name: "sort", type: "array<SortItem>", required: false, desc: "排序字段集合。可排序字段：publication_published_year / reference_count / citation_count / influential_citation_count / fwci。" },
+      { name: "fields", type: "array<string>", required: false, desc: "字段投影。doc_id 始终返回。" },
+      { name: "page", type: "integer", required: false, default: "1", range: "≥ 1", desc: "页码。" },
+      { name: "page_size", type: "integer", required: false, default: "25", range: "1–200", desc: "每页条数。" },
+      { name: "cursor", type: "string", required: false, desc: "游标翻页令牌；与 page>1 互斥。" },
+    ],
+    response: [
+      { name: "results", type: "array", desc: "命中记录；doc_id 总会返回，其余字段受 fields 与 Token 权限影响。" },
+      { name: "results[].doc_id", type: "string", desc: "文献 ID。" },
+      { name: "results[].title", type: "string", desc: "标题。" },
+      { name: "results[].doi", type: "string", desc: "DOI。" },
+      { name: "results[].author", type: "array", desc: "作者列表。" },
+      { name: "results[].abstract", type: "string", desc: "摘要。" },
+      { name: "results[].language", type: "string", desc: "语言。" },
+      { name: "results[].publication_published_year", type: "integer", desc: "发表年份。" },
+      { name: "results[].publication_venue_name", type: "string", desc: "期刊 / 会议名。" },
+      { name: "results[].publication_id", type: "string", desc: "期刊 ID。" },
+      { name: "results[].metadata_type", type: "string", desc: "文献类型。" },
+      { name: "results[].indexed_in", type: "array", desc: "被哪些数据库收录。" },
+      { name: "results[].access_oa_status", type: "string", desc: "开放访问状态。" },
+      { name: "results[].access_xinghe_repository_page_cnt", type: "integer", desc: "星河仓储页数。" },
+      { name: "results[].keywords", type: "array", desc: "关键词。" },
+      { name: "results[].citation_count", type: "integer", desc: "被引用次数。" },
+      { name: "results[].influential_citation_count", type: "integer", desc: "重要被引用次数。" },
+      { name: "results[].reference_count", type: "integer", desc: "参考文献数。" },
+      { name: "results[].fwci", type: "float", desc: "领域加权引用指数。" },
+      { name: "total_count", type: "integer", desc: "命中总数。" },
+      { name: "page", type: "integer", desc: "当前页。" },
+      { name: "page_size", type: "integer", desc: "每页条数。" },
+      { name: "total_pages", type: "integer", desc: "总页数。" },
+      { name: "search_time_ms", type: "float", desc: "检索耗时（毫秒）。" },
+      { name: "next_cursor", type: "string", desc: "下一段 cursor（深翻页用）。" },
+    ],
+    errors: [
+      { code: "400", msg: "INVALID_REQUEST / INVALID_ARGUMENT", desc: "参数错误，含 query/sort 冲突、cursor/page 互斥。" },
+      { code: "401", msg: "UNAUTHORIZED / UNAUTHENTICATED", desc: "鉴权失败。" },
+      { code: "403", msg: "PERMISSION_DENIED", desc: "字段无访问权限，调整 fields 或使用其他 Token。" },
+      { code: "429", msg: "RATE_LIMITED", desc: "限流。" },
+      { code: "500/502/503/504", msg: "UPSTREAM_UNAVAILABLE", desc: "服务异常。" },
+    ],
+    limits: [
+      { name: "page 下限", value: "≥ 1" },
+      { name: "page_size", value: "1–200，默认 25" },
+      { name: "浅翻页", value: "page * page_size ≤ 10000" },
+      { name: "深翻页", value: "使用 cursor；cursor 与 page>1 互斥" },
+      { name: "query 与 sort", value: "不能同时使用；带 query 时按相关性排序" },
+      { name: "默认限流", value: "60 次 / 分钟" },
+    ],
+    retry: [
+      "建议重试：502 / 503 / 504",
+      "不应重试：400 / 401 / 403；429 请等窗口恢复",
+    ],
+    samples: [
+      {
+        lang: "bash",
+        label: "curl",
+        code: `curl -X POST https://api.sciverse.space/meta-search \\
+  -H "Authorization: Bearer YOUR_API_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "filters": [
+      {"field": "publication_published_year", "operator": "FILTER_OP_GTE", "value": 2022}
+    ],
+    "sort": [
+      {"field": "citation_count", "order": "SORT_ORDER_DESC"}
+    ],
+    "page": 1,
+    "page_size": 25
+  }'`,
+      },
+      {
+        lang: "python",
+        label: "Python 游标翻页",
+        code: `import requests
+
+url = "https://api.sciverse.space/meta-search"
+headers = {"Authorization": "Bearer YOUR_API_TOKEN"}
+payload = {
+    "filters": [
+        {"field": "publication_published_year", "operator": "FILTER_OP_GTE", "value": 2022}
+    ],
+    "sort": [{"field": "citation_count", "order": "SORT_ORDER_DESC"}],
+    "page_size": 100,
+}
+while True:
+    r = requests.post(url, headers=headers, json=payload).json()
+    for it in r["results"]:
+        print(it.get("title"))
+    if not r.get("next_cursor"):
+        break
+    payload = {**payload, "cursor": r["next_cursor"]}`,
+      },
+    ],
+    responseExample: `{
+  "results": [
+    {
+      "doc_id": "d_2a91...",
+      "title": "Cycle stability of graphene composite cathodes",
+      "doi": "10.1234/xyz",
+      "language": "en",
+      "publication_published_year": 2024,
+      "publication_venue_name": "Adv. Energy Mater.",
+      "citation_count": 42,
+      "fwci": 1.84
+    }
+  ],
+  "total_count": 318,
+  "page": 1,
+  "page_size": 25,
+  "total_pages": 13,
+  "search_time_ms": 56.4,
+  "next_cursor": "eyJvZmZzZXQiOjI1fQ=="
+}`,
+  },
+];
 
 // ─── 产品数据（来自负责人材料原文，不做编造）────────────
 
@@ -174,11 +578,11 @@ const SCIVERSE: Product = {
       {
         lang: "bash",
         label: "curl",
-        code: `curl -X POST https://sciverse.opendatalab.com/api/v1/meta-search \\
+        code: `curl -X POST https://api.sciverse.space/meta-search \\
   -H "Authorization: Bearer YOUR_API_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "query": "graphene battery",
+    "filters": [{"field": "publication_published_year", "operator": "FILTER_OP_GTE", "value": 2022}],
     "page": 1,
     "page_size": 10
   }'`,
@@ -189,7 +593,7 @@ const SCIVERSE: Product = {
         code: `import requests
 
 resp = requests.post(
-    "https://sciverse.opendatalab.com/api/v1/meta-search",
+    "https://api.sciverse.space/meta-search",
     headers={"Authorization": "Bearer YOUR_API_TOKEN"},
     json={"query": "graphene battery", "page": 1, "page_size": 10},
 )
@@ -201,172 +605,29 @@ print(resp.json())`,
       "Token 永久有效，每个账号最多 10 个；请勿提交到 Git 仓库或公开分享。",
     ],
   },
-  endpoints: [
-    // 由于材料目前主要提供了 meta-search 的完整规范，其余四个仅有路径与一句话说明；
-    // 先按"已知字段"完整填充 meta-search，其它接口填占位与一句话说明，待材料补齐后再扩展。
-    {
-      key: "agentic-search",
-      method: "POST",
-      path: "/api/v1/agentic-search",
-      title: "agentic-search 检索文献并返回片段",
-      summary: "传入一段自然语言查询，返回相关文献及可定位的文本片段（chunk）。",
-      desc: "agentic-search 面向 LLM Agent 与 RAG 应用，输入一段自然语言查询，平台会自动进行查询规划、检索与片段抽取，返回与查询最相关的文献片段（chunk）及其元信息。",
-      useCases: [
-        "RAG 应用：为大模型补充含引用的文献证据",
-        "Agent 工具调用：让 Agent 直接拿到可引用的文献片段",
-      ],
-      samples: [
-        {
-          lang: "bash",
-          label: "curl",
-          code: `curl -X POST https://sciverse.opendatalab.com/api/v1/agentic-search \\
-  -H "Authorization: Bearer YOUR_API_TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "query": "graphene battery cycle stability"
-  }'`,
-        },
-      ],
-      notes: [
-        "请求与响应字段详见 Sciverse 团队后续补充的接口规范，本页将随材料更新同步扩展。",
-      ],
-    },
-    {
-      key: "content",
-      method: "GET",
-      path: "/api/v1/content",
-      title: "content 按 doc_id 读取原文",
-      summary: "按文献 doc_id 读取原文文本内容。",
-      desc: "content 接口按 doc_id 读取该文献的原文文本内容，常与 meta-search / agentic-search 命中的 doc_id 配合使用，用于二次摘要、引用核对或长上下文输入。",
-      samples: [
-        {
-          lang: "bash",
-          label: "curl",
-          code: `curl -G https://sciverse.opendatalab.com/api/v1/content \\
-  -H "Authorization: Bearer YOUR_API_TOKEN" \\
-  --data-urlencode "doc_id=YOUR_DOC_ID"`,
-        },
-      ],
-      notes: [
-        "请求与响应字段详见 Sciverse 团队后续补充的接口规范，本页将随材料更新同步扩展。",
-      ],
-    },
-    {
-      key: "resource",
-      method: "GET",
-      path: "/api/v1/resource",
-      title: "resource 按相对路径下载附件",
-      summary: "按资源相对路径下载二进制文件（附件流）。",
-      desc: "resource 接口用于按资源相对路径下载与文献关联的二进制文件（附件流），例如表格、图片或 PDF。响应为二进制内容，请按文件类型自行处理。",
-      samples: [
-        {
-          lang: "bash",
-          label: "curl",
-          code: `curl -G https://sciverse.opendatalab.com/api/v1/resource \\
-  -H "Authorization: Bearer YOUR_API_TOKEN" \\
-  --data-urlencode "path=YOUR_RESOURCE_PATH" \\
-  -o resource.bin`,
-        },
-      ],
-      notes: [
-        "请求与响应字段详见 Sciverse 团队后续补充的接口规范，本页将随材料更新同步扩展。",
-      ],
-    },
-    {
-      key: "meta-catalog",
-      method: "GET",
-      path: "/api/v1/meta-catalog",
-      title: "meta-catalog 查看元数据字段目录",
-      summary: "查看元数据字段目录、字段能力和枚举值样本。",
-      desc: "meta-catalog 接口返回 meta-search 可用的全部元数据字段、字段能力（过滤、排序、分面等）与典型枚举值样本，是构建过滤器与下拉选项的来源。",
-      samples: [
-        {
-          lang: "bash",
-          label: "curl",
-          code: `curl -G https://sciverse.opendatalab.com/api/v1/meta-catalog \\
-  -H "Authorization: Bearer YOUR_API_TOKEN"`,
-        },
-      ],
-      notes: [
-        "请求与响应字段详见 Sciverse 团队后续补充的接口规范，本页将随材料更新同步扩展。",
-      ],
-    },
-    {
-      key: "meta-search",
-      method: "POST",
-      path: "/api/v1/meta-search",
-      title: "meta-search 按字段过滤与排序检索元数据",
-      summary: "提供基于自然语言查询、字段过滤、排序与分页的文献元数据检索。",
-      desc: "meta-search 接口提供基于自然语言查询的文献元数据检索能力，支持字段过滤、排序与分页。常用于元数据筛选与列表浏览场景。",
-      useCases: [
-        "按学科 / 年份 / 来源等字段筛选文献",
-        "需要排序与分页的检索结果列表",
-        "结合 meta-catalog 构建可视化过滤器",
-      ],
-      paramsTitle: "请求参数",
-      paramsNote: "请求体使用 JSON。filters、sort、facets 等字段的取值范围与能力可通过 meta-catalog 接口查询。",
-      params: [
-        { name: "query", type: "string", required: false, desc: "自然语言查询。" },
-        { name: "filters", type: "object", required: false, desc: "字段过滤条件，结构由 meta-catalog 提供。" },
-        { name: "sort", type: "array", required: false, desc: "排序字段与方向。" },
-        { name: "facets", type: "array", required: false, desc: "需要返回的分面字段。" },
-        { name: "page", type: "integer", required: false, default: "1", desc: "页码，从 1 开始。" },
-        { name: "page_size", type: "integer", required: false, default: "10", range: "1–100", desc: "每页大小。" },
-      ],
-      response: [
-        { name: "total", type: "integer", desc: "命中结果总数。" },
-        { name: "page", type: "integer", desc: "当前页码。" },
-        { name: "page_size", type: "integer", desc: "当前页大小。" },
-        { name: "items", type: "array", desc: "结果列表，每项为一条文献元数据。" },
-        { name: "facets", type: "object", desc: "请求 facets 时返回的分面聚合结果。" },
-      ],
-      samples: [
-        {
-          lang: "bash",
-          label: "curl",
-          code: `curl -X POST https://sciverse.opendatalab.com/api/v1/meta-search \\
-  -H "Authorization: Bearer YOUR_API_TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "query": "graphene battery",
-    "filters": {"year": {"gte": 2022}},
-    "sort": [{"field": "year", "order": "desc"}],
-    "page": 1,
-    "page_size": 10
-  }'`,
-        },
-        {
-          lang: "python",
-          label: "Python",
-          code: `import requests
-
-resp = requests.post(
-    "https://sciverse.opendatalab.com/api/v1/meta-search",
-    headers={"Authorization": "Bearer YOUR_API_TOKEN"},
-    json={
-        "query": "graphene battery",
-        "filters": {"year": {"gte": 2022}},
-        "sort": [{"field": "year", "order": "desc"}],
-        "page": 1,
-        "page_size": 10,
-    },
-)
-print(resp.json())`,
-        },
-      ],
-      notes: [
-        "字段名称、可用过滤算子与排序键以 meta-catalog 实时返回为准。",
-      ],
-    },
-  ],
+  repo: {
+    name: "sciverse-api",
+    title: "Sciverse API 仓库",
+    version: "v1.2.0",
+    baseUrl: "https://api.sciverse.space",
+    url: "https://github.com/opendatalab/Sciverse-api",
+    status: "stable",
+    description: "面向 LLM Agent / RAG 与检索应用的学术检索 REST 接口集，包含 5 个端点：agentic-search、content、resource、meta-catalog、meta-search。",
+    changelog: [
+      { version: "v1.2.0", date: "2026-04-22", notes: ["meta-search 增加 cursor 深翻页与 fwci 排序字段", "meta-catalog 补充 include_sample_values、sample_values 24h 缓存", "agentic-search 响应补充 page_no / offset / model_version"] },
+      { version: "v1.1.0", date: "2026-02-10", notes: ["content 接口支持 offset / limit / next_offset / more 分段拉取", "resource 响应增加 X-Request-ID 与 Content-Disposition"] },
+      { version: "v1.0.0", date: "2025-12-18", notes: ["首版发布：5 个接口与统一鉴权、语义 OK"] },
+    ],
+  },
+  endpoints: SCIVERSE_ENDPOINTS,
   cliPlaceholder: {
     title: "CLI · SDK",
     desc: "Sciverse 的 CLI 与多语言 SDK 正在跟进中，待对应仓库就绪后将在此补充安装、配置与代码示例。当前请优先使用 REST API 与 Skills 接入方式。",
   },
   skills: {
-    transport: "ClawHub Skill · GitHub Tools",
+    transport: "ClawHub Skill (academic-retrieval)",
     endpoint: "https://clawhub.ai/sciverse/academic-retrieval",
-    auth: "使用同一套 Sciverse API Token；装载时在客户端以环境变量 SCIVERSE_API_TOKEN 或参数形式传入。",
+    auth: "使用同一套 Sciverse API Token。ClawHub 一键装载时以 SCIVERSE_API_TOKEN 环境变量注入；GitHub 本地运行需手动设置同名变量。",
     config: {
       lang: "json",
       label: "Claude Desktop / Cursor / Manus",
@@ -385,12 +646,13 @@ print(resp.json())`,
     test: [
       {
         lang: "bash",
-        label: "ClawHub 一键装载",
-        code: `# 访问并一键安装（推荐）
-# https://clawhub.ai/sciverse/academic-retrieval
-#
-# 选择对应客户端（Claude Desktop / Cursor / Manus / Cherry Studio），
-# 复制 SCIVERSE_API_TOKEN 后即可启用 Sciverse 学术检索能力。`,
+        label: "ClawHub 一键装载（推荐）",
+        code: `# 1. 打开 ClawHub Skill 页面
+#    https://clawhub.ai/sciverse/academic-retrieval
+# 2. 选择目标客户端：Manus / Claude Desktop / Cursor / Cherry Studio
+# 3. 填入 SCIVERSE_API_TOKEN（从「接入指南 · 统一鉴权」页面复制）
+# 4. 点击“一键装载”后，在 Agent 中调用：
+#    @sciverse academic-retrieval 帮我检索 "graphene battery" 2022 年以后的高引用文献`,
       },
       {
         lang: "bash",
@@ -399,40 +661,58 @@ print(resp.json())`,
 cd SciVerse-agent-tools
 pnpm install && pnpm build
 export SCIVERSE_API_TOKEN=YOUR_API_TOKEN
-node dist/index.js`,
+node dist/index.js  # stdio transport、供本地 IDE / Agent 接入`,
+      },
+      {
+        lang: "bash",
+        label: "验证装载",
+        code: `# 在客户端会话中输入，验证 5 个 tool 是否已出现
+# 示例提示词：
+# "列出你现在可以调用的 sciverse 工具。"
+# 预期响应包含：agentic_search、meta_search、content、resource、meta_catalog`,
       },
     ],
     tools: [
-      { category: "检索", name: "sciverse.agentic_search", desc: "以自然语言查询返回可引用的文献片段（chunk）与源文献。", latency: "~800ms",
+      { category: "检索", name: "agentic_search", desc: "提交自然语言查询，返回带出处定位的文献片段与出处列表，供 RAG / 问答系统准确引用。", latency: "~500–1500ms",
         params: [
-          { name: "query", type: "string", required: true, desc: "自然语言查询。" },
-          { name: "top_k", type: "integer", required: false, default: "10", range: "1–20", desc: "返回片段数量。" },
+          { name: "query", type: "string", required: true, desc: "自然语言查询，1–2048 字符。" },
+          { name: "top_k", type: "integer", required: false, default: "10", range: "1–50", desc: "返回片段上限。" },
+          { name: "language", type: "string", required: false, desc: "结果语种过滤，例如 zh、en。" },
+          { name: "model_version", type: "string", required: false, desc: "允许选择响应模型版本（stable / preview）。" },
         ],
-        returns: "chunks[]（doc_id · text · score · source）· query_plan" },
-      { category: "检索", name: "sciverse.meta_search", desc: "按学科 / 年份 / 期刊等字段过滤与排序检索元数据。", latency: "~300ms",
+        returns: "chunks[]（doc_id · chunk_id · text · score · highlights · source.title · source.year）· page_no · offset · query_plan" },
+      { category: "检索", name: "meta_search", desc: "以字段表达式过滤 / 排序 / 分面检索元数据，适合精准查找某位作者·某期刊·某年份的文献。", latency: "~150–500ms",
         params: [
-          { name: "query", type: "string", required: false, desc: "自然语言查询。" },
-          { name: "filters", type: "object", required: false, desc: "字段过滤条件，取值由 meta_catalog 提供。" },
-          { name: "page_size", type: "integer", required: false, default: "10", range: "1–100", desc: "每页大小。" },
+          { name: "query", type: "string", required: false, desc: "补充的自然语言词。" },
+          { name: "filters", type: "FilterExpr[]", required: false, desc: "字段过滤表达式，field + operator + value，可以嵌套 AND / OR / NOT。" },
+          { name: "sort", type: "SortExpr[]", required: false, desc: "按可排序字段排序，例如 publication_published_year DESC。" },
+          { name: "facets", type: "string[]", required: false, desc: "要汇总的分面字段，例如 subject / source_name。" },
+          { name: "page / page_size", type: "integer", required: false, default: "1 / 10", range: "page_size 1–100", desc: "页码与每页大小，深翻页可改用 cursor。" },
         ],
-        returns: "total · items[] · facets" },
-      { category: "原文", name: "sciverse.content", desc: "按 doc_id 读取原文文本，用于二次摘要与引用核对。", latency: "~200ms",
+        returns: "total · items[]（按 meta-catalog 返回的字段）· facets[] · cursor" },
+      { category: "原文", name: "content", desc: "按 doc_id 读取文献原文文本，支持 offset / limit 分段拉取，适合长文二次摘要、提问与引用核对。", latency: "~200ms",
         params: [
           { name: "doc_id", type: "string", required: true, desc: "文献 ID（由 meta_search / agentic_search 返回）。" },
+          { name: "offset", type: "integer", required: false, default: "0", desc: "起始偏移量，用于分段拉取。" },
+          { name: "limit", type: "integer", required: false, default: "20000", range: "≤1000000", desc: "本次拉取的字符上限。" },
         ],
-        returns: "doc_id · title · content（纯文本）· lang" },
-      { category: "原文", name: "sciverse.resource", desc: "按资源相对路径下载与文献关联的附件（二进制流）。", latency: "~400ms",
+        returns: "doc_id · title · content · lang · next_offset · more" },
+      { category: "原文", name: "resource", desc: "按 path 下载与文献关联的附件（图表 / PDF / 补充材料），返回二进制流。", latency: "~400ms",
         params: [
-          { name: "path", type: "string", required: true, desc: "资源相对路径。" },
+          { name: "path", type: "string", required: true, desc: "资源相对路径（由 content / meta_search 返回的字段提供）。" },
         ],
-        returns: "二进制流（附件原文件）" },
-      { category: "元数据", name: "sciverse.meta_catalog", desc: "返回全部元数据字段、字段能力与枚举样本，用于动态构造过滤器。", latency: "~50ms",
-        returns: "fields[]（name · type · filterable · sortable · facetable · enum_samples）" },
+        returns: "二进制流 + Content-Type / Content-Disposition / X-Request-ID" },
+      { category: "元数据", name: "meta_catalog", desc: "查看元数据字段目录：filterable / sortable / facetable 能力·枚举样本·中英文名，是 Agent 动态拼 filters / sort 的必要参考表。", latency: "~50ms",
+        params: [
+          { name: "include_sample_values", type: "boolean", required: false, default: "false", desc: "是否返回枚举样本，启用后响应会缓存 24h。" },
+        ],
+        returns: "fields[]（name · type · filterable · sortable · facetable · zh_name · en_name · sample_values）" },
     ],
     limits: [
-      { name: "默认限流", value: "60 次 / 分钟（滑动窗口）" },
-      { name: "单次返回上限", value: "agentic_search top_k ≤ 20；meta_search page_size ≤ 100" },
-      { name: "Skills 装载上限", value: "不限 Agent 客户端，遵循同一 Token 总额度" },
+      { name: "默认限流", value: "60 次 / 分钟（滑动窗口，与 REST API 共享 Token 额度）" },
+      { name: "单次返回上限", value: "agentic_search top_k ≤ 50；meta_search page_size ≤ 100、cursor 深翻页 ≤ 10000 条" },
+      { name: "content 拉取上限", value: "单次 limit ≤ 1,000,000 字符，超出请使用 next_offset 迭代" },
+      { name: "Skill 装载上限", value: "ClawHub 不限客户端数量；你可以在多个 Agent 中并行调用" },
     ],
     errors: [
       { scene: "缺少 Token 或格式错误", status: "401", desc: "检查 SCIVERSE_API_TOKEN 环境变量是否装载成功。" },
@@ -495,6 +775,19 @@ print(response.json())`,
     ],
     notes: [
       "点石与 Sciverse、SeqStudio 共用同一套 API Key 鉴权体系，详见统一鉴权章节。",
+    ],
+  },
+  repo: {
+    name: "dianshi-api",
+    title: "点石 DianShi API 仓库",
+    version: "v1.0.0",
+    baseUrl: "https://dianshi.opendatalab.com",
+    url: "https://github.com/opendatalab/DianShi-api",
+    status: "stable",
+    description: "化学信息检索与逆合成 RAG，提供 3 个 REST 接口（inverse-synthesis / rxn-diff / rxn-struct）与 14 个 MCP 工具，以同一套 Token 使用。",
+    changelog: [
+      { version: "v1.0.0", date: "2026-04-30", notes: ["首版 GA：3 个 REST 接口 + 14 个 MCP 工具完整上线", "rxn-similar 重命名为 rxn-struct，与 rxn-diff 些起形成差异 / 结构双路检索能力"] },
+      { version: "v0.9.0", date: "2026-03-12", notes: ["Beta：inverse-synthesis 加入 substance_top_k / morgan_radius", "MCP 增加 reaction_group_search_by_fingerprint"] },
     ],
   },
   endpoints: [
@@ -710,10 +1003,10 @@ for r in data["results"]:
       ],
     },
     {
-      key: "rxn-similar",
+      key: "rxn-struct",
       method: "POST",
-      path: "/rag/rxn-similar",
-      title: "rxn-similar 反应结构指纹检索",
+      path: "/rag/rxn-struct",
+      title: "rxn-struct 反应结构指纹检索",
       summary: "基于 AtomPair 结构指纹的相似反应检索接口。",
       desc: "输入一条反应 SMILES，按底物与产物的结构相似性找到相似反应。适合关注底物/产物结构相似性而非转化相似性的场景。",
       params: [
@@ -749,7 +1042,7 @@ for r in data["results"]:
         {
           lang: "bash",
           label: "curl",
-          code: `curl -X POST https://dianshi.opendatalab.com/rag/rxn-similar \\
+          code: `curl -X POST https://dianshi.opendatalab.com/rag/rxn-struct \\
   -H "Authorization: Bearer YOUR_API_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -913,6 +1206,7 @@ for r in data["results"]:
   },
 };
 
+// ─── 点石 / SeqStudio Product 数据 ──────────────────────
 const SEQSTUDIO: Product = {
   key: "seqstudio",
   name: "SeqStudio",
@@ -937,6 +1231,18 @@ const SEQSTUDIO: Product = {
     notes: [
       "当前 SeqStudio 文档仅覆盖产品概述与快速开始。暂不编写公开 API 接口、限流、错误码和鉴权页面内容；如后续开放 HTTP API，再按照统一接口文档规范补充。",
       "SeqStudio 不是一个纯 Python 包。完整运行通常需要本地生物信息学工具、数据库文件、辅助 JSON 数据以及可选的 LLM HTTP API 配置。",
+    ],
+  },
+  repo: {
+    name: "SeqStudio",
+    title: "SeqStudio 仓库",
+    version: "v0.6.0",
+    baseUrl: "https://sciverse.opendatalab.com/seqstudio",
+    url: "https://github.com/OpenRaiser/SeqStudio",
+    status: "beta",
+    description: "蛋白质功能注释 AI 推理平台，整合 BLAST / InterProScan / Foldseek / TMHMM 多源证据与 LLM 推理；现阶段以在线访问与本地部署为主。",
+    changelog: [
+      { version: "v0.6.0", date: "2026-04-15", notes: ["在线工作台支持 FASTA + PDB 批量汇总", "本地部署补充 InterProScan / Foldseek 环境检查脚本"] },
     ],
   },
   online: {
@@ -1049,6 +1355,7 @@ type Active =
   | { kind: "errors" }
   | { kind: "faq" }
   | { kind: "product"; product: ProductKey; section: "overview" }
+  | { kind: "endpoint-index"; product: ProductKey; anchor?: string }
   | { kind: "endpoint"; product: ProductKey; endpointKey: string }
   | { kind: "skills"; product: ProductKey }
   | { kind: "cli"; product: ProductKey }
@@ -1065,9 +1372,12 @@ function parseHash(hash: string): Active {
   if (!p) return { kind: "overview" };
   if (parts.length === 1 || parts[1] === "overview")
     return { kind: "product", product: p.key, section: "overview" };
-  if (parts[1] === "api" && parts[2]) {
-    const ep = p.endpoints?.find((e) => e.key === parts[2]);
-    if (ep) return { kind: "endpoint", product: p.key, endpointKey: ep.key };
+  if (parts[1] === "api") {
+    if (parts[2]) {
+      const ep = p.endpoints?.find((e) => e.key === parts[2]);
+      if (ep) return { kind: "endpoint-index", product: p.key, anchor: ep.key };
+    }
+    return { kind: "endpoint-index", product: p.key };
   }
   if (parts[1] === "skills" && p.skills) return { kind: "skills", product: p.key };
   if (parts[1] === "cli" && p.cliPlaceholder) return { kind: "cli", product: p.key };
@@ -1087,6 +1397,8 @@ function activeToHash(a: Active): string {
       return "faq";
     case "product":
       return `${a.product}/overview`;
+    case "endpoint-index":
+      return a.anchor ? `${a.product}/api/${a.anchor}` : `${a.product}/api`;
     case "endpoint":
       return `${a.product}/api/${a.endpointKey}`;
     case "skills":
@@ -1130,6 +1442,13 @@ export default function Docs() {
             {active.kind === "errors" && <ErrorsPage />}
             {active.kind === "faq" && <FaqPage />}
             {active.kind === "product" && <ProductOverviewPage product={getProduct(active.product)} onGo={go} />}
+            {active.kind === "endpoint-index" && (
+              <EndpointIndexPage
+                product={getProduct(active.product)}
+                anchor={active.anchor}
+                onGo={go}
+              />
+            )}
             {active.kind === "endpoint" && (
               <EndpointPage
                 product={getProduct(active.product)}
@@ -1139,7 +1458,7 @@ export default function Docs() {
             {active.kind === "skills" && <SkillsPage product={getProduct(active.product)} />}
             {active.kind === "cli" && <CliPlaceholderPage product={getProduct(active.product)} />}
             {active.kind === "online" && <OnlinePage product={getProduct(active.product)} />}
-            {active.kind !== "overview" && active.kind !== "auth" && active.kind !== "errors" && active.kind !== "faq" && (
+            {active.kind !== "overview" && active.kind !== "auth" && active.kind !== "errors" && active.kind !== "faq" && active.kind !== "endpoint-index" && (
               <KeyBanner />
             )}
           </div>
@@ -1159,6 +1478,7 @@ function DocsNav({ active, onGo }: { active: Active; onGo: (a: Active) => void }
   const isProductExpanded = (key: ProductKey) =>
     (active.kind === "product" && active.product === key) ||
     (active.kind === "endpoint" && active.product === key) ||
+    (active.kind === "endpoint-index" && active.product === key) ||
     (active.kind === "skills" && active.product === key) ||
     (active.kind === "cli" && active.product === key) ||
     (active.kind === "online" && active.product === key);
@@ -1197,8 +1517,8 @@ function DocsNav({ active, onGo }: { active: Active; onGo: (a: Active) => void }
                   <SubNavLink
                     label={`API 接口 · ${p.endpoints.length}`}
                     icon={Cable}
-                    isActive={active.kind === "endpoint" && active.product === p.key}
-                    onClick={() => onGo({ kind: "endpoint", product: p.key, endpointKey: p.endpoints![0].key })}
+                    isActive={active.kind === "endpoint-index" && active.product === p.key}
+                    onClick={() => onGo({ kind: "endpoint-index", product: p.key })}
                   />
                 )}
                 {p.skills && (
@@ -1422,7 +1742,7 @@ function ProductOverviewPage({ product, onGo }: { product: Product; onGo: (a: Ac
               icon={Cable}
               title="API 接口"
               desc={`${product.endpoints.length} 个 REST 接口，HTTP 直接调用。`}
-              onClick={() => onGo({ kind: "endpoint", product: product.key, endpointKey: product.endpoints![0].key })}
+              onClick={() => onGo({ kind: "endpoint-index", product: product.key })}
             />
           )}
           {product.skills && (
@@ -1466,7 +1786,231 @@ function ProductOverviewPage({ product, onGo }: { product: Product; onGo: (a: Ac
   );
 }
 
-// ─── 接口详情页 ───────────────────────────────────────
+// ─── 接口详情页 ───────────// ─── 接口仓库总览页（sticky TOC + 全部端点顺序展开）────
+function EndpointIndexPage({ product, anchor, onGo: _onGo }: { product: Product; anchor?: string; onGo: (a: Active) => void }) {
+  const endpoints = product.endpoints ?? [];
+  const repo = product.repo;
+  const [activeAnchor, setActiveAnchor] = useState<string>(anchor || endpoints[0]?.key || "");
+
+  useEffect(() => {
+    if (!anchor) return;
+    const el = document.getElementById(`ep-${anchor}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    setActiveAnchor(anchor);
+  }, [anchor]);
+
+  useEffect(() => {
+    if (!endpoints.length) return;
+    const handler = () => {
+      let current = endpoints[0].key;
+      for (const ep of endpoints) {
+        const el = document.getElementById(`ep-${ep.key}`);
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        if (rect.top - 120 <= 0) current = ep.key;
+        else break;
+      }
+      setActiveAnchor(current);
+    };
+    handler();
+    window.addEventListener("scroll", handler, { passive: true });
+    return () => window.removeEventListener("scroll", handler);
+  }, [endpoints]);
+
+  const statusTone =
+    repo?.status === "stable" ? "#0E8C5A" : repo?.status === "beta" ? "#B95C00" : "#5B5BF7";
+
+  return (
+    <>
+      <Breadcrumb
+        items={[
+          { label: "接入指南" },
+          { label: product.name, brand: product.brand },
+          { label: "API 接口" },
+        ]}
+      />
+
+      {repo && (
+        <header className="mt-3 card-paper p-5 lg:p-6 relative overflow-hidden">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5">
+                <span
+                  className="font-mono text-[11px] tracking-[0.06em] px-2 py-0.5 rounded border hairline"
+                  style={{ color: statusTone, borderColor: `${statusTone}40`, background: `${statusTone}10` }}>
+                  {repo.status.toUpperCase()}
+                </span>
+                <span className="font-mono text-[12px] text-[var(--ink-3)]">{repo.name}</span>
+                <span className="font-mono text-[12px] text-[var(--ink-3)]">{repo.version}</span>
+              </div>
+              <h1 className="mt-2 font-display text-[28px] text-[var(--ink)] tracking-[-0.01em]">
+                {repo.title}
+              </h1>
+              <p className="mt-1.5 text-[13.5px] text-[var(--ink-2)] max-w-[640px] leading-relaxed">
+                {repo.description}
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-3 text-[12px] text-[var(--ink-3)]">
+                <span>
+                  <span className="text-[var(--ink-3)]">Base URL：</span>
+                  <span className="font-mono text-[var(--ink-2)]">{repo.baseUrl}</span>
+                </span>
+                {repo.url && (
+                  <a
+                    href={repo.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-[var(--ink)] hover:opacity-80">
+                    <Github className="h-3.5 w-3.5" /> 仓库
+                    <ArrowUpRight className="h-3 w-3" />
+                  </a>
+                )}
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <div className="text-[11px] tracking-[0.18em] text-[var(--ink-3)] uppercase">Endpoints</div>
+              <div className="mt-1 font-display text-[28px] text-[var(--ink)]">{endpoints.length}</div>
+            </div>
+          </div>
+        </header>
+      )}
+
+      <div className="mt-6 flex gap-6">
+        <nav className="hidden xl:block w-[200px] shrink-0 sticky top-6 self-start">
+          <div className="text-[11px] tracking-[0.18em] uppercase text-[var(--ink-3)] px-2 mb-2">端点</div>
+          <ul className="space-y-0.5">
+            {endpoints.map((ep) => {
+              const act = activeAnchor === ep.key;
+              return (
+                <li key={ep.key}>
+                  <a
+                    href={`#${product.key}/api/${ep.key}`}
+                    onClick={() => setActiveAnchor(ep.key)}
+                    className={cn(
+                      "block px-2.5 py-1.5 rounded-md text-[12.5px] font-mono transition-colors leading-tight",
+                      act
+                        ? "text-[var(--brand)] bg-[var(--brand)]/8"
+                        : "text-[var(--ink-3)] hover:text-[var(--ink)]",
+                    )}>
+                    <span className={cn(
+                      "px-1 py-px rounded text-[9.5px] mr-1.5 align-middle border",
+                      ep.method === "GET"
+                        ? "border-emerald-400/40 text-emerald-700 bg-emerald-50"
+                        : "border-[var(--brand)]/40 text-[var(--brand)] bg-[var(--brand)]/5",
+                    )}>{ep.method}</span>
+                    {ep.key}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+          <div className="mt-5 px-2">
+            {repo?.changelog && repo.changelog.length > 0 && (
+              <>
+                <div className="text-[11px] tracking-[0.18em] uppercase text-[var(--ink-3)] mb-2">Changelog</div>
+                <ul className="space-y-1.5">
+                  {repo.changelog.map((c) => (
+                    <li key={c.version} className="text-[12px] text-[var(--ink-3)] font-mono">
+                      <span className="text-[var(--ink-2)]">{c.version}</span>
+                      <span className="text-[var(--ink-4)]"> · {c.date}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        </nav>
+
+        <div className="min-w-0 flex-1">
+          {endpoints.map((ep, i) => (
+            <article
+              key={ep.key}
+              id={`ep-${ep.key}`}
+              className={cn("scroll-mt-24", i > 0 && "mt-14 pt-14 border-t hairline")}>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={cn(
+                  "font-mono text-[11px] px-2 py-0.5 rounded border",
+                  ep.method === "GET"
+                    ? "border-emerald-400/40 text-emerald-700 bg-emerald-50"
+                    : "border-[var(--brand)]/40 text-[var(--brand)] bg-[var(--brand)]/5",
+                )}>
+                  {ep.method}
+                </span>
+                <span className="font-mono text-[12.5px] text-[var(--ink-2)] truncate">{ep.path}</span>
+                <span className="font-mono text-[11px] text-[var(--ink-4)]">#{ep.key}</span>
+              </div>
+              <h2 className="mt-2 font-display text-[24px] text-[var(--ink)] tracking-[-0.01em]">{ep.title}</h2>
+              <p className="mt-1.5 text-[14px] text-[var(--ink-2)] max-w-[680px] leading-relaxed">{ep.summary}</p>
+
+              <Section title="概述">
+                <p className="text-[13.5px] text-[var(--ink-2)] leading-relaxed">{ep.desc}</p>
+              </Section>
+
+              {ep.useCases && (
+                <Section title="适用场景">
+                  <ul className="space-y-1.5">
+                    {ep.useCases.map((u) => (
+                      <li key={u} className="text-[13.5px] text-[var(--ink-2)]">· {u}</li>
+                    ))}
+                  </ul>
+                </Section>
+              )}
+
+              <Section title="请求示例">
+                <CodeTabs samples={ep.samples} />
+              </Section>
+
+              {ep.params && (
+                <Section title={ep.paramsTitle || "请求参数"}>
+                  {ep.paramsNote && <p className="text-[12.5px] text-[var(--ink-2)] mb-3 leading-relaxed">{ep.paramsNote}</p>}
+                  <ParamTable rows={ep.params} />
+                </Section>
+              )}
+
+              {ep.response && (
+                <Section title="响应结构">
+                  {ep.responseNote && <p className="text-[12.5px] text-[var(--ink-2)] mb-3 leading-relaxed">{ep.responseNote}</p>}
+                  <RespTable rows={ep.response} />
+                </Section>
+              )}
+
+              {ep.responseExample && (
+                <Section title="响应示例">
+                  <pre className="rounded-2xl bg-[#16161d] text-white/85 p-4 text-[12px] font-mono overflow-x-auto leading-[1.7]">
+{ep.responseExample}
+                  </pre>
+                </Section>
+              )}
+
+              {ep.errors && (
+                <Section title="错误码">
+                  <ErrorTable rows={ep.errors} />
+                </Section>
+              )}
+
+              {ep.limits && (
+                <Section title="调用限制">
+                  <LimitTable rows={ep.limits} />
+                </Section>
+              )}
+
+              {ep.retry && (
+                <Section title="重试建议">
+                  <ul className="space-y-1.5">
+                    {ep.retry.map((r) => (
+                      <li key={r} className="text-[13px] text-[var(--ink-2)]">· {r}</li>
+                    ))}
+                  </ul>
+                </Section>
+              )}
+            </article>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── 接口详情页 ───────────────────────
 
 function EndpointPage({ product, endpoint }: { product: Product; endpoint: Endpoint }) {
   return (

@@ -278,3 +278,24 @@
 - [ ] 5. FAQ 重写：以 Sciverse 为主体，覆盖常见用户场景（Token、调用配额、检索词、返回结构、引用、Skills 装载、API vs Skills、字段查询等）
 - [ ] 6. Sciverse Skills 子页接入 ClawHub https://clawhub.ai/sciverse/academic-retrieval 与 GitHub https://github.com/opendatalab/SciVerse-agent-tools 安装指引（claude / cursor / manus）
 - [ ] 7. 保持 Editorial 设计语言、不动其他模块
+
+
+---
+
+# v34 · API 文档全量补齐 + 仓库化导航
+
+## 数据全量补齐
+- [ ] Sciverse 5 端点完整字段（agentic-search / content / resource / meta-catalog / meta-search）
+- [ ] 点石 3 个 REST（inverse-synthesis / rxn-diff / rxn-struct）完整字段
+- [ ] 点石 14 个 MCP Skills 完整工具表
+- [ ] Sciverse Skills 改为 ClawHub academic-retrieval（5 tools）+ OpenClaw CLI 装载
+
+## 仓库化页面结构
+- [ ] EndpointListPage：sticky 端点 TOC + 仓库头部（版本、changelog、repo）
+- [ ] 多端点单页内导航（点击 TOC 内部锚跳）
+- [ ] 错误码 / 调用限制 / 重试建议 / 响应示例 完整呈现
+
+## 状态
+- [ ] 类型扩展 ProductSpec.repo / version / changelog
+- [ ] 适配 SkillsPage 接收 cli 客户端配置展示
+- [ ] webdev_check_status + v34 checkpoint
