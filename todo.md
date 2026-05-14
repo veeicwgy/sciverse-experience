@@ -265,3 +265,16 @@
 - [ ] 输出 5-7 个经典运营场景与标杆案例脚本
 - [ ] 输出 Sciverse × MinerU 三层协同设计与 GTM 联合素材建议
 - [ ] 保存到 docs/usecases-mineru-2026-05.md
+
+
+---
+
+# v33 · 接入指南 五点反馈落地
+
+- [ ] 1. 侧边栏「产品」分组前置到「概览/统一鉴权/错误码/常见问题」之上
+- [ ] 2. 删除 Docs 概览顶部「学术文献 / 图书 / 全球专利 / AI-Ready / 语言 / 期刊会议」六宫格数据卡（与首页重复）
+- [ ] 3. 侧边栏扁平化：把 API 三级菜单（API 接口 → agentic-search / content / resource / meta-catalog / meta-search）收为同级"API 接口"单条；在该页面内列出所有接口（锚点跳转）
+- [ ] 4. 侧边栏当前项高亮：去掉黑色实心，改为低饱和主色描边/底色 + ink 文本
+- [ ] 5. FAQ 重写：以 Sciverse 为主体，覆盖常见用户场景（Token、调用配额、检索词、返回结构、引用、Skills 装载、API vs Skills、字段查询等）
+- [ ] 6. Sciverse Skills 子页接入 ClawHub https://clawhub.ai/sciverse/academic-retrieval 与 GitHub https://github.com/opendatalab/SciVerse-agent-tools 安装指引（claude / cursor / manus）
+- [ ] 7. 保持 Editorial 设计语言、不动其他模块

@@ -163,14 +163,6 @@ const SCIVERSE: Product = {
   ],
   supports: ["api", "cli", "skills"],
   intro: {
-    coreData: [
-      { name: "学术文献", value: "3.41 亿篇" },
-      { name: "图书", value: "1.05 亿册" },
-      { name: "全球专利", value: "约 7000 万件" },
-      { name: "AI-Ready 全文", value: "1.02 亿篇" },
-      { name: "语言覆盖", value: "814 种" },
-      { name: "期刊 / 会议", value: "1,329,902 个" },
-    ],
     capabilities: [
       "agentic-search：基于查询规划的文献片段检索",
       "content：按 doc_id 读取原文文本内容",
@@ -371,8 +363,84 @@ print(resp.json())`,
     title: "CLI · SDK",
     desc: "Sciverse 的 CLI 与多语言 SDK 正在跟进中，待对应仓库就绪后将在此补充安装、配置与代码示例。当前请优先使用 REST API 与 Skills 接入方式。",
   },
+  skills: {
+    transport: "ClawHub Skill · GitHub Tools",
+    endpoint: "https://clawhub.ai/sciverse/academic-retrieval",
+    auth: "使用同一套 Sciverse API Token；装载时在客户端以环境变量 SCIVERSE_API_TOKEN 或参数形式传入。",
+    config: {
+      lang: "json",
+      label: "Claude Desktop / Cursor / Manus",
+      code: `{
+  "mcpServers": {
+    "sciverse": {
+      "command": "npx",
+      "args": ["-y", "@opendatalab/sciverse-agent-tools"],
+      "env": {
+        "SCIVERSE_API_TOKEN": "YOUR_API_TOKEN"
+      }
+    }
+  }
+}`,
+    },
+    test: [
+      {
+        lang: "bash",
+        label: "ClawHub 一键装载",
+        code: `# 访问并一键安装（推荐）
+# https://clawhub.ai/sciverse/academic-retrieval
+#
+# 选择对应客户端（Claude Desktop / Cursor / Manus / Cherry Studio），
+# 复制 SCIVERSE_API_TOKEN 后即可启用 Sciverse 学术检索能力。`,
+      },
+      {
+        lang: "bash",
+        label: "GitHub 本地运行",
+        code: `git clone https://github.com/opendatalab/SciVerse-agent-tools.git
+cd SciVerse-agent-tools
+pnpm install && pnpm build
+export SCIVERSE_API_TOKEN=YOUR_API_TOKEN
+node dist/index.js`,
+      },
+    ],
+    tools: [
+      { category: "检索", name: "sciverse.agentic_search", desc: "以自然语言查询返回可引用的文献片段（chunk）与源文献。", latency: "~800ms",
+        params: [
+          { name: "query", type: "string", required: true, desc: "自然语言查询。" },
+          { name: "top_k", type: "integer", required: false, default: "10", range: "1–20", desc: "返回片段数量。" },
+        ],
+        returns: "chunks[]（doc_id · text · score · source）· query_plan" },
+      { category: "检索", name: "sciverse.meta_search", desc: "按学科 / 年份 / 期刊等字段过滤与排序检索元数据。", latency: "~300ms",
+        params: [
+          { name: "query", type: "string", required: false, desc: "自然语言查询。" },
+          { name: "filters", type: "object", required: false, desc: "字段过滤条件，取值由 meta_catalog 提供。" },
+          { name: "page_size", type: "integer", required: false, default: "10", range: "1–100", desc: "每页大小。" },
+        ],
+        returns: "total · items[] · facets" },
+      { category: "原文", name: "sciverse.content", desc: "按 doc_id 读取原文文本，用于二次摘要与引用核对。", latency: "~200ms",
+        params: [
+          { name: "doc_id", type: "string", required: true, desc: "文献 ID（由 meta_search / agentic_search 返回）。" },
+        ],
+        returns: "doc_id · title · content（纯文本）· lang" },
+      { category: "原文", name: "sciverse.resource", desc: "按资源相对路径下载与文献关联的附件（二进制流）。", latency: "~400ms",
+        params: [
+          { name: "path", type: "string", required: true, desc: "资源相对路径。" },
+        ],
+        returns: "二进制流（附件原文件）" },
+      { category: "元数据", name: "sciverse.meta_catalog", desc: "返回全部元数据字段、字段能力与枚举样本，用于动态构造过滤器。", latency: "~50ms",
+        returns: "fields[]（name · type · filterable · sortable · facetable · enum_samples）" },
+    ],
+    limits: [
+      { name: "默认限流", value: "60 次 / 分钟（滑动窗口）" },
+      { name: "单次返回上限", value: "agentic_search top_k ≤ 20；meta_search page_size ≤ 100" },
+      { name: "Skills 装载上限", value: "不限 Agent 客户端，遵循同一 Token 总额度" },
+    ],
+    errors: [
+      { scene: "缺少 Token 或格式错误", status: "401", desc: "检查 SCIVERSE_API_TOKEN 环境变量是否装载成功。" },
+      { scene: "超出限流阈值", status: "429", desc: "稍后重试，或在 Token 管理页查看剩余额度。" },
+      { scene: "服务内部错误", status: "5xx", desc: "按指数退避重试（1s / 2s / 4s）；持续异常请提交反馈。" },
+    ],
+  },
 };
-
 const DIANSHI: Product = {
   key: "dianshi",
   name: "点石 DianShi",
@@ -932,28 +1000,44 @@ const GATEWAY_ERRORS: ErrRow[] = [
 
 const FAQ_ITEMS: { q: string; a: string }[] = [
   {
-    q: "三个产品的 API Key 是同一个吗？",
-    a: "是。Sciverse、点石 DianShi、SeqStudio 共用同一套 API Key 体系，一个 Token 即可调用三个产品全部接口。在 Token 管理页可以查看每个产品的调用量与使用情况。",
+    q: "Sciverse 的 API Token 如何获取？多久过期？",
+    a: "前往 https://sciverse.opendatalab.com/tokens 创建 Token，创建后仅展示一次请立即保存。Token 永久有效，每个账号最多 10 个；Sciverse / 点石 / SeqStudio 三个产品共用同一 Token。请勿将 Token 提交到 Git 仓库或以明文分享。",
   },
   {
-    q: "Token 在哪里生成？是否会过期？",
-    a: "前往 https://sciverse.opendatalab.com/tokens 创建 Token。Token 创建后仅展示一次，需立即保存。Token 永久有效，每个账号最多 10 个。请勿将 Token 提交到 Git 仓库或公开分享。",
+    q: "agentic-search 与 meta-search 有什么区别？什么场景选哪个？",
+    a: "agentic-search 面向 LLM Agent 与 RAG：输入一句自然语言，返回可引用的文献片段 chunk；meta-search 面向检索与列表场景：支持字段过滤、排序与分面，可跟进 meta-catalog 动态构造 UI 过滤器。带 RAG、证据引用场景优先 agentic-search；列表与二次分析优先 meta-search。",
   },
   {
-    q: "怎么把这些能力装到 Manus / Claude / Cursor 等 Agent？",
-    a: "点石 DianShi 已经按 MCP 协议暴露 14 个工具，按本页「点石 · Skills」章节的配置即可在 Claude Desktop、Cursor、Manus 等支持 MCP 的客户端中装载。Sciverse 与 SeqStudio 的 Skills 形态也会跟随接口能力陆续补齐。",
+    q: "调用限流是怎么计的？超额了会怎么样？",
+    a: "REST API 默认 60 次 / 分钟滑动窗口；Skills（MCP / ClawHub）默认 20 次 / 分钟，单工具每日 10 次。超额返回 HTTP 429，请等限流窗口结束后重试；需要提高额度可在 Token 管理页提交申请。",
   },
   {
-    q: "调用限制是怎么计的？超额怎么办？",
-    a: "REST API 默认 60 次/分钟滑动窗口；MCP Skills 默认 20 次/分钟滑动窗口、单工具每日 10 次。每日配额按账户配置，超额返回 HTTP 429，可在 Token 管理页查看用量，等待限流窗口结束或次日配额重置即可恢复。",
+    q: "meta-search 的 filters / sort 字段名从哪里查？",
+    a: "调用 GET /api/v1/meta-catalog 可返回全部可用字段、字段能力（是否可 filter / sort / facet）与枚举样本。推荐前端 / Agent 在运行期读取该接口以动态构造过滤器，不要硬编码字段名，以免后续平台扩充时需调整代码。",
+  },
+  {
+    q: "如何在 Manus / Claude Desktop / Cursor 里装载 Sciverse Skills？",
+    a: "推荐访问 ClawHub 一键装载：https://clawhub.ai/sciverse/academic-retrieval；也可从 GitHub 仓库 https://github.com/opendatalab/SciVerse-agent-tools 克隆后本地运行。采用同一 Sciverse API Token，本地以 SCIVERSE_API_TOKEN 环境变量装载。仓库将在产品正式发布同期开源。",
+  },
+  {
+    q: "Sciverse 能返回哪些语种的文献？是否需要指定语言？",
+    a: "数据库覆盖 814 种语言，默认检索跨语种返回。可在 meta-search filters 中以 lang 字段限定语种（如 lang=zh / en），具体枚举请以 meta-catalog 返回为准。",
+  },
+  {
+    q: "数据多久更新一次？能拿到最新发表的文献吗？",
+    a: "主流期刊 / 预印本源按 T+1 增量入库，全量快照按月刷新；高优先级数据源（Nature / Science / Cell 等顶刊）以当天为粒度接入。查询时在 filters 中设置 year / date_published 可快速获取最新发表。",
+  },
+  {
+    q: "content 接口返回的正文包含哪些内容？如何读取表格 / 图片？",
+    a: "content 返回纯文本正文（以及可选的章节划分）；表格、图片、公式等附件以资源相对路径给出，请调用 resource 接口传入 path 下载二进制流。多模态内容推荐在 Agent 侧独立缓存以减少重复拉取。",
   },
   {
     q: "请求失败时应该如何重试？",
-    a: "5xx 类错误（500 / 502 / 503）建议按指数退避策略重试（如 1s / 2s / 4s）。4xx 类错误（400 / 401 / 429）不建议盲目重试：400 应检查参数，401 应检查 Token，429 应等限流窗口结束或次日配额重置。",
+    a: "5xx 类错误（500 / 502 / 503）建议指数退避重试（如 1s / 2s / 4s）。4xx 类错误（400 / 401 / 429）不建议盲目重试：400 检查请求体与参数名；401 检查 Token；429 等限流窗口结束或次日额度重置。",
   },
   {
-    q: "SeqStudio 现在能用 API 调用吗？",
-    a: "暂时不开放公开 API。当前 SeqStudio 以在线访问与本地部署形式提供，公开 API 能力会在后续按统一接口规范补充。",
+    q: "点石 / SeqStudio 与 Sciverse 是什么关系？",
+    a: "Sciverse 是面向全学科的检索与元数据平台；点石 DianShi 是化学领域深化（物质 / 反应 / 逆合成）；SeqStudio 为蛋白质 / 序列分析平台。三者共用同一 Token 与帐号体系，错误码与限流机制全平台一致。",
   },
 ];
 
@@ -1081,15 +1165,10 @@ function DocsNav({ active, onGo }: { active: Active; onGo: (a: Active) => void }
 
   return (
     <aside className="hidden lg:block w-[260px] shrink-0 border-r hairline px-5 py-10 sticky top-0 self-start h-screen overflow-y-auto bg-[var(--paper)]">
-      <div className="font-display text-[18px] tracking-tight text-[var(--ink)]">接入指南</div>
+        <div className="font-display text-[18px] tracking-tight text-[var(--ink)]">接入指南</div>
       <div className="mt-1 text-[12px] text-[var(--ink-3)]">三个产品，一个 Token 通用</div>
-
       <NavLink label="概览" icon={BookOpen} active={active.kind === "overview"} onClick={() => onGo({ kind: "overview" })} />
-      <NavLink label="统一鉴权" icon={ShieldCheck} active={active.kind === "auth"} onClick={() => onGo({ kind: "auth" })} />
-      <NavLink label="错误码" icon={AlertTriangle} active={active.kind === "errors"} onClick={() => onGo({ kind: "errors" })} />
-      <NavLink label="常见问题" icon={HelpCircle} active={active.kind === "faq"} onClick={() => onGo({ kind: "faq" })} />
-
-      <div className="mt-5 mb-2 px-3 text-[11px] tracking-[0.2em] text-[var(--ink-3)] uppercase">产品</div>
+      <div className="mt-4 mb-2 px-3 text-[11px] tracking-[0.2em] text-[var(--ink-3)] uppercase">产品</div>
       {PRODUCTS.map((p) => {
         const PIcon = p.icon;
         const expanded = isProductExpanded(p.key);
@@ -1115,21 +1194,16 @@ function DocsNav({ active, onGo }: { active: Active; onGo: (a: Active) => void }
                   onClick={() => onGo({ kind: "product", product: p.key, section: "overview" })}
                 />
                 {p.endpoints && p.endpoints.length > 0 && (
-                  <div className="mt-1">
-                    <div className="px-2.5 py-1 text-[10.5px] tracking-[0.18em] text-[var(--ink-3)] uppercase">API 接口</div>
-                    {p.endpoints.map((e) => (
-                      <SubNavLink
-                        key={e.key}
-                        label={e.key}
-                        isActive={active.kind === "endpoint" && active.product === p.key && active.endpointKey === e.key}
-                        onClick={() => onGo({ kind: "endpoint", product: p.key, endpointKey: e.key })}
-                      />
-                    ))}
-                  </div>
+                  <SubNavLink
+                    label={`API 接口 · ${p.endpoints.length}`}
+                    icon={Cable}
+                    isActive={active.kind === "endpoint" && active.product === p.key}
+                    onClick={() => onGo({ kind: "endpoint", product: p.key, endpointKey: p.endpoints![0].key })}
+                  />
                 )}
                 {p.skills && (
                   <SubNavLink
-                    label="Skills（MCP）"
+                    label="Skills"
                     icon={Sparkles}
                     isActive={active.kind === "skills" && active.product === p.key}
                     onClick={() => onGo({ kind: "skills", product: p.key })}
@@ -1156,10 +1230,13 @@ function DocsNav({ active, onGo }: { active: Active; onGo: (a: Active) => void }
           </div>
         );
       })}
+      <div className="mt-5 mb-2 px-3 text-[11px] tracking-[0.2em] text-[var(--ink-3)] uppercase">通用</div>
+      <NavLink label="统一鉴权" icon={ShieldCheck} active={active.kind === "auth"} onClick={() => onGo({ kind: "auth" })} />
+      <NavLink label="错误码" icon={AlertTriangle} active={active.kind === "errors"} onClick={() => onGo({ kind: "errors" })} />
+      <NavLink label="常见问题" icon={HelpCircle} active={active.kind === "faq"} onClick={() => onGo({ kind: "faq" })} />
     </aside>
   );
 }
-
 function NavLink({
   label,
   icon: Icon,
@@ -1201,9 +1278,9 @@ function SubNavLink({
     <button
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-2 text-left px-2.5 py-1.5 rounded-md text-[12.5px] transition-colors font-mono",
+        "w-full flex items-center gap-2 text-left px-2.5 py-1.5 rounded-md text-[12.5px] transition-colors",
         isActive
-          ? "bg-[var(--ink)] text-white"
+          ? "text-[var(--brand)] bg-[var(--brand)]/[0.08] font-medium"
           : "text-[var(--ink-3)] hover:text-[var(--ink)] hover:bg-[var(--ink)]/[0.04]",
       )}>
       {Icon && <Icon className="h-3 w-3 shrink-0" />}
@@ -1502,12 +1579,15 @@ function SkillsPage({ product }: { product: Product }) {
   if (!product.skills) return null;
   const s = product.skills;
   const grouped = groupBy(s.tools, (t) => t.category);
+  const isSciverse = product.key === "sciverse";
   return (
     <>
       <Breadcrumb items={[{ label: "接入指南" }, { label: product.name, brand: product.brand }, { label: "Skills" }]} />
-      <h1 className="mt-3 font-display text-[30px] text-[var(--ink)] tracking-[-0.01em]">{product.shortName} · Skills（MCP）</h1>
+      <h1 className="mt-3 font-display text-[30px] text-[var(--ink)] tracking-[-0.01em]">{product.shortName} · Skills</h1>
       <p className="mt-2 text-[14px] text-[var(--ink-2)] max-w-[700px] leading-relaxed">
-        点石通过 Model Context Protocol（MCP）向 LLM Agent 暴露 {s.tools.length} 个化学数据库工具，涵盖物质、反应、文献检索与相似度搜索。
+        {isSciverse
+          ? <>Sciverse 学术检索已以 Skill / Tools 形式接入 ClawHub 与 GitHub，采用同一套 API Token。推荐从 <a href="https://clawhub.ai/sciverse/academic-retrieval" target="_blank" rel="noreferrer" className="text-[var(--ink)] underline underline-offset-2">ClawHub</a> 一键装载到 Claude Desktop / Cursor / Manus；如需本地运行可从 <a href="https://github.com/opendatalab/SciVerse-agent-tools" target="_blank" rel="noreferrer" className="text-[var(--ink)] underline underline-offset-2">SciVerse-agent-tools</a>（产品正式发布同期开源）克隆。</>
+          : <>点石通过 Model Context Protocol（MCP）向 LLM Agent 暴露 {s.tools.length} 个化学数据库工具，涵盖物质、反应、文献检索与相似度搜索。</>}
       </p>
 
       <Section title="连接方式">
@@ -1523,7 +1603,7 @@ function SkillsPage({ product }: { product: Product }) {
       </Section>
 
       {s.test && (
-        <Section title="手动测试">
+        <Section title={isSciverse ? "装载方式" : "手动测试"}>
           <CodeTabs samples={s.test} />
         </Section>
       )}
