@@ -256,3 +256,12 @@
 - [ ] mini-card 加 kbd 标签 API/CLI/SKILL，hover 显示
 - [ ] 关闭按钮加 200ms 缩放消失动画（CSS keyframes 或 state 控制）
 - [ ] eyebrow INTEGRATION 改中文「接入」
+
+
+---
+
+# 运营策略 · 场景与 MinerU 协同分析
+
+- [ ] 输出 5-7 个经典运营场景与标杆案例脚本
+- [ ] 输出 Sciverse × MinerU 三层协同设计与 GTM 联合素材建议
+- [ ] 保存到 docs/usecases-mineru-2026-05.md
