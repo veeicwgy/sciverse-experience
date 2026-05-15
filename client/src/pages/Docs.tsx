@@ -182,8 +182,7 @@ const SCIVERSE_ENDPOINTS: Endpoint[] = [
     params: [
       { name: "query", type: "string", required: true, desc: "你的检索问题；不能为空。", range: "最大 4096 字符" },
       { name: "top_k", type: "integer", required: false, default: "10", range: "1–100", desc: "返回片段数量。" },
-      { name: "sub_queries", type: "integer", required: false, default: "0", desc: "查询改写数量，0 表示不改写。" },
-      { name: "request_id", type: "string", required: false, desc: "你的请求追踪 ID，会在响应 / 日志中原样返回。" },
+      { name: "sub_queries", type: "integer", required: false, default: "0", range: "0–4", desc: "查询改写数量，0 表示不改写。" },
     ],
     response: [
       { name: "hits", type: "array", desc: "命中片段列表。" },
@@ -194,7 +193,7 @@ const SCIVERSE_ENDPOINTS: Endpoint[] = [
       { name: "hits[].abstract", type: "string", desc: "文献摘要。" },
       { name: "hits[].score", type: "float", desc: "相关度得分。" },
       { name: "hits[].source_type", type: "string", desc: "pdf / web 等来源类型。" },
-      { name: "hits[].offset", type: "integer", desc: "片段在原文中的字节偏移。" },
+      { name: "hits[].offset", type: "integer", desc: "片段在原文中的字符偏移（Unicode 码点数）。" },
       { name: "hits[].page_no", type: "integer", desc: "原文页码（仅 pdf 类有）。" },
       { name: "hits[].model_name", type: "string", desc: "用于打分的模型名。" },
       { name: "hits[].model_version", type: "string", desc: "模型版本。" },
@@ -273,13 +272,13 @@ print(resp.json())`,
     paramsTitle: "请求参数（URL query）",
     params: [
       { name: "doc_id", type: "string", required: true, desc: "文献 ID（由 agentic-search / meta-search 返回）。" },
-      { name: "offset", type: "integer", required: false, default: "0", range: "≥ 0", desc: "字节偏移。" },
-      { name: "limit", type: "integer", required: false, range: "≤ 524288", desc: "单次最大字节数；未传时返回全文。" },
+      { name: "offset", type: "integer", required: false, range: "≥ 0", desc: "字符偏移（Unicode 码点数）；未传时返回全文。" },
+      { name: "limit", type: "integer", required: false, default: "700", desc: "单次最大字符数（Unicode 码点数），默认 700；仅在传入 offset 时生效。" },
     ],
     response: [
       { name: "text", type: "string", desc: "文本内容（Markdown 或纯文本）。" },
-      { name: "bytes_returned", type: "integer", desc: "本次返回的字节数。" },
-      { name: "next_offset", type: "integer", desc: "下一段读取的 offset。" },
+      { name: "chars_returned", type: "integer", desc: "本次返回的字符数（Unicode 码点数）。" },
+      { name: "next_offset", type: "integer", desc: "下一段读取的字符偏移。" },
       { name: "more", type: "bool", desc: "是否还有更多内容。" },
     ],
     errors: [
@@ -291,9 +290,8 @@ print(resp.json())`,
       { code: "502/503", msg: "UPSTREAM_UNAVAILABLE", desc: "服务暂不可用。" },
     ],
     limits: [
-      { name: "offset 下限", value: "≥ 0" },
-      { name: "limit 上限", value: "524288 字节" },
-      { name: "默认行为", value: "未传 offset 时返回全文" },
+      { name: "offset", value: "字符偏移（Unicode 码点数）；未传时返回全文" },
+      { name: "limit", value: "单次最大字符数（Unicode 码点数），默认 700；仅在传入 offset 时生效" },
     ],
     retry: [
       "建议重试：502 / 503",
@@ -307,7 +305,7 @@ print(resp.json())`,
   -H "Authorization: Bearer YOUR_API_TOKEN" \\
   --data-urlencode "doc_id=YOUR_DOC_ID" \\
   --data-urlencode "offset=0" \\
-  --data-urlencode "limit=8192"`,
+  --data-urlencode "limit=700"`,
       },
       {
         lang: "python",
@@ -319,7 +317,7 @@ headers = {"Authorization": "Bearer YOUR_API_TOKEN"}
 offset, parts = 0, []
 while True:
     r = requests.get(base, headers=headers,
-                     params={"doc_id": "YOUR_DOC_ID", "offset": offset, "limit": 8192}).json()
+                     params={"doc_id": "YOUR_DOC_ID", "offset": offset, "limit": 700}).json()
     parts.append(r["text"])
     if not r.get("more"):
         break
@@ -337,7 +335,7 @@ print("".join(parts))`,
     desc: "resource 接口用于拉取文献相关的二进制附件（图片 / 表格 / PDF 等）。响应为二进制流，带 Content-Type 与 Content-Disposition，以及跟踪用 X-Request-ID。",
     paramsTitle: "请求参数（URL query）",
     params: [
-      { name: "file_name", type: "string", required: true, desc: "资源相对路径；不得以 / 开头，不允许 \\ 或 ..。" },
+      { name: "file_name", type: "string", required: true, desc: "资源相对路径；不得包含 \\、..，且不得以 / 开头。" },
     ],
     responseNote: "响应为二进制流；常见 Content-Type：image/jpeg、image/png、application/pdf 等。",
     response: [
@@ -355,7 +353,7 @@ print("".join(parts))`,
     ],
     limits: [
       { name: "默认限流", value: "60 次 / 分钟" },
-      { name: "路径限制", value: "不得含 .. / \\\\ / 以 / 开头" },
+      { name: "路径限制", value: "不得包含 \\、..，且不得以 / 开头" },
     ],
     retry: [
       "建议重试：500 / 502 / 503",
@@ -629,19 +627,19 @@ print(resp.json())`,
     desc: "Sciverse 的 CLI 与多语言 SDK 正在跟进中，待对应仓库就绪后将在此补充安装、配置与代码示例。当前请优先使用 REST API 与 Skills 接入方式。",
   },
   skills: {
-    transport: "ClawHub Skill (academic-retrieval)",
-    endpoint: "https://clawhub.ai/sciverse/academic-retrieval",
-    auth: "使用同一套 Sciverse API Token。ClawHub 一键装载时以 SCIVERSE_API_TOKEN 环境变量注入；GitHub 本地运行需手动设置同名变量。",
+    transport: "sciverse-mcp-server / SDK / ClawHub Skill",
+    endpoint: "https://github.com/opendatalab/Sciverse-Agent-Tools",
+    auth: "统一使用 Sciverse API Token（SCIVERSE_API_TOKEN 环境变量）。ClawHub 一键装载时在面板填写；Claude Code / Cursor / Codex CLI / Windsurf 等均通过 sciverse-mcp-server 接入。",
     config: {
       lang: "json",
-      label: "Claude Desktop / Cursor / Manus",
+      label: "任意 MCP 客户端·.mcp.json",
       code: `{
   "mcpServers": {
     "sciverse": {
       "command": "npx",
-      "args": ["-y", "@opendatalab/sciverse-agent-tools"],
+      "args": ["-y", "sciverse-mcp-server"],
       "env": {
-        "SCIVERSE_API_TOKEN": "YOUR_API_TOKEN"
+        "SCIVERSE_API_TOKEN": "sv-..."
       }
     }
   }
@@ -650,78 +648,141 @@ print(resp.json())`,
     test: [
       {
         lang: "bash",
-        label: "ClawHub 一键装载（推荐）",
-        code: `# 1. 打开 ClawHub Skill 页面
-#    https://clawhub.ai/sciverse/academic-retrieval
-# 2. 选择目标客户端：Manus / Claude Desktop / Cursor / Cherry Studio
-# 3. 填入 SCIVERSE_API_TOKEN（从「接入指南 · 统一鉴权」页面复制）
-# 4. 点击“一键装载”后，在 Agent 中调用：
-#    @sciverse academic-retrieval 帮我检索 "graphene battery" 2022 年以后的高引用文献`,
+        label: "方式 1：OpenClaw · ClawHub 一行装载",
+        code: `# 适用任意 OpenClaw 兼容客户端
+clawhub install sciverse
+
+# 可选：从 ClawHub Skill 页面选择客户端与填写 Token
+#   https://clawhub.ai/sciverse/academic-retrieval`,
       },
       {
         lang: "bash",
-        label: "GitHub 本地运行",
-        code: `git clone https://github.com/opendatalab/SciVerse-agent-tools.git
-cd SciVerse-agent-tools
-pnpm install && pnpm build
-export SCIVERSE_API_TOKEN=YOUR_API_TOKEN
-node dist/index.js  # stdio transport、供本地 IDE / Agent 接入`,
+        label: "方式 2：Claude Code Plugin Marketplace（推荐）",
+        code: `claude /plugin marketplace add https://github.com/opendatalab/Sciverse-Agent-Tools
+claude /plugin install sciverse
+
+# 配套安装 MCP 服务
+npm install -g sciverse-mcp-server
+export SCIVERSE_API_TOKEN=sv-...`,
       },
       {
         lang: "bash",
-        label: "验证装载",
-        code: `# 在客户端会话中输入，验证 5 个 tool 是否已出现
-# 示例提示词：
-# "列出你现在可以调用的 sciverse 工具。"
-# 预期响应包含：agentic_search、meta_search、content、resource、meta_catalog`,
+        label: "方式 3：Claude Code 手动装载 Agent Skill",
+        code: `git clone https://github.com/opendatalab/Sciverse-Agent-Tools.git
+cd Sciverse-Agent-Tools
+
+# 用户级
+cp -r skill-claude-code ~/.claude/skills/sciverse
+
+# 或项目级
+cp -r skill-claude-code .claude/skills/sciverse
+
+# 同样需要 sciverse-mcp-server
+npm install -g sciverse-mcp-server
+export SCIVERSE_API_TOKEN=sv-...`,
+      },
+      {
+        lang: "bash",
+        label: "方式 4：Python · TypeScript SDK",
+        code: `# Python
+pip install sciverse
+
+# TypeScript / Node.js
+npm install sciverse`,
+      },
+      {
+        lang: "python",
+        label: "Python SDK 调用示例",
+        code: `import asyncio
+from sciverse import AgentToolsClient
+
+async def main():
+    async with AgentToolsClient(
+        base_url="https://api.sciverse.space",
+        token="<TOKEN>",
+    ) as c:
+        r = await c.semantic_search(query="Transformer attention mechanism")
+        for hit in r["hits"][:3]:
+            print(hit["title"], hit["score"])
+
+asyncio.run(main())`,
+      },
+      {
+        lang: "typescript",
+        label: "TypeScript SDK 调用示例",
+        code: `import { AgentToolsClient } from "sciverse";
+
+const c = new AgentToolsClient({
+  baseUrl: "https://api.sciverse.space",
+  token: process.env.SCIVERSE_API_TOKEN!,
+});
+
+const r: any = await c.semanticSearch({ query: "Transformer attention mechanism" });
+r.hits.slice(0, 3).forEach((h: any) => console.log(h.title, h.score));`,
+      },
+      {
+        lang: "python",
+        label: "Anthropic Claude 以 Tool 调用",
+        code: `from anthropic import Anthropic
+from sciverse import ANTHROPIC_TOOLS
+
+client = Anthropic()
+msg = client.messages.create(
+    model="claude-opus-4-7",
+    max_tokens=2048,
+    tools=ANTHROPIC_TOOLS,
+    messages=[{"role": "user", "content": "Find a few papers on Transformers"}]
+)`,
+      },
+      {
+        lang: "typescript",
+        label: "OpenAI Function Calling",
+        code: `import OpenAI from "openai";
+import { OPENAI_TOOLS } from "sciverse";
+
+const openai = new OpenAI();
+const resp = await openai.chat.completions.create({
+  model: "gpt-4o",
+  tools: OPENAI_TOOLS as any,
+  messages: [{ role: "user", content: "Find a few Transformer papers" }],
+});`,
       },
     ],
     tools: [
-      { category: "检索", name: "agentic_search", desc: "提交自然语言查询，返回带出处定位的文献片段与出处列表，供 RAG / 问答系统准确引用。", latency: "~500–1500ms",
+      { category: "SDK", name: "search_papers", desc: "结构化元数据检索（作者 / 年份 / 期刊 / 学科），适合精确过滤后交给语义检索。", latency: "~150–500ms",
+        params: [
+          { name: "query", type: "string", required: false, desc: "补充的自然语言词。" },
+          { name: "authors", type: "string[]", required: false, desc: "作者名列表。" },
+          { name: "year_from", type: "integer", required: false, desc: "起始年份。" },
+          { name: "page_size", type: "integer", required: false, default: "10", range: "1–100", desc: "每页返回条数。" },
+        ],
+        returns: "hits[]（title · doc_id · authors · year · venue · abstract）" },
+      { category: "SDK", name: "semantic_search", desc: "以自然语言在文献片段层面进行语义检索，是 RAG 场景的核心入口。", latency: "~500–1500ms",
         params: [
           { name: "query", type: "string", required: true, desc: "自然语言查询，1–2048 字符。" },
           { name: "top_k", type: "integer", required: false, default: "10", range: "1–50", desc: "返回片段上限。" },
-          { name: "language", type: "string", required: false, desc: "结果语种过滤，例如 zh、en。" },
-          { name: "model_version", type: "string", required: false, desc: "允许选择响应模型版本（stable / preview）。" },
+          { name: "mode", type: "string", required: false, default: "balanced", range: "fast / balanced / quality", desc: "语义检索质量 / 耗时权衡。" },
         ],
-        returns: "chunks[]（doc_id · chunk_id · text · score · highlights · source.title · source.year）· page_no · offset · query_plan" },
-      { category: "检索", name: "meta_search", desc: "以字段表达式过滤 / 排序 / 分面检索元数据，适合精准查找某位作者·某期刊·某年份的文献。", latency: "~150–500ms",
+        returns: "hits[]（doc_id · chunk_id · text · score · source.title · source.year · offset）" },
+      { category: "SDK", name: "read_content", desc: "拉取原文的指定范围片段以扩展 RAG 上下文，配合 semantic_search 返回的 doc_id / offset 使用。", latency: "~200ms",
         params: [
-          { name: "query", type: "string", required: false, desc: "补充的自然语言词。" },
-          { name: "filters", type: "FilterExpr[]", required: false, desc: "字段过滤表达式，field + operator + value，可以嵌套 AND / OR / NOT。" },
-          { name: "sort", type: "SortExpr[]", required: false, desc: "按可排序字段排序，例如 publication_published_year DESC。" },
-          { name: "facets", type: "string[]", required: false, desc: "要汇总的分面字段，例如 subject / source_name。" },
-          { name: "page / page_size", type: "integer", required: false, default: "1 / 10", range: "page_size 1–100", desc: "页码与每页大小，深翻页可改用 cursor。" },
+          { name: "doc_id", type: "string", required: true, desc: "文献 ID（由 search_papers / semantic_search 返回）。" },
+          { name: "offset", type: "integer", required: false, default: "0", desc: "起始偏移量（字符）。" },
+          { name: "limit", type: "integer", required: false, default: "4096", desc: "本次拉取的字符上限。" },
         ],
-        returns: "total · items[]（按 meta-catalog 返回的字段）· facets[] · cursor" },
-      { category: "原文", name: "content", desc: "按 doc_id 读取文献原文文本，支持 offset / limit 分段拉取，适合长文二次摘要、提问与引用核对。", latency: "~200ms",
-        params: [
-          { name: "doc_id", type: "string", required: true, desc: "文献 ID（由 meta_search / agentic_search 返回）。" },
-          { name: "offset", type: "integer", required: false, default: "0", desc: "起始偏移量，用于分段拉取。" },
-          { name: "limit", type: "integer", required: false, default: "20000", range: "≤1000000", desc: "本次拉取的字符上限。" },
-        ],
-        returns: "doc_id · title · content · lang · next_offset · more" },
-      { category: "原文", name: "resource", desc: "按 path 下载与文献关联的附件（图表 / PDF / 补充材料），返回二进制流。", latency: "~400ms",
-        params: [
-          { name: "path", type: "string", required: true, desc: "资源相对路径（由 content / meta_search 返回的字段提供）。" },
-        ],
-        returns: "二进制流 + Content-Type / Content-Disposition / X-Request-ID" },
-      { category: "元数据", name: "meta_catalog", desc: "查看元数据字段目录：filterable / sortable / facetable 能力·枚举样本·中英文名，是 Agent 动态拼 filters / sort 的必要参考表。", latency: "~50ms",
-        params: [
-          { name: "include_sample_values", type: "boolean", required: false, default: "false", desc: "是否返回枚举样本，启用后响应会缓存 24h。" },
-        ],
-        returns: "fields[]（name · type · filterable · sortable · facetable · zh_name · en_name · sample_values）" },
+        returns: "text · chars_returned · next_offset · more" },
     ],
     limits: [
-      { name: "默认限流", value: "60 次 / 分钟（滑动窗口，与 REST API 共享 Token 额度）" },
-      { name: "单次返回上限", value: "agentic_search top_k ≤ 50；meta_search page_size ≤ 100、cursor 深翻页 ≤ 10000 条" },
-      { name: "content 拉取上限", value: "单次 limit ≤ 1,000,000 字符，超出请使用 next_offset 迭代" },
-      { name: "Skill 装载上限", value: "ClawHub 不限客户端数量；你可以在多个 Agent 中并行调用" },
+      { name: "默认限流", value: "与 REST API 共享 Token 额度，429 表示超额（仅生产网关返回）" },
+      { name: "安装方式", value: "clawhub install sciverse / pip install sciverse / npm install sciverse / Plugin Marketplace / 手动拷贝 skill-claude-code" },
+      { name: "环境变量", value: "SCIVERSE_API_TOKEN（sv- 开头）；npm install -g sciverse-mcp-server 后可被任意 MCP 客户端调用" },
+      { name: "语言 / 框架", value: "Python httpx 异步 SDK、TypeScript / Node.js SDK、ANTHROPIC_TOOLS、OPENAI_TOOLS 预生成 schema" },
     ],
     errors: [
-      { scene: "缺少 Token 或格式错误", status: "401", desc: "检查 SCIVERSE_API_TOKEN 环境变量是否装载成功。" },
-      { scene: "超出限流阈值", status: "429", desc: "稍后重试，或在 Token 管理页查看剩余额度。" },
-      { scene: "服务内部错误", status: "5xx", desc: "按指数退避重试（1s / 2s / 4s）；持续异常请提交反馈。" },
+      { scene: "Token 缺失或无效", status: "401", desc: "检查 SCIVERSE_API_TOKEN 是否填入客户端或环境变量。" },
+      { scene: "请求参数错误", status: "400", desc: "由 Python httpx.HTTPStatusError / TypeScript Error(\"SciVerse API 400: …\") 抛出。" },
+      { scene: "超出额度", status: "429", desc: "仅生产网关返回；请重试或联系管理员调整额度。" },
+      { scene: "上游不可用", status: "502 / 503", desc: "按指数退避重试（1s / 2s / 4s）。" },
     ],
   },
 };
@@ -1056,7 +1117,7 @@ const FAQ_ITEMS: { q: string; a: string }[] = [
   },
   {
     q: "如何在 Manus / Claude Desktop / Cursor 里装载 Sciverse Skills？",
-    a: "推荐访问 ClawHub 一键装载：https://clawhub.ai/sciverse/academic-retrieval；也可从 GitHub 仓库 https://github.com/opendatalab/SciVerse-agent-tools 克隆后本地运行。采用同一 Sciverse API Token，本地以 SCIVERSE_API_TOKEN 环境变量装载。仓库将在产品正式发布同期开源。",
+    a: "以 https://github.com/opendatalab/Sciverse-Agent-Tools 为准。推荐 4 种方式：① OpenClaw：`clawhub install sciverse`；② Claude Code Plugin Marketplace：`claude /plugin marketplace add https://github.com/opendatalab/Sciverse-Agent-Tools && claude /plugin install sciverse`；③ Claude Code 手动拷贝 `skill-claude-code/` 到 `~/.claude/skills/sciverse/`；④ Python（`pip install sciverse`）或 TypeScript（`npm install sciverse`）SDK 直接调用。以上任一方式调用都需 SCIVERSE_API_TOKEN 环境变量。",
   },
   {
     q: "Sciverse 能返回哪些语种的文献？是否需要指定语言？",
@@ -1916,7 +1977,7 @@ function SkillsPage({ product }: { product: Product }) {
       <h1 className="mt-3 font-display text-[30px] text-[var(--ink)] tracking-[-0.01em]">{product.shortName} · Skills</h1>
       <p className="mt-2 text-[14px] text-[var(--ink-2)] max-w-[700px] leading-relaxed">
         {isSciverse
-          ? <>Sciverse 学术检索已以 Skill / Tools 形式接入 ClawHub 与 GitHub，采用同一套 API Token。推荐从 <a href="https://clawhub.ai/sciverse/academic-retrieval" target="_blank" rel="noreferrer" className="text-[var(--ink)] underline underline-offset-2">ClawHub</a> 一键装载到 Claude Desktop / Cursor / Manus；如需本地运行可从 <a href="https://github.com/opendatalab/SciVerse-agent-tools" target="_blank" rel="noreferrer" className="text-[var(--ink)] underline underline-offset-2">SciVerse-agent-tools</a>（产品正式发布同期开源）克隆。</>
+          ? <>Sciverse Agent Tools 仓库提供三个标准化工具以及 Python / TypeScript SDK、OpenClaw · Claude Code Plugin Marketplace · 手动 Skill · SDK 四种装载路径。仓库地址：<a href="https://github.com/opendatalab/Sciverse-Agent-Tools" target="_blank" rel="noreferrer" className="text-[var(--ink)] underline underline-offset-2">opendatalab/Sciverse-Agent-Tools</a>。如你在 OpenClaw 客户端，可使用 <a href="https://clawhub.ai/sciverse/academic-retrieval" target="_blank" rel="noreferrer" className="text-[var(--ink)] underline underline-offset-2">ClawHub</a> 一行安装；Claude Code / Cursor / Codex CLI / Windsurf 等通过 sciverse-mcp-server 接入。</>
           : <>点石通过 Model Context Protocol（MCP）向 LLM Agent 暴露 {s.tools.length} 个化学数据库工具，涵盖物质、反应、文献检索与相似度搜索。</>}
       </p>
 
@@ -2198,8 +2259,7 @@ function ErrorsPage() {
         <pre className="mt-2 rounded-2xl bg-[#16161d] text-white/85 px-4 py-3 text-[12.5px] font-mono overflow-x-auto leading-[1.7]">
 {`{
   "code": "invalid_parameter",
-  "message": "product_smiles is required",
-  "request_id": "..."
+  "message": "product_smiles is required"
 }`}
         </pre>
         <p className="mt-3 text-[12.5px] text-[var(--ink-3)]">

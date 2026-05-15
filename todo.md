@@ -310,3 +310,19 @@
 - [ ] 3. Sciverse repo 移除 `url` (GitHub) 字段，EndpointIndexPage 仓库头不再渲染失效链接
 - [ ] 4. Sciverse API 接口页：仓库头下方加入横向锚点条（5 个端点按钮 + 滚动 spy 高亮 + 一键跳转）
 - [ ] 5. 编译检查 + 保存 v35
+
+
+---
+
+# v36 · 文档 2 项精修
+
+第一部分 · Sciverse 接口字段更正
+- [ ] agentic-search 请求体表删除 request_id 整行
+- [ ] content 接口 offset/limit 改为字符语义：offset=字符偏移（Unicode 码点数），未传时返回全文；limit=单次最大字符数（默认 700，仅在传入 offset 时生效）
+- [ ] resource 接口路径限制改为 "不得包含 \、..，且不得以 / 开头"
+- [ ] agentic-search sub_queries 补充范围 0–4（默认 0）
+
+第二部分 · Sciverse Skills CLI 重写
+- [ ] 通过 webpage_extract 拉取 https://github.com/opendatalab/Sciverse-Agent-Tools README 取定写法
+- [ ] 重写 SCIVERSE.skills（5 工具 + 仓库装载示例 Manus / Claude / Cursor / Cherry）
+- [ ] 编译检查 + 保存 v36 检查点
