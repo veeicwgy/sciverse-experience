@@ -21,7 +21,7 @@
  *   - 每个接口页结构对齐规范：概述 / 适用场景 / 鉴权 / 请求 / 参数 / 响应 / 错误码 / 调用限制 / 示例
  *   - 锚点稳定、Heading 语义化，方便 Agent 爬取与 LLM 检索增强
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import {
   Cable,
@@ -40,6 +40,10 @@ import {
   HelpCircle,
   BookOpen,
   Layers,
+  Github,
+  Package,
+  Boxes,
+  Terminal as TerminalIcon,
 } from "lucide-react";
 import Sidebar from "@/components/layout/Sidebar";
 import { cn } from "@/lib/utils";
@@ -73,6 +77,7 @@ type CodeSample = {
   lang: string;
   label: string;
   code: string;
+  group?: string;
 };
 
 type Endpoint = {
@@ -115,6 +120,7 @@ type Product = {
   oneLine: string;
   scope: string;
   highlights: string[];
+  scopeNumbers?: string;
   supports: ("api" | "cli" | "skills" | "online")[];
   intro: {
     coreData?: { name: string; value: string }[];
@@ -648,7 +654,9 @@ print(resp.json())`,
     test: [
       {
         lang: "bash",
-        label: "方式 1：OpenClaw · ClawHub 一行装载",
+        group: "装载",
+        label: "OpenClaw · ClawHub",
+        // 原：方式 1：OpenClaw · ClawHub 一行装载
         code: `# 适用任意 OpenClaw 兼容客户端
 clawhub install sciverse
 
@@ -657,7 +665,8 @@ clawhub install sciverse
       },
       {
         lang: "bash",
-        label: "方式 2：Claude Code Plugin Marketplace（推荐）",
+        group: "装载",
+        label: "Claude Plugin",
         code: `claude /plugin marketplace add https://github.com/opendatalab/Sciverse-Agent-Tools
 claude /plugin install sciverse
 
@@ -667,7 +676,8 @@ export SCIVERSE_API_TOKEN=sv-...`,
       },
       {
         lang: "bash",
-        label: "方式 3：Claude Code 手动装载 Agent Skill",
+        group: "装载",
+        label: "手动 Skill",
         code: `git clone https://github.com/opendatalab/Sciverse-Agent-Tools.git
 cd Sciverse-Agent-Tools
 
@@ -683,7 +693,8 @@ export SCIVERSE_API_TOKEN=sv-...`,
       },
       {
         lang: "bash",
-        label: "方式 4：Python · TypeScript SDK",
+        group: "装载",
+        label: "SDK 安装",
         code: `# Python
 pip install sciverse
 
@@ -692,7 +703,8 @@ npm install sciverse`,
       },
       {
         lang: "python",
-        label: "Python SDK 调用示例",
+        group: "SDK 调用",
+        label: "Python",
         code: `import asyncio
 from sciverse import AgentToolsClient
 
@@ -709,7 +721,8 @@ asyncio.run(main())`,
       },
       {
         lang: "typescript",
-        label: "TypeScript SDK 调用示例",
+        group: "SDK 调用",
+        label: "TypeScript",
         code: `import { AgentToolsClient } from "sciverse";
 
 const c = new AgentToolsClient({
@@ -722,7 +735,8 @@ r.hits.slice(0, 3).forEach((h: any) => console.log(h.title, h.score));`,
       },
       {
         lang: "python",
-        label: "Anthropic Claude 以 Tool 调用",
+        group: "框架接入",
+        label: "Anthropic Claude",
         code: `from anthropic import Anthropic
 from sciverse import ANTHROPIC_TOOLS
 
@@ -736,7 +750,8 @@ msg = client.messages.create(
       },
       {
         lang: "typescript",
-        label: "OpenAI Function Calling",
+        group: "框架接入",
+        label: "OpenAI Tools",
         code: `import OpenAI from "openai";
 import { OPENAI_TOOLS } from "sciverse";
 
@@ -793,7 +808,8 @@ const DIANSHI: Product = {
   icon: FlaskConical,
   brand: "#7C5CFC",
   oneLine: "大规模化学信息检索与逆合成 RAG 平台",
-  scope: "6.3M+ 物质 · 6.6M+ 反应组 · 24M+ 反应实例 · 608K+ 专利",
+  scope: "千万级化学物质·亿级反应·百万级专利文献",
+  scopeNumbers: "6M+ 化学物质 · 10M+ 化学反应 · 1M+ 专利文献",
   highlights: [
     "申请开通后以 Skill / MCP 方式装载到 Agent 使用",
     "包含逆合成 RAG、差异指纹、结构指纹反应相似度检索",
@@ -802,10 +818,9 @@ const DIANSHI: Product = {
   supports: ["skills"],
   intro: {
     coreData: [
-      { name: "专利文献", value: "608,000+ 篇" },
-      { name: "化学物质", value: "6,300,000+ 种" },
-      { name: "反应组", value: "6,600,000+ 个" },
-      { name: "反应实例", value: "24,000,000+ 条" },
+      { name: "化学物质", value: "6M+" },
+      { name: "化学反应", value: "10M+" },
+      { name: "专利文献", value: "1M+" },
     ],
     capabilities: [
       "物质检索：名称 / SMILES / InChIKey / 子结构与 Morgan 相似度",
@@ -1975,11 +1990,85 @@ function SkillsPage({ product }: { product: Product }) {
     <>
       <Breadcrumb items={[{ label: "接入指南" }, { label: product.name, brand: product.brand }, { label: "Skills" }]} />
       <h1 className="mt-3 font-display text-[30px] text-[var(--ink)] tracking-[-0.01em]">{product.shortName} · Skills</h1>
-      <p className="mt-2 text-[14px] text-[var(--ink-2)] max-w-[700px] leading-relaxed">
-        {isSciverse
-          ? <>Sciverse Agent Tools 仓库提供三个标准化工具以及 Python / TypeScript SDK、OpenClaw · Claude Code Plugin Marketplace · 手动 Skill · SDK 四种装载路径。仓库地址：<a href="https://github.com/opendatalab/Sciverse-Agent-Tools" target="_blank" rel="noreferrer" className="text-[var(--ink)] underline underline-offset-2">opendatalab/Sciverse-Agent-Tools</a>。如你在 OpenClaw 客户端，可使用 <a href="https://clawhub.ai/sciverse/academic-retrieval" target="_blank" rel="noreferrer" className="text-[var(--ink)] underline underline-offset-2">ClawHub</a> 一行安装；Claude Code / Cursor / Codex CLI / Windsurf 等通过 sciverse-mcp-server 接入。</>
-          : <>点石通过 Model Context Protocol（MCP）向 LLM Agent 暴露 {s.tools.length} 个化学数据库工具，涵盖物质、反应、文献检索与相似度搜索。</>}
-      </p>
+
+      {isSciverse ? (
+        <>
+          <p className="mt-2 text-[14px] text-[var(--ink-2)] max-w-[720px] leading-relaxed">
+            以 <span className="text-[var(--ink)]">opendatalab/Sciverse-Agent-Tools</span> 仓库为准，提供三个标准化 Agent 工具与 Python / TypeScript SDK，支持四种装载路径。
+          </p>
+
+          <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_1fr]">
+            {/* 仓库头牌 */}
+            <div className="card-paper p-4">
+              <div className="flex items-center gap-2.5">
+                <span className="h-9 w-9 rounded-xl border hairline grid place-items-center bg-[var(--paper-2)]">
+                  <Github className="h-4 w-4 text-[var(--ink-2)]" />
+                </span>
+                <div className="min-w-0">
+                  <div className="text-[12px] text-[var(--ink-3)]">GitHub</div>
+                  <a
+                    href="https://github.com/opendatalab/Sciverse-Agent-Tools"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-mono text-[13px] text-[var(--ink)] hover:text-[var(--brand)] tracking-tight truncate inline-flex items-center gap-1">
+                    opendatalab/Sciverse-Agent-Tools
+                    <ArrowUpRight className="h-3.5 w-3.5 opacity-60" />
+                  </a>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-[12px]">
+                {[
+                  { name: "search_papers", note: "结构化检索" },
+                  { name: "semantic_search", note: "语义检索" },
+                  { name: "read_content", note: "全文读取" },
+                ].map((t) => (
+                  <div key={t.name} className="rounded-md border hairline px-2.5 py-2 bg-[var(--paper-2)]/40">
+                    <div className="font-mono text-[11.5px] text-[var(--ink)] truncate">{t.name}</div>
+                    <div className="text-[11px] text-[var(--ink-3)] mt-0.5">{t.note}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 装载径徽章 */}
+            <div className="card-paper p-4">
+              <div className="text-[12px] text-[var(--ink-3)]">装载路径</div>
+              <div className="mt-2.5 grid grid-cols-2 gap-2">
+                {[
+                  { icon: Sparkles, title: "OpenClaw · ClawHub", desc: "clawhub install sciverse", href: "https://clawhub.ai/sciverse/academic-retrieval" },
+                  { icon: Boxes, title: "Claude Plugin", desc: "/plugin install sciverse" },
+                  { icon: TerminalIcon, title: "手动 Skill", desc: "clone 后 cp 至 .claude/skills" },
+                  { icon: Package, title: "Python · TS SDK", desc: "pip / npm install sciverse" },
+                ].map((p, i) => (
+                  <div key={i} className="rounded-md border hairline px-2.5 py-2 flex items-start gap-2 bg-[var(--paper-2)]/40">
+                    <span className="h-6 w-6 rounded-md border hairline grid place-items-center text-[var(--ink-2)] shrink-0">
+                      <p.icon className="h-3 w-3" />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="text-[12px] text-[var(--ink)] tracking-tight truncate">
+                        {p.href ? (
+                          <a href={p.href} target="_blank" rel="noreferrer" className="hover:text-[var(--brand)] inline-flex items-center gap-1">
+                            {p.title}
+                            <ArrowUpRight className="h-3 w-3 opacity-60" />
+                          </a>
+                        ) : p.title}
+                      </div>
+                      <div className="font-mono text-[11px] text-[var(--ink-3)] truncate">{p.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-2.5 text-[11.5px] text-[var(--ink-3)] leading-relaxed">
+                兼容 Claude Code / Cursor / Codex CLI / Windsurf 等主流 Agent 客户端，统一通过 sciverse-mcp-server 连接。
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <p className="mt-2 text-[14px] text-[var(--ink-2)] max-w-[700px] leading-relaxed">
+          点石通过 Model Context Protocol（MCP）向 LLM Agent 暴露 {s.tools.length} 个化学数据库工具，涵盖物质、反应、文献检索与相似度搜索。
+        </p>
+      )}
 
       <Section title="连接方式">
         <ul className="text-[13.5px] text-[var(--ink-2)] space-y-1.5">
@@ -2413,17 +2502,66 @@ function Note({ children, tone = "info" }: { children: React.ReactNode; tone?: "
   );
 }
 function CodeBlock({ samples }: { samples: CodeSample[] }) {
+  // 如果存在 group 字段，启用「分组 segmented + chip 列」布局；否则退化为原服单行 tabs。
+  const groups = useMemo(() => {
+    const seen = new Set<string>();
+    const list: string[] = [];
+    for (const s of samples) {
+      if (s.group && !seen.has(s.group)) {
+        seen.add(s.group);
+        list.push(s.group);
+      }
+    }
+    return list;
+  }, [samples]);
+  const grouped = groups.length > 0;
+  const [activeGroup, setActiveGroup] = useState(grouped ? groups[0] : "");
+  const visible = useMemo(
+    () => (grouped ? samples.filter((s) => s.group === activeGroup) : samples),
+    [samples, grouped, activeGroup],
+  );
   const [active, setActive] = useState(0);
-  const sample = samples[active] ?? samples[0];
+  // group 切换时重置 chip 选中
+  const lastGroup = useRef(activeGroup);
+  if (lastGroup.current !== activeGroup) {
+    lastGroup.current = activeGroup;
+    if (active !== 0) setTimeout(() => setActive(0), 0);
+  }
+  const sample = visible[active] ?? visible[0];
+  const [copied, setCopied] = useState(false);
+  const onCopy = () => {
+    if (!sample?.code) return;
+    navigator.clipboard?.writeText(sample.code).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1400);
+    });
+  };
   return (
     <div className="mt-3 card-paper overflow-hidden">
-      <div className="flex items-center gap-1 px-3 py-2 border-b hairline bg-[var(--paper-2)]">
-        {samples.map((s, i) => (
+      {grouped && (
+        <div className="flex flex-wrap items-center gap-1 px-3 pt-2.5 pb-2 border-b hairline bg-[var(--paper-2)]">
+          {groups.map((g) => (
+            <button
+              key={g}
+              onClick={() => setActiveGroup(g)}
+              className={cn(
+                "px-2.5 py-1 rounded-md text-[12px] tracking-tight transition-colors whitespace-nowrap",
+                g === activeGroup
+                  ? "bg-[var(--ink)] text-[var(--paper)]"
+                  : "text-[var(--ink-3)] hover:text-[var(--ink)] hover:bg-[var(--paper)]",
+              )}>
+              {g}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="flex items-center gap-1.5 px-3 py-2 border-b hairline bg-[var(--paper-2)]/60 overflow-x-auto no-scrollbar">
+        {visible.map((s, i) => (
           <button
-            key={s.lang + i}
+            key={s.lang + i + (s.group ?? "")}
             onClick={() => setActive(i)}
             className={cn(
-              "px-2 py-0.5 rounded text-[11.5px] font-mono tracking-wider transition-colors",
+              "px-2 py-0.5 rounded text-[11.5px] font-mono tracking-wider transition-colors whitespace-nowrap shrink-0",
               i === active
                 ? "bg-[var(--ink)] text-[var(--paper)]"
                 : "text-[var(--ink-3)] hover:text-[var(--ink)]",
@@ -2431,9 +2569,20 @@ function CodeBlock({ samples }: { samples: CodeSample[] }) {
             {s.label}
           </button>
         ))}
+        <span className="flex-1" />
+        <button
+          onClick={onCopy}
+          className={cn(
+            "px-2 py-0.5 rounded text-[11px] tracking-wider transition-colors shrink-0 border hairline",
+            copied
+              ? "text-[var(--brand)] border-[var(--brand)]/40"
+              : "text-[var(--ink-3)] hover:text-[var(--ink)]",
+          )}>
+          {copied ? "已复制" : "复制"}
+        </button>
       </div>
       <pre className="text-[12.5px] leading-[1.7] font-mono p-4 overflow-x-auto text-[var(--ink-2)]">
-        <code>{sample.code}</code>
+        <code>{sample?.code}</code>
       </pre>
     </div>
   );

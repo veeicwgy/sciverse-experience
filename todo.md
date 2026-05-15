@@ -326,3 +326,14 @@
 - [ ] 通过 webpage_extract 拉取 https://github.com/opendatalab/Sciverse-Agent-Tools README 取定写法
 - [ ] 重写 SCIVERSE.skills（5 工具 + 仓库装载示例 Manus / Claude / Cursor / Cherry）
 - [ ] 编译检查 + 保存 v36 检查点
+
+
+---
+
+# v37 · 仓库回拉 + 点石数据 + Skills 头部视觉
+
+- [ ] 1. 拉取 https://github.com/opendatalab/Sciverse-Agent-Tools 最新 README，列出全量 tool 清单
+- [ ] 2. Docs.tsx：Sciverse Skills tools 数组补齐遗漏项，按仓库 schema 重排
+- [ ] 3. Docs.tsx：点石 DianShi 概述数据 → 化学物质 6M+ / 化学反应 10M+ / 专利文献 1M+；顶部 description 改为模糊版本
+- [ ] 4. Docs.tsx：Sciverse SkillsPage 头部重排（仓库头牌 + 4 条装载径徽章 + 链接组）
+- [ ] 5. 保存 v37 检查点
