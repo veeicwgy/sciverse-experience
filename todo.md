@@ -299,3 +299,14 @@
 - [ ] 类型扩展 ProductSpec.repo / version / changelog
 - [ ] 适配 SkillsPage 接收 cli 客户端配置展示
 - [ ] webdev_check_status + v34 checkpoint
+
+
+---
+
+# v35 · 接入指南 4 项优化
+
+- [ ] 1. 点石 DianShi：删除 endpoints 与 repo（API 仓库形态），supports 移除 "api"；在概览页加入「申请-授权-开通」提示（飞书表单链接含 UID 预填）
+- [ ] 2. 侧栏「点石」展开后只剩 概览 + Skills (MCP) 两个子项；parseHash 对点石 endpoint-index 兜底回 product 概览
+- [ ] 3. Sciverse repo 移除 `url` (GitHub) 字段，EndpointIndexPage 仓库头不再渲染失效链接
+- [ ] 4. Sciverse API 接口页：仓库头下方加入横向锚点条（5 个端点按钮 + 滚动 spy 高亮 + 一键跳转）
+- [ ] 5. 编译检查 + 保存 v35

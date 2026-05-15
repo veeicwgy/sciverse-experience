@@ -40,7 +40,6 @@ import {
   HelpCircle,
   BookOpen,
   Layers,
-  Github,
 } from "lucide-react";
 import Sidebar from "@/components/layout/Sidebar";
 import { cn } from "@/lib/utils";
@@ -145,6 +144,12 @@ type Product = {
     errors: { scene: string; status: string; desc: string }[];
   };
   cliPlaceholder?: { title: string; desc: string };
+  applyForAccess?: {
+    title: string;
+    desc: string;
+    formUrl: string;
+    formLabel: string;
+  };
   online?: {
     title: string;
     desc: string;
@@ -610,7 +615,6 @@ print(resp.json())`,
     title: "Sciverse API 仓库",
     version: "v1.2.0",
     baseUrl: "https://api.sciverse.space",
-    url: "https://github.com/opendatalab/Sciverse-api",
     status: "stable",
     description: "面向 LLM Agent / RAG 与检索应用的学术检索 REST 接口集，包含 5 个端点：agentic-search、content、resource、meta-catalog、meta-search。",
     changelog: [
@@ -730,11 +734,11 @@ const DIANSHI: Product = {
   oneLine: "大规模化学信息检索与逆合成 RAG 平台",
   scope: "6.3M+ 物质 · 6.6M+ 反应组 · 24M+ 反应实例 · 608K+ 专利",
   highlights: [
-    "Morgan 指纹逆合成 RAG 检索",
-    "差异指纹与结构指纹反应相似度",
-    "MCP 14 工具，主流 Agent 装载即用",
+    "申请开通后以 Skill / MCP 方式装载到 Agent 使用",
+    "包含逆合成 RAG、差异指纹、结构指纹反应相似度检索",
+    "MCP 14 工具，覆盖物质 / 反应 / 文献 / 逆合成场景",
   ],
-  supports: ["api", "skills"],
+  supports: ["skills"],
   intro: {
     coreData: [
       { name: "专利文献", value: "608,000+ 篇" },
@@ -777,283 +781,12 @@ print(response.json())`,
       "点石与 Sciverse、SeqStudio 共用同一套 API Key 鉴权体系，详见统一鉴权章节。",
     ],
   },
-  repo: {
-    name: "dianshi-api",
-    title: "点石 DianShi API 仓库",
-    version: "v1.0.0",
-    baseUrl: "https://dianshi.opendatalab.com",
-    url: "https://github.com/opendatalab/DianShi-api",
-    status: "stable",
-    description: "化学信息检索与逆合成 RAG，提供 3 个 REST 接口（inverse-synthesis / rxn-diff / rxn-struct）与 14 个 MCP 工具，以同一套 Token 使用。",
-    changelog: [
-      { version: "v1.0.0", date: "2026-04-30", notes: ["首版 GA：3 个 REST 接口 + 14 个 MCP 工具完整上线", "rxn-similar 重命名为 rxn-struct，与 rxn-diff 些起形成差异 / 结构双路检索能力"] },
-      { version: "v0.9.0", date: "2026-03-12", notes: ["Beta：inverse-synthesis 加入 substance_top_k / morgan_radius", "MCP 增加 reaction_group_search_by_fingerprint"] },
-    ],
+  applyForAccess: {
+    title: "点石平台 · 申请开通",
+    desc: "点石目前采取「申请—授权—开通」流程，请前往飞书表单填写申请，工作人员将在 1–2 个工作日内为你的账号开通点石访问权限。",
+    formUrl: "https://aicarrier.feishu.cn/share/base/form/shrcn5mrFzHxFpUZayrgyMr6Vs2?prefill_%E6%82%A8%E7%9A%84UID=9208166",
+    formLabel: "前往飞书表单填写申请",
   },
-  endpoints: [
-    {
-      key: "inverse-synthesis",
-      method: "POST",
-      path: "/rag/inverse-synthesis",
-      title: "inverse-synthesis 逆合成 RAG 检索",
-      summary: "基于 Morgan 分子指纹的逆合成 RAG 检索接口。",
-      desc: "输入目标产物的 SMILES，返回数据库中能生成相似产物的已知反应，包含反应物、产率、条件和来源文献。",
-      useCases: [
-        "逆合成路线探索：给定目标分子，寻找已知的合成路径",
-        "RAG 增强生成：为大语言模型提供真实反应数据作为上下文",
-        "反应数据库查询：获取特定产物的已知合成方法和实验条件",
-      ],
-      params: [
-        { name: "product_smiles", type: "string", required: true, desc: "目标产物的 SMILES 字符串（非空）。" },
-        { name: "top_k", type: "integer", required: false, default: "1", range: "1–500", desc: "返回的最大反应数量。" },
-        { name: "substance_top_k", type: "integer", required: false, default: "5", range: "1–50", desc: "相似物质候选数量上限。" },
-        { name: "morgan_radius", type: "integer", required: false, default: "2", range: "1–4", desc: "Morgan 指纹半径。" },
-        { name: "min_similarity", type: "float", required: false, default: "0.15", range: "0.0–1.0", desc: "最低 Tanimoto 相似度阈值。" },
-      ],
-      response: [
-        { name: "query_id", type: "string", desc: "请求唯一 ID（UUID）。" },
-        { name: "status", type: "string", desc: '"success" 或 "error"。' },
-        { name: "results", type: "array", desc: "反应结果列表。" },
-        { name: "results[].rank", type: "integer", desc: "排序序号。" },
-        { name: "results[].reaction_id", type: "string", desc: "反应实例 ID（CUID）。" },
-        { name: "results[].product_similarity", type: "float", desc: "产物 Tanimoto 相似度。" },
-        { name: "results[].reactants", type: "string", desc: "反应物 SMILES。" },
-        { name: "results[].products", type: "string", desc: "产物 SMILES。" },
-        { name: "results[].reaction_smiles", type: "string", desc: "完整反应 SMILES。" },
-        { name: "results[].canonical_rxn_smiles", type: "string", desc: "标准化反应 SMILES。" },
-        { name: "results[].yield_value", type: "float | null", desc: "产率数值（百分比）。" },
-        { name: "results[].yield_text", type: "string | null", desc: "产率文本描述。" },
-        { name: "results[].conditions", type: "object | null", desc: "反应条件（溶剂、温度等）。" },
-        { name: "results[].stages", type: "array | null", desc: "反应阶段信息。" },
-        { name: "results[].publication_title", type: "string", desc: "来源文献标题。" },
-        { name: "results[].publication_doi", type: "string", desc: "来源文献 DOI。" },
-        { name: "result_count", type: "integer", desc: "结果数量。" },
-        { name: "execution_time_ms", type: "float", desc: "查询耗时（毫秒）。" },
-        { name: "parameters", type: "object", desc: "回显请求参数。" },
-        { name: "timestamp", type: "string", desc: "响应时间戳（ISO 8601）。" },
-      ],
-      responseExample: `{
-  "query_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "status": "success",
-  "results": [
-    {
-      "rank": 1,
-      "reaction_id": "cm3x7k9a0000108l5a1b2c3d4",
-      "product_similarity": 0.8523,
-      "reactants": "OC(=O)c1ccccc1O.CC(=O)Cl",
-      "products": "CC(=O)Oc1ccccc1C(=O)O",
-      "reaction_smiles": "OC(=O)c1ccccc1O.CC(=O)Cl>>CC(=O)Oc1ccccc1C(=O)O",
-      "canonical_rxn_smiles": "CC(=O)Cl.OC(=O)c1ccccc1O>>CC(=O)Oc1ccccc1C(=O)O",
-      "yield_value": 92.5,
-      "yield_text": "92.5%",
-      "conditions": {
-        "solvent": "dichloromethane",
-        "temperature": "0-25 °C",
-        "catalyst": "pyridine"
-      },
-      "publication_title": "Process for preparing acetylsalicylic acid",
-      "publication_doi": "US-7234567-B2"
-    }
-  ],
-  "result_count": 1,
-  "execution_time_ms": 245.3,
-  "timestamp": "2026-05-13T10:30:00Z"
-}`,
-      errors: [
-        { code: "400", msg: "product_smiles 为空或格式不合法", desc: "检查 SMILES 字符串是否有效。" },
-      ],
-      limits: [
-        { name: "请求频率", value: "60 次/分钟（滑动窗口）" },
-        { name: "每日调用量", value: "根据账户配额，详见 Token 管理页" },
-        { name: "product_smiles 长度", value: "无硬性限制，但过长会导致指纹计算超时" },
-        { name: "top_k 最大值", value: "500" },
-      ],
-      retry: [
-        "建议重试：500 / 502 / 503",
-        "不应重试：400 / 401 / 429（需等配额重置）",
-      ],
-      samples: [
-        {
-          lang: "bash",
-          label: "curl",
-          code: `curl -X POST https://dianshi.opendatalab.com/rag/inverse-synthesis \\
-  -H "Authorization: Bearer YOUR_API_TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "product_smiles": "CC(=O)Oc1ccccc1C(=O)O",
-    "top_k": 5,
-    "min_similarity": 0.3
-  }'`,
-        },
-        {
-          lang: "python",
-          label: "Python",
-          code: `import requests
-
-response = requests.post(
-    "https://dianshi.opendatalab.com/rag/inverse-synthesis",
-    headers={"Authorization": "Bearer YOUR_API_TOKEN"},
-    json={
-        "product_smiles": "CC(=O)Oc1ccccc1C(=O)O",
-        "top_k": 5,
-        "min_similarity": 0.3,
-    },
-)
-data = response.json()
-for r in data["results"]:
-    print(f"#{r['rank']} sim={r['product_similarity']:.3f} yield={r['yield_text']} {r['reaction_smiles']}")`,
-        },
-        {
-          lang: "python",
-          label: "Python · 重试",
-          code: `import time, requests
-
-def call_with_retry(url, headers, payload, max_retries=3):
-    for attempt in range(max_retries):
-        response = requests.post(url, headers=headers, json=payload)
-        if response.status_code == 200:
-            return response.json()
-        if response.status_code in [500, 502, 503]:
-            time.sleep(2 ** attempt)
-            continue
-        response.raise_for_status()
-    raise Exception("超过最大重试次数")`,
-        },
-      ],
-    },
-    {
-      key: "rxn-diff",
-      method: "POST",
-      path: "/rag/rxn-diff",
-      title: "rxn-diff 反应差异指纹检索",
-      summary: "基于反应差异指纹（Difference Fingerprint）的相似反应检索接口。",
-      desc: "输入一条反应 SMILES，找到数据库中具有相似化学转化的反应——即「做了类似的事」的反应。",
-      useCases: [
-        "发现类似化学转化：找到与目标反应「变化方式」类似的其他反应",
-        "反应类型归类：定位属于同一反应类别的反应",
-        "RAG 增强：为 LLM 提供相似转化的先例数据",
-      ],
-      params: [
-        { name: "rxn_smiles", type: "string", required: true, desc: "查询反应 SMILES（格式：反应物>>产物，非空）。" },
-        { name: "top_k", type: "integer", required: false, default: "20", range: "1–500", desc: "返回最大反应数量。" },
-        { name: "min_similarity", type: "float", required: false, default: "0.5", range: "-1.0–1.0", desc: "最低 Tanimoto 相似度阈值。" },
-        { name: "fp_type", type: "integer", required: false, default: "3", range: "1 或 3", desc: "指纹类型：1=AtomPair 差异指纹，3=Morgan/ECFP4 差异指纹。" },
-      ],
-      paramsNote: "指纹类型：3（默认）= Morgan/ECFP4 差异指纹，捕捉环形子结构变化；1 = AtomPair 差异指纹，关注原子连接性。相似度阈值：0.7+ 非常相似，0.5 同一反应类别（推荐），0.3 较宽泛。",
-      response: [
-        { name: "query_id", type: "string", desc: "请求唯一 ID（UUID）。" },
-        { name: "status", type: "string", desc: '"success" 或 "error"。' },
-        { name: "results", type: "array", desc: "反应结果列表。" },
-        { name: "results[].rank", type: "integer", desc: "排序序号。" },
-        { name: "results[].reaction_hash", type: "string", desc: "反应组哈希（SHA-256）。" },
-        { name: "results[].similarity", type: "float", desc: "Tanimoto 相似度。" },
-        { name: "results[].canonical_rxn_smiles", type: "string", desc: "标准化反应 SMILES。" },
-        { name: "results[].instance_count", type: "integer", desc: "该反应在数据库中的实例数量。" },
-        { name: "results[].reaction_id", type: "string | null", desc: "代表性反应实例 ID。" },
-        { name: "results[].yield_value", type: "float | null", desc: "产率数值。" },
-        { name: "results[].conditions", type: "object | null", desc: "反应条件。" },
-        { name: "result_count", type: "integer", desc: "结果数量。" },
-        { name: "execution_time_ms", type: "float", desc: "查询耗时（毫秒）。" },
-        { name: "timestamp", type: "string", desc: "响应时间戳。" },
-      ],
-      errors: [
-        { code: "400", msg: "rxn_smiles 为空或格式不合法", desc: "检查反应 SMILES 格式，需包含 >> 分隔符。" },
-      ],
-      limits: [
-        { name: "请求频率", value: "60 次/分钟（滑动窗口）" },
-        { name: "每日调用量", value: "根据账户配额" },
-        { name: "响应时间", value: "约 100–300 毫秒（GiST 索引加速）" },
-        { name: "top_k 最大值", value: "500" },
-      ],
-      retry: [
-        "建议重试：500 / 502 / 503",
-        "不应重试：400 / 401 / 429（需等配额重置）",
-      ],
-      samples: [
-        {
-          lang: "bash",
-          label: "curl",
-          code: `curl -X POST https://dianshi.opendatalab.com/rag/rxn-diff \\
-  -H "Authorization: Bearer YOUR_API_TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "rxn_smiles": "CC(=O)O.CCO>>CC(=O)OCC",
-    "top_k": 10,
-    "min_similarity": 0.5
-  }'`,
-        },
-        {
-          lang: "python",
-          label: "Python",
-          code: `import requests
-
-response = requests.post(
-    "https://dianshi.opendatalab.com/rag/rxn-diff",
-    headers={"Authorization": "Bearer YOUR_API_TOKEN"},
-    json={
-        "rxn_smiles": "CC(=O)O.CCO>>CC(=O)OCC",
-        "top_k": 10,
-        "min_similarity": 0.5,
-    },
-)
-data = response.json()
-for r in data["results"]:
-    print(f"#{r['rank']} sim={r['similarity']:.3f} instances={r['instance_count']} {r['canonical_rxn_smiles']}")`,
-        },
-      ],
-    },
-    {
-      key: "rxn-struct",
-      method: "POST",
-      path: "/rag/rxn-struct",
-      title: "rxn-struct 反应结构指纹检索",
-      summary: "基于 AtomPair 结构指纹的相似反应检索接口。",
-      desc: "输入一条反应 SMILES，按底物与产物的结构相似性找到相似反应。适合关注底物/产物结构相似性而非转化相似性的场景。",
-      params: [
-        { name: "rxn_smiles", type: "string", required: true, desc: "查询反应 SMILES（格式：反应物>>产物，非空）。" },
-        { name: "top_k", type: "integer", required: false, default: "20", range: "1–500", desc: "返回最大反应数量。" },
-        { name: "min_similarity", type: "float", required: false, default: "0.3", range: "0.0–1.0", desc: "最低 Tanimoto 相似度阈值。" },
-        { name: "radius", type: "integer", required: false, default: "2", range: "1–4", desc: "AtomPair 最大拓扑距离。" },
-      ],
-      paramsNote: "相似度阈值：0.6+ 非常相似的底物/产物结构，0.4 明显共享的结构母核，0.2 探索模式覆盖面广。",
-      response: [
-        { name: "query_id", type: "string", desc: "请求唯一 ID。" },
-        { name: "status", type: "string", desc: '"success" 或 "error"。' },
-        { name: "results", type: "array", desc: "反应结果列表。" },
-        { name: "results[].similarity", type: "float", desc: "Tanimoto 相似度。" },
-        { name: "results[].canonical_rxn_smiles", type: "string", desc: "标准化反应 SMILES。" },
-        { name: "results[].instance_count", type: "integer", desc: "实例数量。" },
-        { name: "results[].yield_value", type: "float | null", desc: "产率数值。" },
-        { name: "results[].conditions", type: "object | null", desc: "反应条件。" },
-      ],
-      errors: [
-        { code: "400", msg: "rxn_smiles 为空或格式不合法", desc: "检查反应 SMILES 格式，需包含 >> 分隔符。" },
-      ],
-      limits: [
-        { name: "请求频率", value: "60 次/分钟（滑动窗口）" },
-        { name: "每日调用量", value: "根据账户配额" },
-        { name: "top_k 最大值", value: "500" },
-      ],
-      retry: [
-        "建议重试：500 / 502 / 503",
-        "不应重试：400 / 401 / 429（需等配额重置）",
-      ],
-      samples: [
-        {
-          lang: "bash",
-          label: "curl",
-          code: `curl -X POST https://dianshi.opendatalab.com/rag/rxn-struct \\
-  -H "Authorization: Bearer YOUR_API_TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "rxn_smiles": "c1ccc(Br)cc1.OB(O)c1ccccc1>>c1ccc(-c2ccccc2)cc1",
-    "top_k": 10,
-    "min_similarity": 0.4
-  }'`,
-        },
-      ],
-    },
-  ],
   skills: {
     transport: "Streamable HTTP",
     endpoint: "https://dianshi.opendatalab.com/api/mcp",
@@ -1724,6 +1457,37 @@ function ProductOverviewPage({ product, onGo }: { product: Product; onGo: (a: Ac
         )}
       </section>
 
+      {product.applyForAccess && (
+        <section className="mt-8">
+          <div
+            className="rounded-2xl border hairline p-5 flex items-start gap-4 flex-wrap"
+            style={{ background: `${product.brand}08`, borderColor: `${product.brand}33` }}>
+            <div
+              className="h-10 w-10 rounded-xl grid place-items-center shrink-0"
+              style={{ background: `${product.brand}1A`, color: product.brand }}>
+              <KeyRound className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-display text-[17px] text-[var(--ink)] tracking-[-0.01em]">
+                {product.applyForAccess.title}
+              </div>
+              <p className="mt-1 text-[13px] text-[var(--ink-2)] leading-relaxed">
+                {product.applyForAccess.desc}
+              </p>
+            </div>
+            <a
+              href={product.applyForAccess.formUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-medium text-white transition-opacity hover:opacity-90 shrink-0"
+              style={{ background: product.brand }}>
+              {product.applyForAccess.formLabel}
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </a>
+          </div>
+        </section>
+      )}
+
       {product.intro.quickStart && (
         <section className="mt-10">
           <H2>快速开始</H2>
@@ -1854,16 +1618,7 @@ function EndpointIndexPage({ product, anchor, onGo: _onGo }: { product: Product;
                   <span className="text-[var(--ink-3)]">Base URL：</span>
                   <span className="font-mono text-[var(--ink-2)]">{repo.baseUrl}</span>
                 </span>
-                {repo.url && (
-                  <a
-                    href={repo.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-[var(--ink)] hover:opacity-80">
-                    <Github className="h-3.5 w-3.5" /> 仓库
-                    <ArrowUpRight className="h-3 w-3" />
-                  </a>
-                )}
+
               </div>
             </div>
             <div className="text-right shrink-0">
@@ -1872,6 +1627,37 @@ function EndpointIndexPage({ product, anchor, onGo: _onGo }: { product: Product;
             </div>
           </div>
         </header>
+      )}
+
+      {endpoints.length > 0 && (
+        <div className="mt-4 -mx-2 px-2 sticky top-0 z-10 bg-[var(--paper)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--paper)]/80">
+          <div className="flex items-center gap-1.5 overflow-x-auto py-2 border-b hairline">
+            <span className="text-[11px] tracking-[0.18em] uppercase text-[var(--ink-3)] mr-2 shrink-0">端点</span>
+            {endpoints.map((ep) => {
+              const act = activeAnchor === ep.key;
+              return (
+                <a
+                  key={ep.key}
+                  href={`#${product.key}/api/${ep.key}`}
+                  onClick={() => setActiveAnchor(ep.key)}
+                  className={cn(
+                    "shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-mono transition-colors border",
+                    act
+                      ? "text-[var(--brand)] bg-[var(--brand)]/10 border-[var(--brand)]/35"
+                      : "text-[var(--ink-2)] border-transparent hover:bg-[var(--ink)]/[0.05]",
+                  )}>
+                  <span className={cn(
+                    "text-[9.5px] px-1 py-px rounded border",
+                    ep.method === "GET"
+                      ? "border-emerald-400/40 text-emerald-700 bg-emerald-50"
+                      : "border-[var(--brand)]/40 text-[var(--brand)] bg-[var(--brand)]/5",
+                  )}>{ep.method}</span>
+                  {ep.key}
+                </a>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       <div className="mt-6 flex gap-6">
