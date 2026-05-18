@@ -1023,10 +1023,15 @@ export default function Experience() {
 
           {/* DRIFT CARDS */}
           <section className="mt-14">
-
-            <h2 className="font-display text-[26px] text-[var(--ink)]">
-              探索 <span className="italic">Sciverse</span> 生态
-            </h2>
+            <div className="flex items-end justify-between gap-4 flex-wrap">
+              <h2 className="font-display text-[26px] text-[var(--ink)]">
+                探索 <span className="italic">Sciverse</span> 生态
+              </h2>
+              <div className="text-[12px] text-[var(--ink-3)] flex items-center gap-2">
+                <span className="inline-block h-px w-8 bg-[var(--ink-3)]/40" />
+                三个产品 · 一个 Token 通用
+              </div>
+            </div>
             <p className="mt-1.5 text-[13.5px] text-[var(--ink-2)]">
               当一次检索不够时，下钻到反应数据库、蛋白功能分析、开源数据集。
             </p>
@@ -1165,7 +1170,7 @@ export default function Experience() {
             </div>
 
             <div className="mt-5 grid md:grid-cols-3 gap-px bg-[var(--brand)]/10 rounded-xl overflow-hidden border hairline">
-              {[                { k: "原生", en: "Agent First", metric: "Agent 优先", unit: "", v: "原生支持 Manus / Claude / Cursor", Icon: Zap },
+              {[                { k: "原生", en: "Agent First", metric: "Agent", unit: "优先", v: "原生支持 Manus / Claude / Cursor", Icon: Zap },
                 { k: "最新", en: "Freshest", metric: "T+1", unit: "同步", v: "每日新增百万级文献与专利入库", Icon: Activity },
                 { k: "最全", en: "Broadest", metric: "516M+", unit: "知识记录", v: "814 种语言 · 1.3M+ 期刊与会议覆盖", Icon: Globe2 },
               ].map((it) => (
