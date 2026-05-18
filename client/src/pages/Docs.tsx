@@ -44,6 +44,7 @@ import {
   Package,
   Boxes,
   Terminal as TerminalIcon,
+  Zap,
 } from "lucide-react";
 import Sidebar from "@/components/layout/Sidebar";
 import { cn } from "@/lib/utils";
@@ -655,8 +656,24 @@ print(resp.json())`,
       {
         lang: "bash",
         group: "装载",
+        label: "npx skills add",
+        // 推荐给支持 `npx skills` 的 Codex / Claude Code / Cursor / Codex CLI / Windsurf 等环境
+        code: `# 方式 A：一键安装 Agent Skill（推荐给支持 npx skills 的环境）
+
+# 1) 从官方域名安装
+npx skills add https://sciverse.space
+
+# 2) 或从 GitHub 安装
+npx skills add opendatalab/Sciverse-Agent-Tools --skill sciverse
+
+# 3) 设置 Token
+export SCIVERSE_API_TOKEN=sv-xxx`,
+      },
+      {
+        lang: "bash",
+        group: "装载",
         label: "OpenClaw · ClawHub",
-        // 原：方式 1：OpenClaw · ClawHub 一行装载
+        // 方式 B：OpenClaw · ClawHub 一行装载
         code: `# 适用任意 OpenClaw 兼容客户端
 clawhub install sciverse
 
@@ -800,7 +817,7 @@ const resp = await openai.chat.completions.create({
     ],
     limits: [
       { name: "默认限流", value: "与 REST API 共享 Token 额度，429 表示超额（仅生产网关返回）" },
-      { name: "安装方式", value: "clawhub install sciverse / pip install sciverse / npm install sciverse / Plugin Marketplace / 手动拷贝 skill-claude-code" },
+      { name: "安装方式", value: "npx skills add https://sciverse.space / clawhub install sciverse / pip install sciverse / npm install sciverse / Plugin Marketplace / 手动拷贝 skill-claude-code" },
       { name: "环境变量", value: "SCIVERSE_API_TOKEN（sv- 开头）；npm install -g sciverse-mcp-server 后可被任意 MCP 客户端调用" },
       { name: "语言 / 框架", value: "Python httpx 异步 SDK、TypeScript / Node.js SDK、ANTHROPIC_TOOLS、OPENAI_TOOLS 预生成 schema" },
     ],
@@ -1143,7 +1160,7 @@ const FAQ_ITEMS: { q: string; a: string }[] = [
   },
   {
     q: "如何在 Manus / Claude Desktop / Cursor 里装载 Sciverse Skills？",
-    a: "以 https://github.com/opendatalab/Sciverse-Agent-Tools 为准。推荐 4 种方式：① OpenClaw：`clawhub install sciverse`；② Claude Code Plugin Marketplace：`claude /plugin marketplace add https://github.com/opendatalab/Sciverse-Agent-Tools && claude /plugin install sciverse`；③ Claude Code 手动拷贝 `skill-claude-code/` 到 `~/.claude/skills/sciverse/`；④ Python（`pip install sciverse`）或 TypeScript（`npm install sciverse`）SDK 直接调用。以上任一方式调用都需 SCIVERSE_API_TOKEN 环境变量。",
+    a: "以 https://github.com/opendatalab/Sciverse-Agent-Tools 为准。推荐 5 种方式：① 一键安装（推荐，适用支持 npx skills 的 Codex / Claude Code / Cursor / Codex CLI / Windsurf 等）：`npx skills add https://sciverse.space` 或 `npx skills add opendatalab/Sciverse-Agent-Tools --skill sciverse`；② OpenClaw：`clawhub install sciverse`；③ Claude Code Plugin Marketplace：`claude /plugin marketplace add https://github.com/opendatalab/Sciverse-Agent-Tools && claude /plugin install sciverse`；④ Claude Code 手动拷贝 `skill-claude-code/` 到 `~/.claude/skills/sciverse/`；⑤ Python（`pip install sciverse`）或 TypeScript（`npm install sciverse`）SDK 直接调用。以上任一方式调用都需 SCIVERSE_API_TOKEN 环境变量。",
   },
   {
     q: "Sciverse 能返回哪些语种的文献？是否需要指定语言？",
@@ -1953,7 +1970,7 @@ function SkillsPage({ product }: { product: Product }) {
       {isSciverse ? (
         <>
           <p className="mt-2 text-[14px] text-[var(--ink-2)] max-w-[720px] leading-relaxed">
-            以 <span className="text-[var(--ink)]">opendatalab/Sciverse-Agent-Tools</span> 仓库为准，提供 5 个标准化 Agent 工具与 Python / TypeScript SDK，支持四种装载路径。
+            以 <span className="text-[var(--ink)]">opendatalab/Sciverse-Agent-Tools</span> 仓库为准，提供 5 个标准化 Agent 工具与 Python / TypeScript SDK，支持 5 种装载路径。
           </p>
 
           <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_1fr]">
@@ -1997,6 +2014,7 @@ function SkillsPage({ product }: { product: Product }) {
               <div className="text-[12px] text-[var(--ink-3)]">装载路径</div>
               <div className="mt-2.5 grid grid-cols-2 gap-2">
                 {[
+                  { icon: Zap, title: "npx skills add", desc: "npx skills add https://sciverse.space" },
                   { icon: Sparkles, title: "OpenClaw · ClawHub", desc: "clawhub install sciverse", href: "https://clawhub.ai/sciverse/academic-retrieval" },
                   { icon: Boxes, title: "Claude Plugin", desc: "/plugin install sciverse" },
                   { icon: TerminalIcon, title: "手动 Skill", desc: "clone 后 cp 至 .claude/skills" },

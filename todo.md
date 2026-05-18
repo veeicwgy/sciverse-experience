@@ -337,3 +337,13 @@
 - [ ] 3. Docs.tsx：点石 DianShi 概述数据 → 化学物质 6M+ / 化学反应 10M+ / 专利文献 1M+；顶部 description 改为模糊版本
 - [ ] 4. Docs.tsx：Sciverse SkillsPage 头部重排（仓库头牌 + 4 条装载径徽章 + 链接组）
 - [ ] 5. 保存 v37 检查点
+
+
+---
+
+# v40 · Sciverse Skills 新增 npx skills add 一键安装
+
+- [ ] Sciverse skills.test 装载分组首项追加 `npx skills add`（官方域名 + GitHub 双源 + 设置 Token）
+- [ ] SkillsPage 头牌「装载路径」从 4 项扩为 5 项（首项 = npx skills add）
+- [ ] 同步 FAQ「如何在 Manus / Claude Desktop / Cursor 里装载 Sciverse Skills？」答案
+- [ ] 编译校验后保存 v40
