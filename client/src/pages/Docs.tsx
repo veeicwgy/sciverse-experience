@@ -764,11 +764,17 @@ const resp = await openai.chat.completions.create({
       },
     ],
     tools: [
+      { category: "SDK", name: "list_catalog", desc: "枚举可用字段、过滤算子与示例值；首次集成或拼装精确 filters 之前调用一次。", latency: "~120ms",
+        params: [
+          { name: "include_sample_values", type: "boolean", required: false, default: "false", desc: "是否随枚举字段返回示例值，便于 LLM 自校验。" },
+        ],
+        returns: "fields[]（name · type · operators[] · sample_values?）" },
       { category: "SDK", name: "search_papers", desc: "结构化元数据检索（作者 / 年份 / 期刊 / 学科），适合精确过滤后交给语义检索。", latency: "~150–500ms",
         params: [
           { name: "query", type: "string", required: false, desc: "补充的自然语言词。" },
           { name: "authors", type: "string[]", required: false, desc: "作者名列表。" },
           { name: "year_from", type: "integer", required: false, desc: "起始年份。" },
+          { name: "filters_advanced", type: "object[]", required: false, desc: "由 list_catalog 返回字段拼装的精确过滤表达式。" },
           { name: "page_size", type: "integer", required: false, default: "10", range: "1–100", desc: "每页返回条数。" },
         ],
         returns: "hits[]（title · doc_id · authors · year · venue · abstract）" },
@@ -779,13 +785,18 @@ const resp = await openai.chat.completions.create({
           { name: "mode", type: "string", required: false, default: "balanced", range: "fast / balanced / quality", desc: "语义检索质量 / 耗时权衡。" },
         ],
         returns: "hits[]（doc_id · chunk_id · text · score · source.title · source.year · offset）" },
-      { category: "SDK", name: "read_content", desc: "拉取原文的指定范围片段以扩展 RAG 上下文，配合 semantic_search 返回的 doc_id / offset 使用。", latency: "~200ms",
+      { category: "SDK", name: "read_content", desc: "按字节范围切片读取原文以扩展 RAG 上下文，配合 semantic_search 返回的 doc_id / offset 使用。", latency: "~200ms",
         params: [
           { name: "doc_id", type: "string", required: true, desc: "文献 ID（由 search_papers / semantic_search 返回）。" },
-          { name: "offset", type: "integer", required: false, default: "0", desc: "起始偏移量（字符）。" },
-          { name: "limit", type: "integer", required: false, default: "4096", desc: "本次拉取的字符上限。" },
+          { name: "offset", type: "integer", required: false, default: "0", desc: "起始字节偏移。" },
+          { name: "limit", type: "integer", required: false, default: "4096", desc: "本次拉取的字节上限。" },
         ],
-        returns: "text · chars_returned · next_offset · more" },
+        returns: "Markdown 片段（含 ![](dt=…/p_…/f*.png) 引用）· next_offset · more" },
+      { category: "SDK", name: "get_resource", desc: "拉取 read_content Markdown 中引用的图 / 表二进制（图像字节 + MIME），用于多模态 RAG。", latency: "~200ms",
+        params: [
+          { name: "file_name", type: "string", required: true, desc: "形如 dt=xxx/p_yyy/f3.png，由 read_content 返回的 Markdown 中给出。" },
+        ],
+        returns: "bytes（image/png 等）· mime_type" },
     ],
     limits: [
       { name: "默认限流", value: "与 REST API 共享 Token 额度，429 表示超额（仅生产网关返回）" },
@@ -1942,7 +1953,7 @@ function SkillsPage({ product }: { product: Product }) {
       {isSciverse ? (
         <>
           <p className="mt-2 text-[14px] text-[var(--ink-2)] max-w-[720px] leading-relaxed">
-            以 <span className="text-[var(--ink)]">opendatalab/Sciverse-Agent-Tools</span> 仓库为准，提供三个标准化 Agent 工具与 Python / TypeScript SDK，支持四种装载路径。
+            以 <span className="text-[var(--ink)]">opendatalab/Sciverse-Agent-Tools</span> 仓库为准，提供 5 个标准化 Agent 工具与 Python / TypeScript SDK，支持四种装载路径。
           </p>
 
           <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_1fr]">
@@ -1964,12 +1975,15 @@ function SkillsPage({ product }: { product: Product }) {
                   </a>
                 </div>
               </div>
-              <div className="mt-3 grid grid-cols-3 gap-2 text-[12px]">
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 text-[12px]">
                 {[
+                  { name: "list_catalog", note: "字段查询" },
                   { name: "search_papers", note: "结构化检索" },
                   { name: "semantic_search", note: "语义检索" },
-                  { name: "read_content", note: "全文读取" },
+                  { name: "read_content", note: "原文切片" },
+                  { name: "get_resource", note: "图表资源" },
                 ].map((t) => (
+
                   <div key={t.name} className="rounded-md border hairline px-2.5 py-2 bg-[var(--paper-2)]/40">
                     <div className="font-mono text-[11.5px] text-[var(--ink)] truncate">{t.name}</div>
                     <div className="text-[11px] text-[var(--ink-3)] mt-0.5">{t.note}</div>
