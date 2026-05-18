@@ -1689,13 +1689,6 @@ function EndpointIndexPage({ product, anchor, onGo: _onGo }: { product: Product;
               <p className="mt-1.5 text-[13.5px] text-[var(--ink-2)] max-w-[640px] leading-relaxed">
                 {repo.description}
               </p>
-              <div className="mt-3 flex flex-wrap items-center gap-3 text-[12px] text-[var(--ink-3)]">
-                <span>
-                  <span className="text-[var(--ink-3)]">Base URL：</span>
-                  <span className="font-mono text-[var(--ink-2)]">{repo.baseUrl}</span>
-                </span>
-
-              </div>
             </div>
             <div className="text-right shrink-0">
               <div className="text-[11px] tracking-[0.18em] text-[var(--ink-3)] uppercase">Endpoints</div>
@@ -1736,53 +1729,8 @@ function EndpointIndexPage({ product, anchor, onGo: _onGo }: { product: Product;
         </div>
       )}
 
-      <div className="mt-6 flex gap-6">
-        <nav className="hidden xl:block w-[200px] shrink-0 sticky top-6 self-start">
-          <div className="text-[11px] tracking-[0.18em] uppercase text-[var(--ink-3)] px-2 mb-2">端点</div>
-          <ul className="space-y-0.5">
-            {endpoints.map((ep) => {
-              const act = activeAnchor === ep.key;
-              return (
-                <li key={ep.key}>
-                  <a
-                    href={`#${product.key}/api/${ep.key}`}
-                    onClick={() => setActiveAnchor(ep.key)}
-                    className={cn(
-                      "block px-2.5 py-1.5 rounded-md text-[12.5px] font-mono transition-colors leading-tight",
-                      act
-                        ? "text-[var(--brand)] bg-[var(--brand)]/8"
-                        : "text-[var(--ink-3)] hover:text-[var(--ink)]",
-                    )}>
-                    <span className={cn(
-                      "px-1 py-px rounded text-[9.5px] mr-1.5 align-middle border",
-                      ep.method === "GET"
-                        ? "border-emerald-400/40 text-emerald-700 bg-emerald-50"
-                        : "border-[var(--brand)]/40 text-[var(--brand)] bg-[var(--brand)]/5",
-                    )}>{ep.method}</span>
-                    {ep.key}
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
-          <div className="mt-5 px-2">
-            {repo?.changelog && repo.changelog.length > 0 && (
-              <>
-                <div className="text-[11px] tracking-[0.18em] uppercase text-[var(--ink-3)] mb-2">Changelog</div>
-                <ul className="space-y-1.5">
-                  {repo.changelog.map((c) => (
-                    <li key={c.version} className="text-[12px] text-[var(--ink-3)] font-mono">
-                      <span className="text-[var(--ink-2)]">{c.version}</span>
-                      <span className="text-[var(--ink-4)]"> · {c.date}</span>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-          </div>
-        </nav>
-
-        <div className="min-w-0 flex-1">
+      <div className="mt-6">
+        <div className="min-w-0">
           {endpoints.map((ep, i) => (
             <article
               key={ep.key}
