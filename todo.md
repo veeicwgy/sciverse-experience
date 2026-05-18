@@ -347,3 +347,13 @@
 - [ ] SkillsPage 头牌「装载路径」从 4 项扩为 5 项（首项 = npx skills add）
 - [ ] 同步 FAQ「如何在 Manus / Claude Desktop / Cursor 里装载 Sciverse Skills？」答案
 - [ ] 编译校验后保存 v40
+
+
+---
+
+# v41 · 文案改名
+
+- [ ] 搜索 `一等公民` / `AGENT-NATIVE` / `agent-native` 出现位置
+- [ ] 替换为 `Agent 优先` / `AGENT FIRST`
+- [ ] 编译校验
+- [ ] 保存 v41

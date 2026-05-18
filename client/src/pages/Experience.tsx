@@ -1165,7 +1165,7 @@ export default function Experience() {
             </div>
 
             <div className="mt-5 grid md:grid-cols-3 gap-px bg-[var(--brand)]/10 rounded-xl overflow-hidden border hairline">
-              {[                { k: "原生", en: "Agent-Native", metric: "一等公民", unit: "", v: "原生支持 Manus / Claude / Cursor", Icon: Zap },
+              {[                { k: "原生", en: "Agent First", metric: "Agent 优先", unit: "", v: "原生支持 Manus / Claude / Cursor", Icon: Zap },
                 { k: "最新", en: "Freshest", metric: "T+1", unit: "同步", v: "每日新增百万级文献与专利入库", Icon: Activity },
                 { k: "最全", en: "Broadest", metric: "516M+", unit: "知识记录", v: "814 种语言 · 1.3M+ 期刊与会议覆盖", Icon: Globe2 },
               ].map((it) => (
