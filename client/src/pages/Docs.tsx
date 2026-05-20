@@ -1184,6 +1184,275 @@ const FAQ_ITEMS: { q: string; a: string }[] = [
   },
 ];
 
+// ─── Cookbook 案例数据 ─────────────────────────────────────
+
+type CookbookTag = "RAG" | "Agent" | "检索" | "多模态" | "Skill" | "专利";
+
+type CookbookItem = {
+  slug: string;
+  title: string;
+  subtitle: string;
+  tags: CookbookTag[];
+  difficulty: "入门" | "进阶" | "高级";
+  estimatedCalls: string;
+  tools: string[];
+  pipeline: string[];
+  scenario: string;
+  inputExample: string;
+  outputExample: string;
+  agentPrompt: string;
+  steps: { title: string; desc: string; code: CodeSample }[];
+  notes: string[];
+  nextSteps: { label: string; hash: string }[];
+};
+
+const COOKBOOKS: CookbookItem[] = [
+  {
+    slug: "literature-review-agent",
+    title: "用 Sciverse 构建科研文献综述 Agent",
+    subtitle: "从一句研究问题出发，自动检索、摘要、生成带引用的文献综述",
+    tags: ["Agent", "RAG"],
+    difficulty: "进阶",
+    estimatedCalls: "~15–30 次 API 调用 / 一次综述任务",
+    tools: ["semantic_search", "read_content"],
+    pipeline: ["semantic_search", "→ doc_id + chunk", "→ read_content", "→ evidence markdown"],
+    scenario: "科研人员或 AI Agent 需要针对一个研究问题，自动检索相关文献、提取关键证据段落，并生成一份带引用的文献综述。",
+    inputExample: `用户在 Claude / Cursor 中提问：\n"请帮我综述 2020–2024 年 Transformer 在蛋白质结构预测领域的应用进展，列出关键论文和核心贡献。"`,
+    outputExample: `## 文献综述：Transformer 在蛋白质结构预测中的应用（2020–2024）\n\n### 1. AlphaFold2 的突破\nJumper et al. (2021) 提出 AlphaFold2，利用 Evoformer 模块...\n[来源: Nature, doc_id: af2_xxx, chunk_id: c_001]\n\n### 2. ESMFold 的端到端预测\nLin et al. (2023) 提出 ESMFold...\n[来源: Science, doc_id: esm_yyy, chunk_id: c_042]\n\n---\n共检索 12 篇核心文献，提取 28 个证据片段。`,
+    agentPrompt: `你是一个科研文献综述 Agent。当用户提出研究问题时：\n1. 调用 semantic_search(query=用户问题, top_k=20) 获取相关片段\n2. 对每个高分片段，调用 read_content(doc_id=hit.doc_id, offset=hit.offset, limit=4096) 获取上下文\n3. 整理为结构化综述，每个论点必须标注来源 [doc_id, chunk_id]\n4. 不要编造任何引用，所有信息必须来自 Sciverse 返回`,
+    steps: [
+      {
+        title: "Step 1: 语义检索相关片段",
+        desc: "使用 semantic_search 获取与研究问题最相关的文献片段",
+        code: { lang: "python", label: "Python", code: `import httpx\n\nBASE = "https://api.sciverse.space"\nTOKEN = "sv-..."\n\nasync def search_literature(query: str, top_k: int = 20):\n    async with httpx.AsyncClient() as client:\n        resp = await client.post(\n            f"{BASE}/agentic-search",\n            headers={"Authorization": f"Bearer {TOKEN}"},\n            json={"query": query, "top_k": top_k}\n        )\n        return resp.json()["hits"]\n\nhits = await search_literature(\n    "Transformer applications in protein structure prediction 2020-2024"\n)\nprint(f"Found {len(hits)} relevant chunks")` },
+      },
+      {
+        title: "Step 2: 读取原文上下文",
+        desc: "对高分片段调用 read_content 获取更完整的上下文",
+        code: { lang: "python", label: "Python", code: `async def read_context(doc_id: str, offset: int = 0, limit: int = 4096):\n    async with httpx.AsyncClient() as client:\n        resp = await client.get(\n            f"{BASE}/content",\n            headers={"Authorization": f"Bearer {TOKEN}"},\n            params={"doc_id": doc_id, "offset": offset, "limit": limit}\n        )\n        return resp.json()\n\n# 对 top 5 高分片段读取上下文\nevidences = []\nfor hit in sorted(hits, key=lambda x: x["score"], reverse=True)[:5]:\n    ctx = await read_context(hit["doc_id"], hit.get("offset", 0))\n    evidences.append({\n        "title": hit["title"],\n        "doc_id": hit["doc_id"],\n        "chunk": hit["chunk"],\n        "context": ctx["content"],\n        "score": hit["score"]\n    })` },
+      },
+      {
+        title: "Step 3: 生成带引用的综述",
+        desc: "将证据传给 LLM 生成结构化综述",
+        code: { lang: "python", label: "Python", code: `from anthropic import Anthropic\n\nclient = Anthropic()\n\nevidence_text = "\\n\\n".join([\n    f"[{e['doc_id']}] {e['title']}\\n{e['context']}"\n    for e in evidences\n])\n\nmsg = client.messages.create(\n    model="claude-opus-4-7",\n    max_tokens=4096,\n    messages=[{\n        "role": "user",\n        "content": f"""基于以下文献证据，生成一份关于 Transformer 在蛋白质结构预测中应用的综述。\n每个论点必须标注来源 [doc_id]。\n\n{evidence_text}"""\n    }]\n)\nprint(msg.content[0].text)` },
+      },
+    ],
+    notes: [
+      "所有引用必须来自 Sciverse 返回的真实 doc_id，不要让 LLM 编造",
+      "semantic_search 默认 top_k=10，综述场景建议 top_k=20 以获取更全面的证据",
+      "read_content 单次最大返回 4096 字符，如需更多上下文可多次调用并拼接",
+    ],
+    nextSteps: [
+      { label: "查看 semantic_search 接口文档", hash: "sciverse/api/agentic-search" },
+      { label: "查看 content 接口文档", hash: "sciverse/api/content" },
+      { label: "申请 API Token", hash: "auth" },
+    ],
+  },
+  {
+    slug: "scientific-rag",
+    title: "用 Sciverse 做科学 RAG 数据源",
+    subtitle: "将 Sciverse 作为 RAG pipeline 的检索后端，为 LLM 提供可信科学证据",
+    tags: ["RAG", "Agent"],
+    difficulty: "进阶",
+    estimatedCalls: "~5–15 次 API 调用 / 一次 RAG 查询",
+    tools: ["agentic-search", "content"],
+    pipeline: ["agentic-search", "→ chunks + scores", "→ rerank", "→ answer grounding"],
+    scenario: "开发者构建科学问答系统或 RAG 应用，需要从权威学术文献中检索证据来 ground LLM 的回答，避免幻觉。",
+    inputExample: `RAG 系统收到用户问题：\n"mRNA 疫苗的脂质纳米颗粒递送系统有哪些最新改进？"`,
+    outputExample: `{\n  "answer": "近年来 LNP 递送系统的改进主要集中在...",\n  "citations": [\n    {"doc_id": "lnp_001", "title": "Ionizable lipids for...", "chunk": "...", "score": 0.92},\n    {"doc_id": "lnp_002", "title": "Biodegradable LNP...", "chunk": "...", "score": 0.87}\n  ],\n  "confidence": 0.89\n}`,
+    agentPrompt: `你是一个科学 RAG 系统。对于每个用户问题：\n1. 调用 agentic-search 获取相关文献片段\n2. 根据 score 筛选 top 片段作为证据\n3. 基于证据生成回答，每句话标注来源\n4. 如果证据不足以回答，明确告知用户`,
+    steps: [
+      {
+        title: "Step 1: 调用 agentic-search 获取证据",
+        desc: "一次调用即可获得经过改写、检索、打分的文献片段",
+        code: { lang: "python", label: "Python", code: `import httpx\n\nasync def sciverse_retrieve(query: str, top_k: int = 10):\n    async with httpx.AsyncClient() as client:\n        resp = await client.post(\n            "https://api.sciverse.space/agentic-search",\n            headers={"Authorization": "Bearer sv-..."},\n            json={"query": query, "top_k": top_k, "sub_queries": 2}\n        )\n        data = resp.json()\n        return [\n            {"text": h["chunk"], "doc_id": h["doc_id"],\n             "title": h["title"], "score": h["score"]}\n            for h in data["hits"]\n        ]` },
+      },
+      {
+        title: "Step 2: 证据过滤与 Rerank",
+        desc: "按 score 阈值过滤低质量片段，可选接入外部 reranker",
+        code: { lang: "python", label: "Python", code: `def filter_and_rerank(hits, threshold=0.6):\n    """过滤低分片段，按 score 降序排列"""\n    filtered = [h for h in hits if h["score"] >= threshold]\n    return sorted(filtered, key=lambda x: x["score"], reverse=True)\n\nhits = await sciverse_retrieve("mRNA LNP delivery improvements")\ntop_evidence = filter_and_rerank(hits, threshold=0.65)\nprint(f"Filtered to {len(top_evidence)} high-quality chunks")` },
+      },
+      {
+        title: "Step 3: 基于证据生成 Grounded Answer",
+        desc: "将证据注入 LLM prompt，生成带引用的回答",
+        code: { lang: "python", label: "Python", code: `from openai import OpenAI\n\nclient = OpenAI()\n\ncontext = "\\n\\n".join([\n    f"[{i+1}] {e['title']}\\n{e['text']}"\n    for i, e in enumerate(top_evidence[:5])\n])\n\nresp = client.chat.completions.create(\n    model="gpt-4o",\n    messages=[\n        {"role": "system", "content": "基于提供的文献证据回答问题。每个论点用 [编号] 标注来源。如果证据不足，说明无法确定。"},\n        {"role": "user", "content": f"问题：mRNA LNP 递送系统最新改进？\\n\\n证据：\\n{context}"}\n    ]\n)\nprint(resp.choices[0].message.content)` },
+      },
+    ],
+    notes: [
+      "sub_queries=2 可让平台自动改写查询，提升召回多样性",
+      "score 阈值建议 0.6–0.7，过低会引入噪声，过高可能丢失相关证据",
+      "生产环境建议缓存高频查询结果，减少 API 调用",
+    ],
+    nextSteps: [
+      { label: "查看 agentic-search 接口", hash: "sciverse/api/agentic-search" },
+      { label: "了解统一鉴权", hash: "auth" },
+      { label: "查看调用限制与重试策略", hash: "faq" },
+    ],
+  },
+  {
+    slug: "fulltext-evidence",
+    title: "用 Sciverse 查找论文全文证据",
+    subtitle: "从检索片段出发，定位并读取原文完整段落作为可引用证据",
+    tags: ["RAG", "检索"],
+    difficulty: "入门",
+    estimatedCalls: "~3–8 次 API 调用",
+    tools: ["agentic-search", "content"],
+    pipeline: ["agentic-search", "→ doc_id", "→ content (offset + limit)", "→ 全文证据"],
+    scenario: "Agent 通过 agentic-search 找到了相关片段，但需要更完整的上下文来确认论点或生成精确引用。",
+    inputExample: `Agent 已获得 chunk："AlphaFold2 achieves atomic accuracy..."\ndoc_id: "af2_nature_2021"\noffset: 12480`,
+    outputExample: `{\n  "content": "## Methods\\n\\nAlphaFold2 achieves atomic accuracy in protein structure prediction through a novel architecture combining...(完整段落 ~2000 字符)",\n  "next_offset": 16576,\n  "more": true\n}`,
+    agentPrompt: `当你需要验证或扩展一个文献片段时：\n1. 使用 chunk 中的 doc_id 和 offset\n2. 调用 content 接口读取该位置前后的完整段落\n3. 确认原文是否支持你的论点\n4. 如需更多上下文，使用 next_offset 继续读取`,
+    steps: [
+      {
+        title: "Step 1: 从检索结果获取定位信息",
+        desc: "agentic-search 返回的每个 hit 包含 doc_id 和 offset",
+        code: { lang: "python", label: "Python", code: `# 假设已有检索结果\nhit = {\n    "doc_id": "af2_nature_2021",\n    "chunk": "AlphaFold2 achieves atomic accuracy...",\n    "offset": 12480,\n    "score": 0.94\n}\n\n# 用 offset 定位原文位置\nprint(f"Will read from doc {hit['doc_id']} at offset {hit['offset']}")` },
+      },
+      {
+        title: "Step 2: 读取完整上下文",
+        desc: "调用 content 接口，以 offset 为起点读取原文",
+        code: { lang: "python", label: "Python", code: `import httpx\n\nasync def get_fulltext(doc_id: str, offset: int = 0, limit: int = 4096):\n    async with httpx.AsyncClient() as client:\n        resp = await client.get(\n            "https://api.sciverse.space/content",\n            headers={"Authorization": "Bearer sv-..."},\n            params={"doc_id": doc_id, "offset": offset, "limit": limit}\n        )\n        return resp.json()\n\n# 读取 chunk 所在位置的完整上下文\nresult = await get_fulltext(hit["doc_id"], offset=max(0, hit["offset"] - 500), limit=4096)\nprint(result["content"][:200] + "...")\nprint(f"Has more: {result['more']}, next_offset: {result.get('next_offset')}")` },
+      },
+      {
+        title: "Step 3: 迭代读取（可选）",
+        desc: "如果需要更多上下文，使用 next_offset 继续",
+        code: { lang: "python", label: "Python", code: `# 如果 more=True，可以继续读取\nfull_text = result["content"]\nwhile result.get("more") and len(full_text) < 16000:\n    result = await get_fulltext(\n        hit["doc_id"],\n        offset=result["next_offset"],\n        limit=4096\n    )\n    full_text += result["content"]\n\nprint(f"Total context length: {len(full_text)} chars")` },
+      },
+    ],
+    notes: [
+      "offset 是 Unicode 码点数，不是字节数",
+      "建议向前偏移 500 字符读取，以获取片段的前文语境",
+      "单次 limit 最大 4096 字符，如需全文请循环调用",
+    ],
+    nextSteps: [
+      { label: "查看 content 接口文档", hash: "sciverse/api/content" },
+      { label: "下载论文图表", hash: "cookbook/download-figures" },
+    ],
+  },
+  {
+    slug: "download-figures",
+    title: "用 Sciverse 下载论文图表资源",
+    subtitle: "从全文 Markdown 中提取图表路径，通过 resource 接口获取二进制文件",
+    tags: ["多模态", "检索"],
+    difficulty: "入门",
+    estimatedCalls: "~3–10 次 API 调用",
+    tools: ["content", "resource"],
+    pipeline: ["content", "→ markdown 中 ![](path)", "→ resource(path)", "→ 图片二进制"],
+    scenario: "用户需要提取论文中的图表（如实验结果图、流程图、表格截图）用于报告、演示或多模态 RAG。",
+    inputExample: `content 返回的 Markdown 中包含：\n![Figure 3](dt=af2_nature/p_12/f3.png)\n![Table 2](dt=af2_nature/p_15/t2.png)`,
+    outputExample: `成功下载：\n- f3.png (image/png, 245KB) → ./figures/figure3.png\n- t2.png (image/png, 180KB) → ./figures/table2.png`,
+    agentPrompt: `当你需要论文中的图表时：\n1. 先调用 content 获取全文 Markdown\n2. 用正则提取所有 ![...](path) 中的 path\n3. 对每个 path 调用 resource 接口下载\n4. 返回图片供用户查看或传给多模态模型分析`,
+    steps: [
+      {
+        title: "Step 1: 从全文中提取图表路径",
+        desc: "content 返回的 Markdown 中，图表以标准 Markdown 图片语法引用",
+        code: { lang: "python", label: "Python", code: `import re\n\n# 假设已调用 content 接口获得 markdown\nmarkdown_content = result["content"]\n\n# 提取所有图片路径\nfigure_paths = re.findall(r'!\\[.*?\\]\\((.*?)\\)', markdown_content)\nprint(f"Found {len(figure_paths)} figures:")\nfor p in figure_paths:\n    print(f"  {p}")` },
+      },
+      {
+        title: "Step 2: 调用 resource 下载图表",
+        desc: "对每个路径调用 resource 接口获取二进制数据",
+        code: { lang: "python", label: "Python", code: `import httpx\nfrom pathlib import Path\n\nasync def download_resource(file_name: str, save_dir: str = "./figures"):\n    Path(save_dir).mkdir(exist_ok=True)\n    async with httpx.AsyncClient() as client:\n        resp = await client.get(\n            "https://api.sciverse.space/resource",\n            headers={"Authorization": "Bearer sv-..."},\n            params={"path": file_name}\n        )\n        # 保存文件\n        local_name = file_name.split("/")[-1]\n        save_path = f"{save_dir}/{local_name}"\n        Path(save_path).write_bytes(resp.content)\n        return save_path\n\n# 下载所有图表\nfor path in figure_paths:\n    saved = await download_resource(path)\n    print(f"Saved: {saved}")` },
+      },
+      {
+        title: "Step 3: 多模态分析（可选）",
+        desc: "将图表传给多模态 LLM 进行分析",
+        code: { lang: "python", label: "Python", code: `import base64\nfrom anthropic import Anthropic\n\nclient = Anthropic()\n\n# 读取下载的图片\nwith open("./figures/f3.png", "rb") as f:\n    img_data = base64.b64encode(f.read()).decode()\n\nmsg = client.messages.create(\n    model="claude-opus-4-7",\n    max_tokens=1024,\n    messages=[{\n        "role": "user",\n        "content": [\n            {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": img_data}},\n            {"type": "text", "text": "请描述这张图表的主要发现和结论。"}\n        ]\n    }]\n)\nprint(msg.content[0].text)` },
+      },
+    ],
+    notes: [
+      "resource 接口返回原始二进制流，Content-Type 为实际 MIME 类型",
+      "图表路径格式为 dt=文献ID/p_页码/f文件名，由 content 接口给出",
+      "建议在 Agent 侧缓存已下载的图表，避免重复请求",
+    ],
+    nextSteps: [
+      { label: "查看 resource 接口文档", hash: "sciverse/api/resource" },
+      { label: "查看 content 接口文档", hash: "sciverse/api/content" },
+    ],
+  },
+  {
+    slug: "structured-paper-filter",
+    title: "用 Sciverse 做结构化论文筛选",
+    subtitle: "通过 meta-catalog 获取可用字段，用 meta-search 精确过滤论文",
+    tags: ["检索", "Agent"],
+    difficulty: "进阶",
+    estimatedCalls: "~2–5 次 API 调用",
+    tools: ["meta-catalog", "meta-search"],
+    pipeline: ["meta-catalog", "→ 可用字段 + 算子", "→ meta-search(filters)", "→ 结构化结果"],
+    scenario: "用户需要按年份、期刊、作者、学科等条件精确筛选论文，类似学术搜索引擎的高级检索功能。",
+    inputExample: `用户需求：\n"帮我找 2022–2024 年发表在 Nature 或 Science 上关于 CRISPR 基因编辑的论文，按引用数排序。"`,
+    outputExample: `{\n  "total": 47,\n  "hits": [\n    {"title": "Prime editing for...", "year": 2023, "venue": "Nature", "citations": 892},\n    {"title": "CRISPR-Cas13...", "year": 2022, "venue": "Science", "citations": 654}\n  ]\n}`,
+    agentPrompt: `当用户需要按条件筛选论文时：\n1. 先调用 meta-catalog 获取可用字段和算子\n2. 根据用户条件构造 filters 表达式\n3. 调用 meta-search 执行检索\n4. 如果用户条件模糊，先用 meta-catalog 的 sample_values 确认字段值`,
+    steps: [
+      {
+        title: "Step 1: 查询可用字段",
+        desc: "meta-catalog 返回所有可过滤、可排序的字段及其算子",
+        code: { lang: "python", label: "Python", code: `import httpx\n\nasync def get_catalog():\n    async with httpx.AsyncClient() as client:\n        resp = await client.get(\n            "https://api.sciverse.space/meta-catalog",\n            headers={"Authorization": "Bearer sv-..."}\n        )\n        return resp.json()\n\ncatalog = await get_catalog()\n# 查看可用字段\nfor field in catalog["fields"]:\n    print(f"{field['name']} ({field['type']}) - operators: {field['operators']}")` },
+      },
+      {
+        title: "Step 2: 构造过滤条件并检索",
+        desc: "根据 catalog 信息构造 filters，调用 meta-search",
+        code: { lang: "python", label: "Python", code: `async def search_papers(query: str, filters: list, sort: str = None, top_k: int = 20):\n    async with httpx.AsyncClient() as client:\n        body = {"query": query, "filters": filters, "top_k": top_k}\n        if sort:\n            body["sort"] = sort\n        resp = await client.post(\n            "https://api.sciverse.space/meta-search",\n            headers={"Authorization": "Bearer sv-..."},\n            json=body\n        )\n        return resp.json()\n\n# 构造过滤条件\nresults = await search_papers(\n    query="CRISPR gene editing",\n    filters=[\n        {"field": "year", "op": "gte", "value": 2022},\n        {"field": "year", "op": "lte", "value": 2024},\n        {"field": "venue", "op": "in", "value": ["Nature", "Science"]}\n    ],\n    sort="-citations"\n)\nprint(f"Total: {results['total']} papers")\nfor h in results["hits"][:5]:\n    print(f"  {h['title']} ({h['year']}, {h['venue']}, citations: {h.get('citations', 'N/A')})")` },
+      },
+      {
+        title: "Step 3: 结合语义检索深入分析",
+        desc: "对筛选结果中感兴趣的论文进一步语义检索",
+        code: { lang: "python", label: "Python", code: `# 对 top 论文做语义检索获取关键片段\nfor paper in results["hits"][:3]:\n    chunks = await sciverse_retrieve(\n        f"{paper['title']} main contribution methodology"\n    )\n    print(f"\\n{paper['title']}:")\n    for c in chunks[:2]:\n        print(f"  - {c['text'][:100]}...")` },
+      },
+    ],
+    notes: [
+      "meta-catalog 建议缓存结果（字段列表变化频率低），避免每次查询都调用",
+      "filters 中的字段名和算子必须与 meta-catalog 返回一致",
+      "sort 字段前加 - 表示降序（如 -citations 表示引用数从高到低）",
+    ],
+    nextSteps: [
+      { label: "查看 meta-catalog 接口", hash: "sciverse/api/meta-catalog" },
+      { label: "查看 meta-search 接口", hash: "sciverse/api/meta-search" },
+    ],
+  },
+  {
+    slug: "skill-integration",
+    title: "在 Claude / Cursor / Codex 中接入 Sciverse Skill",
+    subtitle: "一键安装 Sciverse Agent 工具，让 AI 助手直接调用科学文献检索",
+    tags: ["Skill", "Agent"],
+    difficulty: "入门",
+    estimatedCalls: "~2–5 次工具调用 / 一次对话",
+    tools: ["npx skills add", "semantic_search", "read_content", "list_catalog"],
+    pipeline: ["安装 Skill", "→ 配置 Token", "→ AI 助手自动调用", "→ 输出带引用的证据"],
+    scenario: "开发者希望在日常使用的 AI 编程助手（Claude Code、Cursor、Codex CLI）中直接调用 Sciverse 检索科学文献，无需手动写 API 调用代码。",
+    inputExample: `在 Claude Code 中直接提问：\n"帮我查找关于 Graph Neural Networks 在药物发现中应用的最新论文，给出关键发现。"`,
+    outputExample: `Claude 自动调用 semantic_search 工具，返回：\n\n## 检索结果\n\n找到 8 篇高相关论文：\n\n1. **"GNN-based molecular property prediction"** (2024, Nature MI)\n   - 关键发现：提出 3D-aware GNN 架构，AUROC 提升 12%...\n   [evidence from Sciverse, score: 0.91]\n\n2. **"Drug-target interaction via attention GNN"** (2023, ICML)\n   - 关键发现：注意力机制显著提升 DTI 预测...\n   [evidence from Sciverse, score: 0.87]`,
+    agentPrompt: `（无需手动编写 — Skill 安装后 AI 助手自动获得工具描述）\n\nSciverse Skill 为 AI 助手提供 5 个工具：\n- list_catalog: 查询可用字段\n- search_papers: 结构化论文检索\n- semantic_search: 语义片段检索\n- read_content: 读取原文\n- get_resource: 下载图表`,
+    steps: [
+      {
+        title: "Step 1: 一键安装 Skill",
+        desc: "在支持 npx skills 的工具中一行命令完成安装",
+        code: { lang: "bash", label: "安装", code: `# 方式 A：官方域名安装（推荐）\nnpx skills add https://sciverse.space\n\n# 方式 B：从 GitHub 源安装\nnpx skills add opendatalab/Sciverse-Agent-Tools --skill sciverse\n\n# 方式 C：OpenClaw 安装\nclawhub install sciverse\n\n# 方式 D：Claude Code Plugin Marketplace\nclaude /plugin marketplace add https://github.com/opendatalab/Sciverse-Agent-Tools\nclaude /plugin install sciverse` },
+      },
+      {
+        title: "Step 2: 配置 API Token",
+        desc: "设置环境变量，Skill 会自动读取",
+        code: { lang: "bash", label: "配置", code: `# 在 shell 配置文件中添加（~/.bashrc 或 ~/.zshrc）\nexport SCIVERSE_API_TOKEN="sv-your-token-here"\n\n# 或在项目 .env 文件中\nSCIVERSE_API_TOKEN=sv-your-token-here\n\n# 验证安装成功\nnpx skills list | grep sciverse\n# 输出: sciverse (5 tools) - v0.4.3` },
+      },
+      {
+        title: "Step 3: 在 AI 助手中使用",
+        desc: "安装后直接在对话中提问，AI 会自动调用 Sciverse 工具",
+        code: { lang: "markdown", label: "使用示例", code: `# 在 Claude Code / Cursor / Codex 中直接提问：\n\n> 帮我查找 2023 年以来关于 LLM 幻觉检测的论文\n\nAI 助手会自动：\n1. 调用 semantic_search(query="LLM hallucination detection", top_k=10)\n2. 返回相关论文片段和引用\n3. 如需详情，继续调用 read_content 获取全文\n\n> 用 meta-search 按 Nature 期刊过滤\n\nAI 助手会：\n1. 调用 list_catalog() 确认字段名\n2. 调用 search_papers(filters=[{field:"venue", op:"eq", value:"Nature"}])` },
+      },
+    ],
+    notes: [
+      "SCIVERSE_API_TOKEN 环境变量必须设置，否则所有工具调用会返回 401",
+      "Skill 安装后对所有支持 MCP 的 AI 助手生效，无需逐个配置",
+      "每个工具每日默认 10 次调用限制，需要更多请在 Token 管理页申请",
+      "5 种安装方式任选其一即可，推荐 npx skills add 最简单",
+    ],
+    nextSteps: [
+      { label: "查看 Skills 完整文档", hash: "sciverse/skills" },
+      { label: "申请 API Token", hash: "auth" },
+      { label: "构建文献综述 Agent", hash: "cookbook/literature-review-agent" },
+    ],
+  },
+];
+
 // ─── 路由 hash ─────────────────────────────────────────
 
 type Active =
@@ -1191,6 +1460,8 @@ type Active =
   | { kind: "auth" }
   | { kind: "errors" }
   | { kind: "faq" }
+  | { kind: "cookbook" }
+  | { kind: "cookbook-detail"; slug: string }
   | { kind: "product"; product: ProductKey; section: "overview" }
   | { kind: "endpoint-index"; product: ProductKey; anchor?: string }
   | { kind: "endpoint"; product: ProductKey; endpointKey: string }
@@ -1204,6 +1475,12 @@ function parseHash(hash: string): Active {
   if (h === "auth") return { kind: "auth" };
   if (h === "errors") return { kind: "errors" };
   if (h === "faq") return { kind: "faq" };
+  if (h === "cookbook") return { kind: "cookbook" };
+  if (h.startsWith("cookbook/")) {
+    const slug = h.replace("cookbook/", "");
+    if (slug && COOKBOOKS.find((c) => c.slug === slug)) return { kind: "cookbook-detail", slug };
+    return { kind: "cookbook" };
+  }
   const parts = h.split("/");
   const p = PRODUCTS.find((x) => x.key === parts[0]);
   if (!p) return { kind: "overview" };
@@ -1232,6 +1509,10 @@ function activeToHash(a: Active): string {
       return "errors";
     case "faq":
       return "faq";
+    case "cookbook":
+      return "cookbook";
+    case "cookbook-detail":
+      return `cookbook/${a.slug}`;
     case "product":
       return `${a.product}/overview`;
     case "endpoint-index":
@@ -1278,6 +1559,8 @@ export default function Docs() {
             {active.kind === "auth" && <AuthPage />}
             {active.kind === "errors" && <ErrorsPage />}
             {active.kind === "faq" && <FaqPage />}
+            {active.kind === "cookbook" && <CookbookIndexPage onGo={go} />}
+            {active.kind === "cookbook-detail" && <CookbookDetailPage slug={active.slug} onGo={go} />}
             {active.kind === "product" && <ProductOverviewPage product={getProduct(active.product)} onGo={go} />}
             {active.kind === "endpoint-index" && (
               <EndpointIndexPage
@@ -1387,6 +1670,8 @@ function DocsNav({ active, onGo }: { active: Active; onGo: (a: Active) => void }
           </div>
         );
       })}
+      <div className="mt-5 mb-2 px-3 text-[11px] tracking-[0.2em] text-[var(--ink-3)] uppercase">场景案例</div>
+      <NavLink label={`Cookbook · ${COOKBOOKS.length}`} icon={BookOpen} active={active.kind === "cookbook" || active.kind === "cookbook-detail"} onClick={() => onGo({ kind: "cookbook" })} />
       <div className="mt-5 mb-2 px-3 text-[11px] tracking-[0.2em] text-[var(--ink-3)] uppercase">通用</div>
       <NavLink label="统一鉴权" icon={ShieldCheck} active={active.kind === "auth"} onClick={() => onGo({ kind: "auth" })} />
       <NavLink label="错误码" icon={AlertTriangle} active={active.kind === "errors"} onClick={() => onGo({ kind: "errors" })} />
@@ -2790,4 +3075,267 @@ function groupBy<T, K extends string>(list: T[], keyFn: (item: T) => K): Record<
     (acc[k] ||= []).push(item);
     return acc;
   }, {} as Record<K, T[]>);
+}
+
+
+// ─── Cookbook 页面组件 ─────────────────────────────────────
+
+const TAG_COLORS: Record<CookbookTag, string> = {
+  RAG: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  Agent: "bg-violet-50 text-violet-700 border-violet-200",
+  "检索": "bg-blue-50 text-blue-700 border-blue-200",
+  "多模态": "bg-amber-50 text-amber-700 border-amber-200",
+  Skill: "bg-rose-50 text-rose-700 border-rose-200",
+  "专利": "bg-cyan-50 text-cyan-700 border-cyan-200",
+};
+
+const DIFF_COLORS: Record<string, string> = {
+  "入门": "text-green-600",
+  "进阶": "text-amber-600",
+  "高级": "text-red-600",
+};
+
+function CookbookIndexPage({ onGo }: { onGo: (a: Active) => void }) {
+  const [filter, setFilter] = useState<CookbookTag | "all">("all");
+  const allTags: CookbookTag[] = ["RAG", "Agent", "检索", "多模态", "Skill", "专利"];
+  const filtered = filter === "all" ? COOKBOOKS : COOKBOOKS.filter((c) => c.tags.includes(filter));
+
+  return (
+    <div>
+      <div className="mb-2">
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--brand)]/[0.08] text-[var(--brand)] text-[12px] font-medium">
+          <BookOpen className="h-3.5 w-3.5" />
+          Cookbook
+        </div>
+      </div>
+      <h1 className="text-[28px] lg:text-[32px] font-display tracking-tight text-[var(--ink)]">
+        Sciverse Cookbook
+      </h1>
+      <p className="mt-2 text-[15px] text-[var(--ink-2)] leading-relaxed max-w-[640px]">
+        场景化开发者案例库 — 用真实任务展示如何把 Sciverse 接入 Agent、RAG、科研检索。每个案例可复制、可运行。
+      </p>
+
+      {/* 标签筛选 */}
+      <div className="mt-6 flex flex-wrap gap-2">
+        <button
+          onClick={() => setFilter("all")}
+          className={cn(
+            "px-3 py-1.5 rounded-full text-[12px] font-medium border transition-colors",
+            filter === "all"
+              ? "bg-[var(--ink)] text-white border-[var(--ink)]"
+              : "bg-white text-[var(--ink-2)] border-[var(--ink)]/10 hover:border-[var(--ink)]/30",
+          )}>
+          全部 · {COOKBOOKS.length}
+        </button>
+        {allTags.map((tag) => {
+          const count = COOKBOOKS.filter((c) => c.tags.includes(tag)).length;
+          if (count === 0) return null;
+          return (
+            <button
+              key={tag}
+              onClick={() => setFilter(tag)}
+              className={cn(
+                "px-3 py-1.5 rounded-full text-[12px] font-medium border transition-colors",
+                filter === tag
+                  ? "bg-[var(--ink)] text-white border-[var(--ink)]"
+                  : "bg-white text-[var(--ink-2)] border-[var(--ink)]/10 hover:border-[var(--ink)]/30",
+              )}>
+              {tag} · {count}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 卡片网格 */}
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {filtered.map((item) => (
+          <button
+            key={item.slug}
+            onClick={() => onGo({ kind: "cookbook-detail", slug: item.slug })}
+            className="group text-left p-5 rounded-xl border hairline bg-white hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+            <div className="flex items-center gap-2 mb-2">
+              {item.tags.map((t) => (
+                <span key={t} className={cn("px-2 py-0.5 rounded text-[11px] font-medium border", TAG_COLORS[t])}>
+                  {t}
+                </span>
+              ))}
+              <span className={cn("ml-auto text-[11px] font-medium", DIFF_COLORS[item.difficulty])}>
+                {item.difficulty}
+              </span>
+            </div>
+            <h3 className="text-[15px] font-semibold text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors leading-snug">
+              {item.title}
+            </h3>
+            <p className="mt-1.5 text-[13px] text-[var(--ink-3)] leading-relaxed line-clamp-2">
+              {item.subtitle}
+            </p>
+            <div className="mt-3 flex items-center gap-3 text-[11px] text-[var(--ink-3)]">
+              <span className="flex items-center gap-1">
+                <Zap className="h-3 w-3" />
+                {item.estimatedCalls}
+              </span>
+              <span className="flex items-center gap-1">
+                <Cable className="h-3 w-3" />
+                {item.tools.length} 接口
+              </span>
+            </div>
+            <div className="mt-3 flex items-center gap-1 text-[12px] text-[var(--brand)] opacity-0 group-hover:opacity-100 transition-opacity">
+              查看详情 <ArrowRight className="h-3 w-3" />
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CookbookDetailPage({ slug, onGo }: { slug: string; onGo: (a: Active) => void }) {
+  const item = COOKBOOKS.find((c) => c.slug === slug);
+  if (!item) return <div className="text-[var(--ink-3)]">案例不存在</div>;
+
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const copyCode = (code: string, idx: number) => {
+    navigator.clipboard.writeText(code);
+    setCopiedIdx(idx);
+    setTimeout(() => setCopiedIdx(null), 2000);
+  };
+
+  return (
+    <div>
+      {/* 面包屑 */}
+      <div className="flex items-center gap-1.5 text-[12px] text-[var(--ink-3)] mb-4">
+        <button onClick={() => onGo({ kind: "cookbook" })} className="hover:text-[var(--brand)] transition-colors">
+          Cookbook
+        </button>
+        <ChevronRight className="h-3 w-3" />
+        <span className="text-[var(--ink-2)]">{item.title}</span>
+      </div>
+
+      {/* 标题区 */}
+      <div className="flex items-center gap-2 mb-2">
+        {item.tags.map((t) => (
+          <span key={t} className={cn("px-2 py-0.5 rounded text-[11px] font-medium border", TAG_COLORS[t])}>
+            {t}
+          </span>
+        ))}
+        <span className={cn("text-[11px] font-medium", DIFF_COLORS[item.difficulty])}>
+          {item.difficulty}
+        </span>
+      </div>
+      <h1 className="text-[24px] lg:text-[28px] font-display tracking-tight text-[var(--ink)]">
+        {item.title}
+      </h1>
+      <p className="mt-2 text-[14px] text-[var(--ink-2)] leading-relaxed">{item.subtitle}</p>
+
+      {/* 概览信息 */}
+      <div className="mt-6 p-4 rounded-xl bg-slate-50/80 border hairline grid grid-cols-1 sm:grid-cols-2 gap-4 text-[13px]">
+        <div>
+          <div className="text-[11px] text-[var(--ink-3)] uppercase tracking-wider mb-1">用户场景</div>
+          <div className="text-[var(--ink)]">{item.scenario}</div>
+        </div>
+        <div>
+          <div className="text-[11px] text-[var(--ink-3)] uppercase tracking-wider mb-1">预估调用量</div>
+          <div className="text-[var(--ink)]">{item.estimatedCalls}</div>
+        </div>
+        <div>
+          <div className="text-[11px] text-[var(--ink-3)] uppercase tracking-wider mb-1">适用工具</div>
+          <div className="flex flex-wrap gap-1.5">
+            {item.tools.map((t) => (
+              <code key={t} className="px-1.5 py-0.5 rounded bg-white border hairline text-[11px] text-[var(--ink-2)]">{t}</code>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="text-[11px] text-[var(--ink-3)] uppercase tracking-wider mb-1">调用链路</div>
+          <div className="flex flex-wrap items-center gap-1 text-[12px] text-[var(--ink-2)]">
+            {item.pipeline.map((p, i) => (
+              <span key={i} className={p.startsWith("→") ? "text-[var(--brand)]" : "font-mono"}>{p}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 输入 / 输出示例 */}
+      <div className="mt-8">
+        <h2 className="text-[16px] font-semibold text-[var(--ink)] mb-3">输入示例</h2>
+        <pre className="p-4 rounded-lg bg-slate-50 border hairline text-[12px] text-[var(--ink-2)] whitespace-pre-wrap overflow-x-auto">{item.inputExample}</pre>
+      </div>
+      <div className="mt-6">
+        <h2 className="text-[16px] font-semibold text-[var(--ink)] mb-3">输出示例</h2>
+        <pre className="p-4 rounded-lg bg-slate-50 border hairline text-[12px] text-[var(--ink-2)] whitespace-pre-wrap overflow-x-auto">{item.outputExample}</pre>
+      </div>
+
+      {/* Agent Prompt */}
+      <div className="mt-8">
+        <h2 className="text-[16px] font-semibold text-[var(--ink)] mb-3">Agent Prompt 示例</h2>
+        <div className="relative">
+          <pre className="p-4 rounded-lg bg-violet-50/60 border border-violet-100 text-[12px] text-violet-900 whitespace-pre-wrap overflow-x-auto">{item.agentPrompt}</pre>
+          <button
+            onClick={() => copyCode(item.agentPrompt, -1)}
+            className="absolute top-2 right-2 px-2 py-1 rounded text-[11px] bg-white/80 border hairline text-[var(--ink-3)] hover:text-[var(--ink)] transition-colors">
+            {copiedIdx === -1 ? "✓ 已复制" : "复制"}
+          </button>
+        </div>
+      </div>
+
+      {/* 分步代码 */}
+      <div className="mt-8">
+        <h2 className="text-[16px] font-semibold text-[var(--ink)] mb-4">分步实现</h2>
+        <div className="space-y-6">
+          {item.steps.map((step, idx) => (
+            <div key={idx} className="border hairline rounded-xl overflow-hidden">
+              <div className="px-4 py-3 bg-slate-50/60 border-b hairline">
+                <h3 className="text-[14px] font-semibold text-[var(--ink)]">{step.title}</h3>
+                <p className="text-[12px] text-[var(--ink-3)] mt-0.5">{step.desc}</p>
+              </div>
+              <div className="relative">
+                <pre className="p-4 text-[12px] text-[var(--ink)] bg-white overflow-x-auto leading-relaxed"><code>{step.code.code}</code></pre>
+                <button
+                  onClick={() => copyCode(step.code.code, idx)}
+                  className="absolute top-2 right-2 px-2 py-1 rounded text-[11px] bg-slate-100 border hairline text-[var(--ink-3)] hover:text-[var(--ink)] transition-colors">
+                  {copiedIdx === idx ? "✓ 已复制" : "复制"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 注意事项 */}
+      {item.notes.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-[16px] font-semibold text-[var(--ink)] mb-3">注意事项</h2>
+          <ul className="space-y-2">
+            {item.notes.map((n, i) => (
+              <li key={i} className="flex items-start gap-2 text-[13px] text-[var(--ink-2)]">
+                <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0 text-amber-500" />
+                {n}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* 下一步 */}
+      {item.nextSteps.length > 0 && (
+        <div className="mt-8 p-4 rounded-xl bg-[var(--brand)]/[0.04] border border-[var(--brand)]/10">
+          <h3 className="text-[13px] font-semibold text-[var(--ink)] mb-2">下一步</h3>
+          <div className="flex flex-wrap gap-2">
+            {item.nextSteps.map((ns) => (
+              <button
+                key={ns.hash}
+                onClick={() => {
+                  if (typeof window !== "undefined") window.location.hash = ns.hash;
+                  onGo(parseHash(ns.hash));
+                }}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[12px] font-medium text-[var(--brand)] bg-white border border-[var(--brand)]/20 hover:bg-[var(--brand)]/[0.06] transition-colors">
+                {ns.label}
+                <ArrowUpRight className="h-3 w-3" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
