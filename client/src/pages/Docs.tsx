@@ -1923,6 +1923,47 @@ function OverviewPage({ onGo }: { onGo: (a: Active) => void }) {
         })}
       </section>
 
+      {/* 热门 Cookbook */}
+      <section className="mt-12">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-[22px] text-[var(--ink)]">热门 Cookbook</h2>
+          <button
+            onClick={() => onGo({ kind: "cookbook" })}
+            className="text-[12px] text-[var(--brand)] hover:underline flex items-center gap-0.5">
+            查看全部 {COOKBOOKS.length} 个案例 <ArrowRight className="h-3 w-3" />
+          </button>
+        </div>
+        <p className="mt-1 text-[13px] text-[var(--ink-3)]">
+          可复制、可运行的场景化开发者案例 — 展示如何用 Sciverse 构建真实应用。
+        </p>
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+          {COOKBOOKS.slice(0, 3).map((item) => (
+            <button
+              key={item.slug}
+              onClick={() => onGo({ kind: "cookbook-detail", slug: item.slug })}
+              className="group text-left p-4 rounded-xl border hairline bg-white hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+              <div className="flex items-center gap-1.5 mb-2">
+                {item.tags.slice(0, 2).map((t) => (
+                  <span key={t} className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--brand)]/[0.06] text-[var(--brand)] border border-[var(--brand)]/15">
+                    {t}
+                  </span>
+                ))}
+                <span className="ml-auto text-[10px] text-[var(--ink-3)]">{item.difficulty}</span>
+              </div>
+              <h3 className="text-[13.5px] font-semibold text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors leading-snug">
+                {item.title}
+              </h3>
+              <p className="mt-1 text-[12px] text-[var(--ink-3)] leading-relaxed line-clamp-2">
+                {item.subtitle}
+              </p>
+              <div className="mt-2.5 flex items-center gap-1 text-[11px] text-[var(--brand)] opacity-0 group-hover:opacity-100 transition-opacity">
+                查看详情 <ArrowRight className="h-3 w-3" />
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
+
       <section className="mt-12">
         <h2 className="font-display text-[22px] text-[var(--ink)]">从哪里开始</h2>
         <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
