@@ -1110,6 +1110,34 @@ export default function Experience() {
                 );
               })}
             </div>
+
+            {/* Cookbook 入口卡片 */}
+            <a
+              href="/docs#cookbook"
+              className="mt-4 block card-paper p-5 group relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-[var(--brand)]/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative flex items-center gap-4">
+                <div className="h-10 w-10 rounded-xl grid place-items-center bg-[var(--brand)]/[0.08] border border-[var(--brand)]/20 shrink-0">
+                  <svg className="h-5 w-5 text-[var(--brand)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+                    <path d="M8 7h6" />
+                    <path d="M8 11h4" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-display text-[16px] text-[var(--ink)] leading-snug group-hover:text-[var(--brand)] transition-colors duration-300">
+                    Sciverse Cookbook · 9 个场景案例
+                  </div>
+                  <div className="text-[12.5px] text-[var(--ink-3)] mt-0.5">
+                    文献综述 Agent、科学 RAG、Citation Grounding、专利交叉探索、多模态图表检索……可复制、可运行的开发者案例库
+                  </div>
+                </div>
+                <svg className="h-4 w-4 text-[var(--ink-3)] group-hover:text-[var(--brand)] transition-all duration-300 group-hover:translate-x-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
+                </svg>
+              </div>
+            </a>
           </section>
 
           {/* DATA SCALE */}

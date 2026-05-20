@@ -1451,6 +1451,138 @@ const COOKBOOKS: CookbookItem[] = [
       { label: "构建文献综述 Agent", hash: "cookbook/literature-review-agent" },
     ],
   },
+  {
+    slug: "patent-literature-cross",
+    title: "用 Sciverse 做专利与文献交叉探索",
+    subtitle: "同时检索专利和学术文献，发现技术转化与竞争格局",
+    tags: ["专利", "检索", "Agent"],
+    difficulty: "进阶",
+    estimatedCalls: "~10–20 次 API 调用",
+    tools: ["agentic-search", "meta-search", "content"],
+    pipeline: ["agentic-search(专利)", "→ meta-search(文献)", "→ 交叉对比", "→ content(全文验证)"],
+    scenario: "研发人员或知识产权分析师需要了解某项技术的专利布局与学术研究进展，发现专利与论文之间的关联、技术转化路径和竞争对手布局。",
+    inputExample: `用户提问：\n"分析 CRISPR base editing 领域的专利布局与学术研究关联，找出主要专利持有人和对应的学术团队。"`,
+    outputExample: `## 专利与文献交叉分析：CRISPR Base Editing\n\n### 专利布局\n| 专利持有人 | 专利数 | 核心技术 |\n|---|---|---|\n| Broad Institute | 12 | ABE/CBE 基础架构 |\n| Beam Therapeutics | 8 | 临床应用优化 |\n\n### 学术关联\n- Broad 专利对应 David Liu 团队 Nature 2016/2017 原创论文\n- Beam 专利基于 Gaudelli et al. 2017 ABE 工作...\n[doc_id: crispr_pat_001, doc_id: liu_nature_2017]`,
+    agentPrompt: `你是一个专利与文献交叉分析 Agent。当用户提出技术领域时：\n1. 调用 agentic-search 检索相关专利文献\n2. 调用 meta-search 按年份、作者筛选对应学术论文\n3. 对比专利权利要求与论文核心贡献，找出关联\n4. 调用 content 验证关键技术细节\n5. 输出结构化分析报告，标注所有来源`,
+    steps: [
+      {
+        title: "Step 1: 检索专利文献",
+        desc: "使用 agentic-search 获取相关专利片段",
+        code: { lang: "python", label: "Python", code: `import httpx\n\nBASE = "https://api.sciverse.space"\nTOKEN = "sv-..."\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def search_patents(query: str):\n    async with httpx.AsyncClient() as client:\n        resp = await client.post(\n            f"{BASE}/agentic-search",\n            headers=HEADERS,\n            json={"query": f"{query} patent", "top_k": 15}\n        )\n        return resp.json()["hits"]\n\npatent_hits = await search_patents("CRISPR base editing")\nprint(f"Found {len(patent_hits)} patent-related chunks")` },
+      },
+      {
+        title: "Step 2: 检索对应学术文献",
+        desc: "用 meta-search 按作者、年份筛选学术论文",
+        code: { lang: "python", label: "Python", code: `async def search_academic(query: str, authors: list = None):\n    async with httpx.AsyncClient() as client:\n        filters = []\n        if authors:\n            filters.append({"field": "authors", "op": "in", "value": authors})\n        resp = await client.post(\n            f"{BASE}/meta-search",\n            headers=HEADERS,\n            json={"query": query, "filters": filters, "top_k": 20}\n        )\n        return resp.json()["hits"]\n\n# 检索与专利发明人对应的学术论文\nacademic_hits = await search_academic(\n    "CRISPR base editing adenine cytosine",\n    authors=["David Liu", "Nicole Gaudelli"]\n)\nprint(f"Found {len(academic_hits)} academic papers")` },
+      },
+      {
+        title: "Step 3: 交叉分析与报告生成",
+        desc: "将专利与文献关联，生成结构化分析",
+        code: { lang: "python", label: "Python", code: `from anthropic import Anthropic\n\nclient = Anthropic()\n\npatent_summary = "\\n".join([\n    f"- [{h['doc_id']}] {h['title']}: {h['chunk'][:100]}..."\n    for h in patent_hits[:8]\n])\nacademic_summary = "\\n".join([\n    f"- [{h['doc_id']}] {h['title']} ({h.get('year','')})"\n    for h in academic_hits[:8]\n])\n\nmsg = client.messages.create(\n    model="claude-opus-4-7",\n    max_tokens=4096,\n    messages=[{\n        "role": "user",\n        "content": f"""分析以下专利与学术文献的关联：\n\n专利：\n{patent_summary}\n\n学术论文：\n{academic_summary}\n\n请输出：1) 专利持有人分布 2) 专利-论文关联 3) 技术转化路径"""\n    }]\n)\nprint(msg.content[0].text)` },
+      },
+    ],
+    notes: [
+      "Sciverse 数据库同时覆盖专利和学术文献，无需切换数据源",
+      "专利文献的 source_type 为 patent，可用于区分检索结果类型",
+      "建议先用 meta-catalog 确认专利相关字段（如 patent_assignee、filing_date）",
+    ],
+    nextSteps: [
+      { label: "查看 agentic-search 接口", hash: "sciverse/api/agentic-search" },
+      { label: "查看 meta-search 接口", hash: "sciverse/api/meta-search" },
+      { label: "结构化论文筛选", hash: "cookbook/structured-paper-filter" },
+    ],
+  },
+  {
+    slug: "citation-grounding",
+    title: "用 Sciverse 做科学问答的 Citation Grounding",
+    subtitle: "为 LLM 回答的每一句话找到可验证的文献来源，消除幻觉",
+    tags: ["RAG", "Agent"],
+    difficulty: "高级",
+    estimatedCalls: "~10–25 次 API 调用",
+    tools: ["agentic-search", "content"],
+    pipeline: ["LLM 生成草稿", "→ 拆句", "→ agentic-search(逐句)", "→ content(验证)", "→ 标注引用"],
+    scenario: "开发者构建高可信度科学问答系统，需要对 LLM 生成的每个论点进行事实核查，找到文献来源或标记为“无法验证”。",
+    inputExample: `LLM 生成的草稿回答：\n"mRNA 疫苗使用可电离脂质纳米颗粒(iLNP)包裹 mRNA。其中 MC3 是最广泛使用的可电离脂质。LNP 的粒径通常在 80-100nm。"`,
+    outputExample: `{
+  "grounded_answer": "mRNA 疫苗使用可电离脂质纳米颗粒(iLNP)包裹 mRNA [1]。其中 MC3 是最广泛使用的可电离脂质 [2]。LNP 的粒径通常在 80-100nm [1]。",
+  "citations": [
+    {"id": 1, "doc_id": "lnp_review_2021", "title": "Lipid nanoparticles for mRNA delivery", "verified": true},
+    {"id": 2, "doc_id": "mc3_study_2018", "title": "Ionizable lipid MC3 optimization", "verified": true}
+  ],
+  "unverified_claims": []
+}`,
+    agentPrompt: `你是一个 Citation Grounding Agent。工作流程：\n1. 接收 LLM 生成的草稿回答\n2. 将草稿拆分为独立论点/句子\n3. 对每个论点调用 agentic-search 查找支持证据\n4. 对高分结果调用 content 验证具体内容\n5. 标注每句话的来源，无法验证的标记为 [unverified]`,
+    steps: [
+      {
+        title: "Step 1: 拆分草稿为独立论点",
+        desc: "将 LLM 生成的回答拆分为可独立验证的句子",
+        code: { lang: "python", label: "Python", code: `def split_claims(draft: str) -> list[str]:\n    """将草稿拆分为独立论点句子"""\n    sentences = [s.strip() for s in draft.split("\u3002") if s.strip()]\n    # 过滤连接词、过渡句\n    claims = [s for s in sentences if len(s) > 10]\n    return claims\n\ndraft = "mRNA 疫苗使用可电离脂质纳米颗粒(iLNP)包裹 mRNA。其中 MC3 是最广泛使用的可电离脂质。LNP 的粒径通常在 80-100nm。"\nclaims = split_claims(draft)\nprint(f"Split into {len(claims)} claims:")\nfor c in claims:\n    print(f"  - {c}")` },
+      },
+      {
+        title: "Step 2: 逐句检索证据",
+        desc: "对每个论点调用 agentic-search 查找支持文献",
+        code: { lang: "python", label: "Python", code: `import httpx\n\nasync def verify_claim(claim: str):\n    async with httpx.AsyncClient() as client:\n        resp = await client.post(\n            "https://api.sciverse.space/agentic-search",\n            headers={"Authorization": "Bearer sv-..."},\n            json={"query": claim, "top_k": 5}\n        )\n        hits = resp.json()["hits"]\n        # 只保留高分结果作为证据\n        evidence = [h for h in hits if h["score"] >= 0.7]\n        return {\n            "claim": claim,\n            "verified": len(evidence) > 0,\n            "evidence": evidence[:2] if evidence else []\n        }\n\n# 逐句验证\nresults = []\nfor claim in claims:\n    result = await verify_claim(claim)\n    results.append(result)\n    status = "✅" if result["verified"] else "❌"\n    print(f"{status} {claim[:40]}...")` },
+      },
+      {
+        title: "Step 3: 生成带引用的最终回答",
+        desc: "将验证结果组装为带 citation 的最终输出",
+        code: { lang: "python", label: "Python", code: `def build_grounded_answer(results: list) -> dict:\n    citations = []\n    grounded_parts = []\n    unverified = []\n\n    for r in results:\n        if r["verified"]:\n            cite_id = len(citations) + 1\n            citations.append({\n                "id": cite_id,\n                "doc_id": r["evidence"][0]["doc_id"],\n                "title": r["evidence"][0]["title"],\n                "verified": True\n            })\n            grounded_parts.append(f"{r['claim']} [{cite_id}]")\n        else:\n            grounded_parts.append(f"{r['claim']} [unverified]")\n            unverified.append(r["claim"])\n\n    return {\n        "grounded_answer": "。".join(grounded_parts) + "。",\n        "citations": citations,\n        "unverified_claims": unverified\n    }\n\nfinal = build_grounded_answer(results)\nprint(final["grounded_answer"])\nprint(f"\\nCitations: {len(final['citations'])}")\nprint(f"Unverified: {len(final['unverified_claims'])}")` },
+      },
+    ],
+    notes: [
+      "score 阈值 0.7 是建议值，可根据领域调整；医学领域建议 0.8+",
+      "对于 unverified 的论点，建议在最终输出中明确标注或移除",
+      "生产环境建议并发验证多个 claims 以提升速度",
+      "可结合 content 接口读取原文确认证据准确性",
+    ],
+    nextSteps: [
+      { label: "查看 agentic-search 接口", hash: "sciverse/api/agentic-search" },
+      { label: "科学 RAG 数据源", hash: "cookbook/scientific-rag" },
+      { label: "全文证据查找", hash: "cookbook/fulltext-evidence" },
+    ],
+  },
+  {
+    slug: "multimodal-figure-retrieval",
+    title: "用 Sciverse 做多模态图表检索 Demo",
+    subtitle: "根据自然语言描述检索论文图表，结合多模态模型分析图表内容",
+    tags: ["多模态", "检索", "Agent"],
+    difficulty: "高级",
+    estimatedCalls: "~8–20 次 API 调用",
+    tools: ["agentic-search", "content", "resource"],
+    pipeline: ["agentic-search(图表描述)", "→ content(定位图表)", "→ resource(下载)", "→ 多模态分析"],
+    scenario: "研究人员需要查找特定类型的论文图表（如“蛋白质结构对比图”、“性能归纳表”），并用多模态模型自动提取图表中的关键信息。",
+    inputExample: `用户提问：\n"找一些展示 AlphaFold2 与实验结构对比的图表，帮我分析其中的 GDT-TS 分布。"`,
+    outputExample: `## 图表检索结果\n\n找到 3 张相关图表：\n\n### Figure 2 - AlphaFold2 vs Experimental (Nature 2021)\n- GDT-TS 中位数: 92.4\n- 超过 90 的比例: 67%\n- 关键发现: 在单域蛋白上接近实验精度\n\n### Table 3 - CASP14 Results Comparison\n- AlphaFold2 GDT-TS: 92.4 (平均)\n- 第二名: 67.8\n[doc_id: af2_nature, figures: f2.png, t3.png]`,
+    agentPrompt: `你是一个多模态图表检索 Agent。工作流程：\n1. 用 agentic-search 检索包含目标图表的文献\n2. 用 content 读取全文，提取图表路径\n3. 用 resource 下载图表图片\n4. 用多模态模型分析图表内容\n5. 返回结构化的图表信息和分析结果`,
+    steps: [
+      {
+        title: "Step 1: 检索包含目标图表的文献",
+        desc: "用自然语言描述检索相关文献",
+        code: { lang: "python", label: "Python", code: `import httpx\nimport re\n\nBASE = "https://api.sciverse.space"\nHEADERS = {"Authorization": "Bearer sv-..."}\n\nasync def search_figures(description: str):\n    """\u68c0\u7d22\u5305\u542b\u7279\u5b9a\u56fe\u8868\u7684\u6587\u732e"""\n    async with httpx.AsyncClient() as client:\n        resp = await client.post(\n            f"{BASE}/agentic-search",\n            headers=HEADERS,\n            json={"query": f"figure table {description}", "top_k": 10}\n        )\n        return resp.json()["hits"]\n\nhits = await search_figures("AlphaFold2 experimental structure comparison GDT-TS")\nprint(f"Found {len(hits)} relevant documents")` },
+      },
+      {
+        title: "Step 2: 定位并下载图表",
+        desc: "读取全文找到图表路径，调用 resource 下载",
+        code: { lang: "python", label: "Python", code: `from pathlib import Path\n\nasync def get_figures_from_doc(doc_id: str):\n    async with httpx.AsyncClient() as client:\n        # 读取全文获取图表路径\n        resp = await client.get(\n            f"{BASE}/content",\n            headers=HEADERS,\n            params={"doc_id": doc_id, "offset": 0, "limit": 4096}\n        )\n        content = resp.json()["content"]\n        # 提取图表路径\n        figure_paths = re.findall(r'!\\[.*?\\]\\((.*?)\\)', content)\n        return figure_paths\n\nasync def download_figure(path: str, save_dir: str = "./figures"):\n    Path(save_dir).mkdir(exist_ok=True)\n    async with httpx.AsyncClient() as client:\n        resp = await client.get(\n            f"{BASE}/resource",\n            headers=HEADERS,\n            params={"path": path}\n        )\n        local = f"{save_dir}/{path.split('/')[-1]}"\n        Path(local).write_bytes(resp.content)\n        return local\n\n# 下载 top 文献的图表\nfor hit in hits[:3]:\n    paths = await get_figures_from_doc(hit["doc_id"])\n    for p in paths[:2]:\n        local = await download_figure(p)\n        print(f"Downloaded: {local}")` },
+      },
+      {
+        title: "Step 3: 多模态分析图表内容",
+        desc: "用多模态 LLM 提取图表中的关键数据",
+        code: { lang: "python", label: "Python", code: `import base64\nfrom anthropic import Anthropic\n\nclient = Anthropic()\n\nasync def analyze_figure(image_path: str, question: str):\n    with open(image_path, "rb") as f:\n        img_data = base64.b64encode(f.read()).decode()\n\n    msg = client.messages.create(\n        model="claude-opus-4-7",\n        max_tokens=2048,\n        messages=[{\n            "role": "user",\n            "content": [\n                {"type": "image", "source": {\n                    "type": "base64",\n                    "media_type": "image/png",\n                    "data": img_data\n                }},\n                {"type": "text", "text": question}\n            ]\n        }]\n    )\n    return msg.content[0].text\n\n# 分析下载的图表\nanalysis = await analyze_figure(\n    "./figures/f2.png",\n    "请描述这张图表中 GDT-TS 分布情况，提取关键数值和结论。"\n)\nprint(analysis)` },
+      },
+    ],
+    notes: [
+      "图表检索的关键是在 query 中加入 figure/table 等关键词",
+      "resource 接口返回原始分辨率图片，适合多模态分析",
+      "建议对图表分析结果做结构化提取（JSON schema）便于下游使用",
+      "复杂图表可能需要多轮对话才能完整提取信息",
+    ],
+    nextSteps: [
+      { label: "下载论文图表资源", hash: "cookbook/download-figures" },
+      { label: "查看 resource 接口", hash: "sciverse/api/resource" },
+      { label: "科学 RAG 数据源", hash: "cookbook/scientific-rag" },
+    ],
+  },
 ];
 
 // ─── 路由 hash ─────────────────────────────────────────
