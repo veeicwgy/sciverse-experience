@@ -3400,6 +3400,33 @@ function CookbookDetailPage({ slug, onGo }: { slug: string; onGo: (a: Active) =>
       </h1>
       <p className="mt-2 text-[14px] text-[var(--ink-2)] leading-relaxed">{item.subtitle}</p>
 
+      {/* 在 Colab 中打开 */}
+      <div className="mt-4 flex items-center gap-3">
+        <a
+          href={`https://colab.research.google.com/github/veeicwgy/sciverse-experience/blob/main/cookbooks/${item.slug}.ipynb`}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#F9AB00]/10 border border-[#F9AB00]/30 text-[13px] font-medium text-[#E37400] hover:bg-[#F9AB00]/20 hover:border-[#F9AB00]/50 transition-all duration-200">
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
+            <path d="M4.54 9.46 2.19 7.1a8.94 8.94 0 0 1 12.73 0l-2.36 2.36a5.58 5.58 0 0 0-8.02 0Z" fill="#E8710A"/>
+            <path d="M9.81 14.73 7.46 12.37a5.58 5.58 0 0 1 0-8.02l2.35 2.36a2.22 2.22 0 0 0 0 3.3l-0.01 4.72Z" fill="#F9AB00"/>
+            <path d="M14.19 14.73l2.35-2.36a5.58 5.58 0 0 0 0-8.02l-2.35 2.36a2.22 2.22 0 0 1 0 3.3v4.72Z" fill="#F9AB00"/>
+            <path d="M19.46 9.46l2.35-2.36a8.94 8.94 0 0 0-12.73 0l2.36 2.36a5.58 5.58 0 0 1 8.02 0Z" fill="#E8710A"/>
+          </svg>
+          在 Google Colab 中打开
+        </a>
+        <a
+          href={`https://github.com/veeicwgy/sciverse-experience/blob/main/cookbooks/${item.slug}.ipynb`}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border hairline text-[12px] text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)]/30 transition-all duration-200">
+          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.02 0c2.28-1.55 3.29-1.23 3.29-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.21.7.82.58A12.01 12.01 0 0 0 24 12c0-6.63-5.37-12-12-12Z"/>
+          </svg>
+          在 GitHub 查看
+        </a>
+      </div>
+
       {/* 概览信息 */}
       <div className="mt-6 p-4 rounded-xl bg-slate-50/80 border hairline grid grid-cols-1 sm:grid-cols-2 gap-4 text-[13px]">
         <div>
