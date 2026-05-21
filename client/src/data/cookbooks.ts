@@ -138,7 +138,7 @@ export const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 4: 基于证据生成 Grounded Answer（可选增强）",
         desc: "将证据注入 LLM prompt，生成带引用的回答。此步骤依赖 OpenAI API Key，非 Sciverse 必需",
-        code: { lang: "python", label: "Python", code: `from openai import OpenAI\n\nclient = OpenAI()  # 自动读取 OPENAI_API_KEY\n\ncontext = "\\n\\n".join([\n    f"[{i+1}] {e['title']}\\n{e['text']}"\n    for i, e in enumerate(top_evidence[:5])\n])\n\nresp = client.chat.completions.create(\n    model="gpt-4o",\n    messages=[\n        {"role": "system", "content": "基于提供的文献证据回答问题。每个论点用 [编号] 标注来源。如果证据不足，说明无法确定。不要编造未在证据中出现的信息。"},\n        {"role": "user", "content": f"问题：mRNA LNP 递送系统最新改进？\\n\\n证据：\\n{context}"}\n    ]\n)\nprint(resp.choices[0].message.content)` },
+        code: { lang: "python", label: "Python", code: `from openai import OpenAI\n\nclient = OpenAI()  # 自动读取 OPENAI_API_KEY\n\ncontext = "\\n\\n".join([\n    f"[{i+1}] {e['title']}\\n{e['chunk']}"\n    for i, e in enumerate(top_evidence[:5])\n])\n\nresp = client.chat.completions.create(\n    model="gpt-4o",\n    messages=[\n        {"role": "system", "content": "基于提供的文献证据回答问题。每个论点用 [编号] 标注来源。如果证据不足，说明无法确定。不要编造未在证据中出现的信息。"},\n        {"role": "user", "content": f"问题：mRNA LNP 递送系统最新改进？\\n\\n证据：\\n{context}"}\n    ]\n)\nprint(resp.choices[0].message.content)` },
       },
     ],
     notes: [
@@ -498,7 +498,7 @@ export const COOKBOOKS: CookbookItem[] = [
   // ═══════════════════════════════════════════════════════════
   {
     slug: "paper-dedup-agent",
-    coverImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663059542092/aCWMyC69vqJyddspaJMuZ6/cookbook-cover-10-paper-dedup-4cipNBJoD3qMaYkPcsshPd.webp",
+    coverImage: "/manus-storage/cookbook-cover-10-paper-dedup_9f4eacd8.png",
     title: "论文标题相似度去重 Demo",
     subtitle: "基于标题相似度将重复文献分组，选择最权威版本作为主记录（不保证能完整聚合 preprint 与正式版）",
     tags: ["Agent", "元数据"],
@@ -550,7 +550,7 @@ export const COOKBOOKS: CookbookItem[] = [
   // ═══════════════════════════════════════════════════════════
   {
     slug: "doi-pmid-resolver",
-    coverImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663059542092/aCWMyC69vqJyddspaJMuZ6/cookbook-cover-11-doi-resolver-4ZtpkpxUjNVfLU4Nx3TNmt.webp",
+    coverImage: "/manus-storage/cookbook-cover-11-doi-resolver_6042ecaf.png",
     title: "DOI / 标题精确解析",
     subtitle: "快速拉取元数据、全文和引用证据，科研 Agent 的基础入口",
     tags: ["元数据", "检索"],
@@ -597,7 +597,7 @@ export const COOKBOOKS: CookbookItem[] = [
   // ═══════════════════════════════════════════════════════════
   {
     slug: "systematic-review-screener",
-    coverImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663059542092/aCWMyC69vqJyddspaJMuZ6/cookbook-cover-12-systematic-review-7uENs3DSS6YzxfZVBUNTiG.webp",
+    coverImage: "/manus-storage/cookbook-cover-12-systematic-review_a702dc03.png",
     title: "系统综述初筛助手",
     subtitle: "用 meta-catalog → meta-search → agentic-search 做 PRISMA-style 初筛",
     tags: ["综述", "Agent"],
@@ -650,7 +650,7 @@ export const COOKBOOKS: CookbookItem[] = [
   // ═══════════════════════════════════════════════════════════
   {
     slug: "evidence-pack",
-    coverImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663059542092/aCWMyC69vqJyddspaJMuZ6/cookbook-cover-13-evidence-pack-AKMDiqLbtuPAw2hTn8VQ3T.webp",
+    coverImage: "/manus-storage/cookbook-cover-13-evidence-pack_3acea4a6.png",
     title: "论文可信引用包 Evidence Pack",
     subtitle: "将 claim / quote / doc_id / chunk_id / offset / page_no / title 标准化，RAG/Agent 的底层模板",
     tags: ["RAG", "工具"],
@@ -700,7 +700,7 @@ export const COOKBOOKS: CookbookItem[] = [
   // ═══════════════════════════════════════════════════════════
   {
     slug: "research-trend-scanner",
-    coverImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663059542092/aCWMyC69vqJyddspaJMuZ6/cookbook-cover-14-trend-scanner-oQCypXD7axobB7mYMp3y5c.webp",
+    coverImage: "/manus-storage/cookbook-cover-14-trend-scanner_7be35c35.png",
     title: "研究方向趋势扫描",
     subtitle: "查看某方向近 5 年热度、头部期刊、高被引论文和关键词变化",
     tags: ["元数据", "检索"],
@@ -747,7 +747,7 @@ export const COOKBOOKS: CookbookItem[] = [
   // ═══════════════════════════════════════════════════════════
   {
     slug: "paper-reader",
-    coverImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663059542092/aCWMyC69vqJyddspaJMuZ6/cookbook-cover-15-paper-reader-LLoVqfcLnU5NVGiaNqfe6h.webp",
+    coverImage: "/manus-storage/cookbook-cover-15-paper-reader_cf1e2363.png",
     title: "论文阅读助手",
     subtitle: "给定 doc_id 后分段读取全文，抽取方法、数据、结论、局限",
     tags: ["工具", "RAG"],

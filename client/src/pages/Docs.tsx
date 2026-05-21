@@ -1486,7 +1486,7 @@ function OverviewPage({ onGo }: { onGo: (a: Active) => void }) {
         {PRODUCTS.map((p) => {
           const PIcon = p.icon;
           return (
-            <div key={p.key} className="card-paper p-5 flex flex-col">
+            <div key={p.key} className="card-paper p-5 flex flex-col h-full">
               <div className="flex items-center gap-2.5">
                 <span
                   className="h-9 w-9 rounded-xl border hairline grid place-items-center"
@@ -1518,13 +1518,47 @@ function OverviewPage({ onGo }: { onGo: (a: Active) => void }) {
                 </div>
                 <button
                   onClick={() => onGo({ kind: "product", product: p.key, section: "overview" })}
-                  className="mt-3 inline-flex items-center gap-1 text-[12.5px] text-[var(--ink)] hover:opacity-80 transition-opacity">
+                  className="mt-auto pt-3 inline-flex items-center gap-1 text-[12.5px] text-[var(--ink)] hover:opacity-80 transition-opacity">
                   查看接入指南 <ArrowRight className="h-3 w-3" />
                 </button>
               </div>
             </div>
           );
         })}
+      </section>
+
+      {/* 产品对比表 */}
+      <section className="mt-8 overflow-x-auto">
+        <table className="w-full text-[12.5px] text-[var(--ink-2)] border-collapse">
+          <thead>
+            <tr className="border-b hairline text-left">
+              <th className="py-2.5 pr-4 font-medium text-[var(--ink-3)] text-[11.5px] uppercase tracking-wider"></th>
+              <th className="py-2.5 px-4 font-medium text-[var(--ink)] text-[13px]">Sciverse</th>
+              <th className="py-2.5 px-4 font-medium text-[var(--ink)] text-[13px]">点石 DianShi</th>
+              <th className="py-2.5 px-4 font-medium text-[var(--ink)] text-[13px]">SeqStudio</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-b hairline">
+              <td className="py-2.5 pr-4 text-[var(--ink-3)] font-medium">数据范围</td>
+              <td className="py-2.5 px-4">5.16 亿知识记录·814 种语言·1.3M+ 期刊与会议</td>
+              <td className="py-2.5 px-4">千万级化学物质·亿级反应·百万级专利文献</td>
+              <td className="py-2.5 px-4">BLAST·InterProScan·Foldseek·TMHMM 多源证据</td>
+            </tr>
+            <tr className="border-b hairline">
+              <td className="py-2.5 pr-4 text-[var(--ink-3)] font-medium">接入形态</td>
+              <td className="py-2.5 px-4">API·Skills (MCP)·CLI·SDK</td>
+              <td className="py-2.5 px-4">Skills (MCP)</td>
+              <td className="py-2.5 px-4">在线访问</td>
+            </tr>
+            <tr>
+              <td className="py-2.5 pr-4 text-[var(--ink-3)] font-medium">适用场景</td>
+              <td className="py-2.5 px-4">Agent 科研检索·RAG 证据·文献综述</td>
+              <td className="py-2.5 px-4">化学信息检索·逆合成 RAG·反应路径规划</td>
+              <td className="py-2.5 px-4">蛋白质功能注释·序列同源·结构域分析</td>
+            </tr>
+          </tbody>
+        </table>
       </section>
 
       {/* 热门 Cookbook */}

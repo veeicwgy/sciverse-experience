@@ -1148,7 +1148,7 @@ export default function Experience() {
                 },
                 {
                   slug: "evidence-pack",
-                  cover: "https://d2xsxph8kpxj0f.cloudfront.net/310519663059542092/aCWMyC69vqJyddspaJMuZ6/cookbook-cover-13-evidence-pack-5jTfYBjKCbfPMGvdVGnXhM.webp",
+                  cover: "/manus-storage/cookbook-cover-13-evidence-pack_3acea4a6.png",
                   title: "论文可信引用包 Evidence Pack",
                   desc: "标准化 claim/quote/doc_id/offset/title，所有 RAG/Agent 的底层引用模板",
                   tags: ["RAG", "Agent"],
@@ -1169,7 +1169,7 @@ export default function Experience() {
                 },
                 {
                   slug: "paper-reader",
-                  cover: "https://d2xsxph8kpxj0f.cloudfront.net/310519663059542092/aCWMyC69vqJyddspaJMuZ6/cookbook-cover-15-paper-reader-5bMhHLVLdnJGXMqjVMVRhN.webp",
+                  cover: "/manus-storage/cookbook-cover-15-paper-reader_cf1e2363.png",
                   title: "论文阅读助手",
                   desc: "分段读取全文，抽取方法、数据、结论、局限",
                   tags: ["工具", "Agent"],
