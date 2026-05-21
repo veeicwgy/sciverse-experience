@@ -1545,24 +1545,14 @@ function OverviewPage({ onGo }: { onGo: (a: Active) => void }) {
             <button
               key={item.slug}
               onClick={() => onGo({ kind: "cookbook-detail", slug: item.slug })}
-              className="group text-left p-4 rounded-xl border hairline bg-white hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-              <div className="flex items-center gap-1.5 mb-2">
-                {item.tags.slice(0, 2).map((t) => (
-                  <span key={t} className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--brand)]/[0.06] text-[var(--brand)] border border-[var(--brand)]/15">
-                    {t}
-                  </span>
-                ))}
-                <span className="ml-auto text-[10px] text-[var(--ink-3)]">{item.difficulty}</span>
-              </div>
-              <h3 className="text-[13.5px] font-semibold text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors leading-snug">
+              className="group text-left p-5 rounded-xl border border-neutral-200 bg-white hover:border-neutral-300 hover:shadow-[0_2px_12px_rgba(0,0,0,0.06)] transition-all duration-200">
+              <BookOpen className="h-4.5 w-4.5 text-neutral-400 mb-2.5" />
+              <h3 className="text-[13.5px] font-semibold text-neutral-900 group-hover:text-neutral-700 transition-colors leading-snug">
                 {item.title}
               </h3>
-              <p className="mt-1 text-[12px] text-[var(--ink-3)] leading-relaxed line-clamp-2">
+              <p className="mt-1.5 text-[12px] text-neutral-500 leading-relaxed line-clamp-2">
                 {item.subtitle}
               </p>
-              <div className="mt-2.5 flex items-center gap-1 text-[11px] text-[var(--brand)] opacity-0 group-hover:opacity-100 transition-opacity">
-                查看详情 <ArrowRight className="h-3 w-3" />
-              </div>
             </button>
           ))}
         </div>
@@ -2871,18 +2861,18 @@ function groupBy<T, K extends string>(list: T[], keyFn: (item: T) => K): Record<
 // ─── Cookbook 页面组件 ─────────────────────────────────────
 
 const TAG_COLORS: Record<CookbookTag, string> = {
-  RAG: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  Agent: "bg-violet-50 text-violet-700 border-violet-200",
-  "检索": "bg-blue-50 text-blue-700 border-blue-200",
-  "多模态": "bg-amber-50 text-amber-700 border-amber-200",
-  Skill: "bg-rose-50 text-rose-700 border-rose-200",
-  "专利": "bg-cyan-50 text-cyan-700 border-cyan-200",
+  RAG: "bg-neutral-100 text-neutral-600",
+  Agent: "bg-neutral-100 text-neutral-600",
+  "检索": "bg-neutral-100 text-neutral-600",
+  "多模态": "bg-neutral-100 text-neutral-600",
+  Skill: "bg-neutral-100 text-neutral-600",
+  "专利": "bg-neutral-100 text-neutral-600",
 };
 
 const DIFF_COLORS: Record<string, string> = {
-  "入门": "text-green-600",
-  "进阶": "text-amber-600",
-  "高级": "text-red-600",
+  "入门": "text-neutral-400",
+  "进阶": "text-neutral-500",
+  "高级": "text-neutral-600",
 };
 
 function CookbookIndexPage({ onGo }: { onGo: (a: Active) => void }) {
@@ -2913,39 +2903,28 @@ function CookbookIndexPage({ onGo }: { onGo: (a: Active) => void }) {
 
   return (
     <div className="ed-in">
-      {/* Hero header with brand accent */}
-      <div className="relative overflow-hidden rounded-2xl border hairline bg-white px-7 pt-7 pb-6 mb-8" style={{ backgroundImage: "linear-gradient(135deg, rgba(91,91,247,0.04) 0%, rgba(91,91,247,0) 60%)" }}>
-        <div aria-hidden className="absolute left-0 top-5 bottom-5 w-[2px] rounded-r" style={{ background: "var(--brand)" }} />
-        <div className="flex items-center gap-2 text-[11px] tracking-[0.28em] text-[var(--ink-3)] uppercase font-mono">
-          <span className="inline-block h-px w-4 bg-[var(--ink-3)]/50" />
-          Cookbook
-        </div>
-        <h1 className="mt-2.5 text-[26px] lg:text-[30px] font-display tracking-tight text-[var(--ink)] leading-tight">
+      {/* Minimal header — Claude Cookbook style */}
+      <div className="mb-8">
+        <h1 className="text-[28px] lg:text-[32px] font-semibold tracking-tight text-[var(--ink)] leading-tight">
           Sciverse Cookbook
         </h1>
-        <p className="mt-2 text-[14px] text-[var(--ink-2)] leading-relaxed max-w-[580px]">
-          场景化开发者案例库—用真实任务展示如何把 Sciverse 接入 Agent、RAG、科研检索。每个案例可复制、可运行。
+        <p className="mt-2 text-[15px] text-[var(--ink-2)] leading-relaxed">
+          Practical guides and examples for integrating Sciverse into your workflow
         </p>
-        <div className="mt-4 flex items-center gap-3 text-[12px] text-[var(--ink-3)]">
-          <span className="flex items-center gap-1.5"><BookOpen className="h-3.5 w-3.5" />{COOKBOOKS.length} 个案例</span>
-          <span className="h-3 w-px bg-[var(--hairline)]" />
-          <span className="flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" />5 个接口覆盖</span>
-          <span className="h-3 w-px bg-[var(--hairline)]" />
-          <span className="flex items-center gap-1.5"><Cable className="h-3.5 w-3.5" />Colab 可运行</span>
-        </div>
+        <div className="mt-5 h-px bg-[var(--hairline)]" />
       </div>
 
-      {/* 标签筛选 — 更精致的胶囊样式 */}
-      <div className="flex flex-wrap gap-1.5">
+      {/* 筛选标签 — 极简文字按钮风格 */}
+      <div className="flex flex-wrap items-center gap-1 mb-6">
         <button
           onClick={() => setFilter("all")}
           className={cn(
-            "px-3.5 py-1.5 rounded-full text-[12px] font-medium border transition-all duration-200",
+            "px-3 py-1.5 rounded-md text-[13px] transition-colors duration-150",
             filter === "all"
-              ? "bg-[var(--ink)] text-white border-[var(--ink)] shadow-sm"
-              : "bg-white text-[var(--ink-2)] border-[var(--hairline)] hover:border-[var(--ink)]/25 hover:text-[var(--ink)]",
+              ? "bg-neutral-900 text-white font-medium"
+              : "text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100",
           )}>
-          全部 · {COOKBOOKS.length}
+          All
         </button>
         {allTags.map((tag) => {
           const count = COOKBOOKS.filter((c) => c.tags.includes(tag)).length;
@@ -2955,69 +2934,50 @@ function CookbookIndexPage({ onGo }: { onGo: (a: Active) => void }) {
               key={tag}
               onClick={() => setFilter(tag)}
               className={cn(
-                "px-3.5 py-1.5 rounded-full text-[12px] font-medium border transition-all duration-200",
+                "px-3 py-1.5 rounded-md text-[13px] transition-colors duration-150",
                 filter === tag
-                  ? "bg-[var(--ink)] text-white border-[var(--ink)] shadow-sm"
-                  : "bg-white text-[var(--ink-2)] border-[var(--hairline)] hover:border-[var(--ink)]/25 hover:text-[var(--ink)]",
+                  ? "bg-neutral-900 text-white font-medium"
+                  : "text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100",
               )}>
-              {tag} · {count}
+              {tag}
             </button>
           );
         })}
       </div>
 
-      {/* 卡片网格 — Editorial card-paper 风格 */}
-      <div ref={gridRef} className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3.5">
+      {/* 卡片网格 — Claude Cookbook 3列极简风格 */}
+      <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((item, idx) => (
           <button
             key={item.slug}
             data-slug={item.slug}
             onClick={() => onGo({ kind: "cookbook-detail", slug: item.slug })}
-            className={`group relative text-left p-0 overflow-hidden rounded-xl bg-white transition-all duration-500 hover:-translate-y-[2px] hover:shadow-[0_8px_30px_-8px_rgba(91,91,247,0.15)] ${
-              visibleSet.has(item.slug) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+            className={`group relative text-left rounded-xl border border-neutral-200 bg-white p-5 transition-all duration-400 hover:border-neutral-300 hover:shadow-[0_2px_12px_rgba(0,0,0,0.06)] ${
+              visibleSet.has(item.slug) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
             }`}
-            style={{ transitionDelay: `${idx * 70}ms` }}>
-            {/* 渐变边框容器 */}
-            <div className="absolute inset-0 rounded-xl border border-[var(--hairline)] group-hover:border-transparent transition-colors duration-300" />
-            <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ padding: '1px', background: 'linear-gradient(135deg, rgba(91,91,247,0.4) 0%, rgba(91,91,247,0.08) 50%, rgba(91,91,247,0.25) 100%)', mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', maskComposite: 'exclude', WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'xor', borderRadius: 'inherit' }} />
-            {/* 卡片顶部彩色条 */}
-            <div className="relative h-[3px] w-full" style={{ background: `linear-gradient(90deg, var(--brand) 0%, rgba(91,91,247,0.2) 100%)` }} />
-            <div className="relative px-5 pt-4 pb-4">
-              {/* 头部：标签 + 难度 */}
-              <div className="flex items-center gap-1.5 mb-3">
-                {item.tags.map((t) => (
-                  <span key={t} className={cn("px-2 py-[2px] rounded-[4px] text-[10.5px] font-medium", TAG_COLORS[t])}>
-                    {t}
-                  </span>
-                ))}
-                <span className={cn("ml-auto text-[10.5px] font-medium tracking-wide", DIFF_COLORS[item.difficulty])}>
-                  {item.difficulty}
+            style={{ transitionDelay: `${idx * 60}ms` }}>
+            {/* 图标 — 统一单色 book icon */}
+            <div className="mb-3">
+              <BookOpen className="h-5 w-5 text-neutral-400" />
+            </div>
+            {/* 标题 */}
+            <h3 className="text-[14px] font-semibold text-neutral-900 leading-snug tracking-tight group-hover:text-neutral-700 transition-colors">
+              {item.title}
+            </h3>
+            {/* 描述 */}
+            <p className="mt-2 text-[13px] text-neutral-500 leading-relaxed line-clamp-2">
+              {item.subtitle}
+            </p>
+            {/* 底部标签 — 统一灰色 */}
+            <div className="mt-4 flex items-center gap-1.5">
+              {item.tags.slice(0, 2).map((t) => (
+                <span key={t} className="px-2 py-0.5 rounded text-[11px] font-medium bg-neutral-100 text-neutral-500">
+                  {t}
                 </span>
-              </div>
-              {/* 标题 */}
-              <h3 className="text-[15px] font-semibold text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors duration-280 leading-snug tracking-tight">
-                {item.title}
-              </h3>
-              {/* 副标题 */}
-              <p className="mt-1.5 text-[12.5px] text-[var(--ink-3)] leading-relaxed line-clamp-2">
-                {item.subtitle}
-              </p>
-              {/* 底部元信息 */}
-              <div className="mt-4 pt-3 border-t border-[var(--hairline)] flex items-center justify-between">
-                <div className="flex items-center gap-3 text-[11px] text-[var(--ink-3)]">
-                  <span className="flex items-center gap-1">
-                    <Zap className="h-3 w-3 text-[var(--brand)]/60" />
-                    {item.estimatedCalls}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Cable className="h-3 w-3" />
-                    {item.tools.length} 接口
-                  </span>
-                </div>
-                <span className="flex items-center gap-1 text-[11.5px] font-medium text-[var(--brand)] opacity-0 group-hover:opacity-100 translate-x-[-4px] group-hover:translate-x-0 transition-all duration-280">
-                  查看 <ArrowRight className="h-3 w-3" />
-                </span>
-              </div>
+              ))}
+              <span className="ml-auto text-[11px] text-neutral-400">
+                {item.difficulty}
+              </span>
             </div>
           </button>
         ))}
@@ -3083,11 +3043,11 @@ function CookbookDetailPage({ slug, onGo }: { slug: string; onGo: (a: Active) =>
       {/* 标题区 */}
       <div className="flex items-center gap-2 mb-2">
         {item.tags.map((t) => (
-          <span key={t} className={cn("px-2 py-0.5 rounded text-[11px] font-medium border", TAG_COLORS[t])}>
+          <span key={t} className="px-2 py-0.5 rounded text-[11px] font-medium bg-neutral-100 text-neutral-500">
             {t}
           </span>
         ))}
-        <span className={cn("text-[11px] font-medium", DIFF_COLORS[item.difficulty])}>
+        <span className="text-[11px] font-medium text-neutral-400">
           {item.difficulty}
         </span>
       </div>
