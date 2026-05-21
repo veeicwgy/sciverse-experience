@@ -1021,144 +1021,84 @@ export default function Experience() {
             </section>
           )}
 
-          {/* DRIFT CARDS */}
+          {/* COOKBOOK SHOWCASE */}
           <section className="mt-14">
             <div className="relative">
               <div className="flex items-center gap-2 text-[11px] tracking-[0.28em] text-[var(--ink-3)] uppercase font-mono">
                 <span className="inline-block h-px w-5 bg-[var(--ink-3)]/50" />
-                Ecosystem
+                Cookbook
               </div>
               <div className="mt-2 flex items-end justify-between gap-4 flex-wrap">
                 <h2 className="font-display text-[26px] text-[var(--ink)] leading-tight">
-                  探索 <span className="italic">Sciverse</span> 生态
+                  场景案例
                 </h2>
-                <div className="text-[11.5px] text-[var(--ink-3)] font-mono tracking-wide">
-                  三个产品 · 一个 Token 通用
-                </div>
+                <a
+                  href="/docs#cookbook"
+                  className="text-[12.5px] text-[var(--ink-3)] hover:text-[var(--brand)] transition-colors duration-300 flex items-center gap-1 font-mono tracking-wide">
+                  查看全部 9 个案例
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14" />
+                    <path d="m12 5 7 7-7 7" />
+                  </svg>
+                </a>
               </div>
-              <p className="mt-2 text-[13.5px] text-[var(--ink-2)] leading-relaxed max-w-[520px]">
-                当一次检索不够时，下钻到反应数据库、蛋白功能分析、开源数据集。
+              <p className="mt-2 text-[13.5px] text-[var(--ink-2)] leading-relaxed max-w-[560px]">
+                用真实任务展示如何把 Sciverse 接入 Agent、RAG、科研检索。每个案例可复制、可运行。
               </p>
             </div>
-            <div className="mt-5 grid md:grid-cols-3 gap-4">
+            <div className="mt-6 grid md:grid-cols-3 gap-4">
               {[
                 {
-                  logo: "/manus-storage/dianshi_8cef3dfd.svg",
-                  name: "点石 DianShi",
-                  desc: "一站式化学物质、反应与专利文献检索平台",
-                  bullets: [
-                    { num: "10M+", dim: "化学反应" },
-                    { num: "6M+", dim: "化学物质" },
-                    { num: "1M+", dim: "专利文献" },
-                  ],
-                  cta: "前往点石",
-                  href: "https://dianshi.opendatalab.org.cn/",
+                  slug: "literature-review-agent",
+                  cover: "/manus-storage/cookbook-cover-1-literature-review_709a5f2b.png",
+                  title: "科研文献综述 Agent",
+                  desc: "从一句研究问题出发，自动检索、摘要、生成带引用的文献综述",
+                  tags: ["Agent", "RAG"],
                 },
                 {
-                  logo: "/manus-storage/seqstudio_3990637c.svg",
-                  name: "SeqStudio",
-                  desc: "解码生命·智享菁阔 · 一体化蛋白功能 AI 分析平台",
-                  bullets: [
-                    { num: "57万+", dim: "蛋白注释" },
-                    { num: "BLAST", dim: "Foldseek 一体化" },
-                    { num: "AI", dim: "推理 + LLM 综述" },
-                  ],
-                  cta: "前往分析",
-                  href: "https://seqstudio.opendatalab.org.cn/home",
+                  slug: "scientific-rag",
+                  cover: "/manus-storage/cookbook-cover-2-rag-datasource_28fdc177.png",
+                  title: "科学 RAG 数据源",
+                  desc: "将 Sciverse 作为 RAG pipeline 的检索后端，为 LLM 提供可信科学证据",
+                  tags: ["RAG", "Agent"],
                 },
                 {
-                  logo: "/manus-storage/scibase_43bd98d3.svg",
-                  name: "Sci-Base 数据集",
-                  desc: "AI-Ready 科学数据集，面向 Agent 的开源语料",
-                  bullets: [
-                    { num: "125M+", dim: "OA 文献" },
-                    { num: "570K+", dim: "SA-Prot-Annot 蛋白注释" },
-                    { num: "15k", dim: "SA-RxnDiagram 反应图" },
-                  ],
-                  cta: "浏览数据集",
-                  href: "https://sciverse.space/",
+                  slug: "fulltext-evidence",
+                  cover: "/manus-storage/cookbook-cover-3-fulltext-evidence_d8bbb7f7.png",
+                  title: "论文全文证据检索",
+                  desc: "从检索片段出发，定位并读取原文完整段落作为可引用证据",
+                  tags: ["RAG", "检索"],
                 },
-              ].map((c) => {
-                return (
-                  <a
-                    key={c.name}
-                    href={c.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="card-paper p-5 group block">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-xl grid place-items-center bg-white border hairline overflow-hidden transition-colors duration-300 group-hover:border-[var(--brand)]/40">
-                        <img src={c.logo} alt={c.name} className="h-7 w-7 object-contain transition-transform duration-500 ease-out group-hover:scale-[1.04]" />
-                      </div>
-                    </div>
-                    <div className="mt-4 font-display text-[20px] text-[var(--ink)] leading-snug">
-                      {c.name}
-                    </div>
-                    <div className="text-[12.5px] text-[var(--ink-2)] mt-1 leading-relaxed">
-                      {c.desc}
-                    </div>
-                    <ul className="mt-3 space-y-1.5 text-[12.5px] text-[var(--ink-2)]">
-                      {c.bullets.map((b) => (
-                        <li key={b.num + b.dim} className="flex items-baseline gap-2">
-                          <span className="dot on" />
-                          <span className="font-mono text-[12.5px] text-[var(--ink)] tracking-[-0.01em]">{b.num}</span>
-                          <span className="text-[var(--ink-3)]">·</span>
-                          <span>{b.dim}</span>
-                        </li>
+              ].map((item) => (
+                <a
+                  key={item.slug}
+                  href={`/docs#cookbook/${item.slug}`}
+                  className="group block rounded-xl border hairline bg-white overflow-hidden transition-all duration-300 hover:shadow-[0_2px_16px_rgba(0,0,0,0.06)] hover:-translate-y-[1px]">
+                  {/* 封面图 */}
+                  <div className="aspect-[3/2] overflow-hidden bg-neutral-50">
+                    <img
+                      src={item.cover}
+                      alt={item.title}
+                      className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+                    />
+                  </div>
+                  {/* 内容 */}
+                  <div className="p-4 pb-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      {item.tags.map((t) => (
+                        <span key={t} className="text-[10.5px] font-mono text-[var(--ink-3)] tracking-wide">{t}</span>
                       ))}
-                    </ul>
-                    <div className="mt-4 inline-flex items-center gap-1 text-[12.5px] text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors duration-300">
-                      {c.cta}
-                      <ExternalLink className="h-3 w-3 transition-transform duration-300 ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                     </div>
-                  </a>
-                );
-              })}
+                    <h3 className="font-display text-[15px] text-[var(--ink)] leading-snug group-hover:text-[var(--brand)] transition-colors duration-300">
+                      {item.title}
+                    </h3>
+                    <p className="mt-1.5 text-[12.5px] text-[var(--ink-2)] leading-relaxed line-clamp-2">
+                      {item.desc}
+                    </p>
+                  </div>
+                </a>
+              ))}
             </div>
-
-            {/* Cookbook 入口卡片 — Editorial 高级版 */}
-            <a
-              href="/docs#cookbook"
-              className="mt-5 block relative overflow-hidden rounded-2xl border hairline bg-white group transition-all duration-300 hover:shadow-md hover:-translate-y-[1px]">
-              {/* 左侧 brand 竖条 */}
-              <div aria-hidden className="absolute left-0 top-4 bottom-4 w-[2px] rounded-r" style={{ background: "var(--brand)" }} />
-              {/* 背景微光 */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[var(--brand)]/[0.035] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative px-6 pl-7 py-5 flex items-center gap-5">
-                {/* 图标容器 */}
-                <div className="h-11 w-11 rounded-xl grid place-items-center border hairline shrink-0 group-hover:border-[var(--brand)]/40 transition-colors duration-300" style={{ background: "var(--brand-soft)" }}>
-                  <svg className="h-5 w-5 text-[var(--brand)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
-                    <path d="M8 7h6" />
-                    <path d="M8 11h4" />
-                  </svg>
-                </div>
-                {/* 内容 */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-display text-[16px] text-[var(--ink)] leading-snug group-hover:text-[var(--brand)] transition-colors duration-300">
-                      Sciverse Cookbook
-                    </span>
-                    <span className="px-1.5 py-[1px] rounded-[4px] border hairline text-[10px] font-mono tracking-wide text-[var(--brand)] bg-[var(--brand)]/[0.06]">
-                      9 RECIPES
-                    </span>
-                  </div>
-                  <div className="text-[12.5px] text-[var(--ink-3)] mt-1 leading-relaxed">
-                    文献综述 Agent、科学 RAG、Citation Grounding、专利交叉探索、多模态图表检索—可复制、可运行的开发者案例库
-                  </div>
-                  <div className="mt-2 flex items-center gap-3 text-[11px] text-[var(--ink-3)]">
-                    <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Python / TypeScript</span>
-                    <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-amber-400" />Colab 可运行</span>
-                    <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-violet-400" />Agent Prompt 示例</span>
-                  </div>
-                </div>
-                {/* 箭头 */}
-                <svg className="h-4 w-4 text-[var(--ink-3)] group-hover:text-[var(--brand)] group-hover:translate-x-0.5 transition-all duration-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14" />
-                  <path d="m12 5 7 7-7 7" />
-                </svg>
-              </div>
-            </a>
           </section>
 
           {/* DATA SCALE */}
