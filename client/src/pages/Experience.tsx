@@ -38,7 +38,7 @@ import { GitBranch, Plus } from "lucide-react";
  * CountUp · IntersectionObserver 首次入视口才跳动。
  * 支持 "25M+" / "570K+" / "50K+" / "10M+" 以及中文数量单位 "万" 。
  */
-function CountUp({ value, duration = 1400 }: { value: string; duration?: number }) {
+function CountUp({ value, duration = 1400, delay = 0 }: { value: string; duration?: number; delay?: number }) {
   // 拆解原字符串为：前缀数字 + 单位后缀（保留 + 等符号）
   const parsed = useMemo(() => {
     const m = value.match(/^([\d,.]+)(.*)$/);
@@ -73,15 +73,17 @@ function CountUp({ value, duration = 1400 }: { value: string; duration?: number 
         entries.forEach((entry) => {
           if (entry.isIntersecting && !startedRef.current) {
             startedRef.current = true;
-            const start = performance.now();
-            const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
-            const tick = (now: number) => {
-              const p = Math.min(1, (now - start) / duration);
-              setDisplay(parsed.target * easeOut(p));
-              if (p < 1) requestAnimationFrame(tick);
-              else setDisplay(parsed.target);
-            };
-            requestAnimationFrame(tick);
+            setTimeout(() => {
+              const start = performance.now();
+              const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+              const tick = (now: number) => {
+                const p = Math.min(1, (now - start) / duration);
+                setDisplay(parsed.target * easeOut(p));
+                if (p < 1) requestAnimationFrame(tick);
+                else setDisplay(parsed.target);
+              };
+              requestAnimationFrame(tick);
+            }, delay);
             io.disconnect();
           }
         });
@@ -90,7 +92,7 @@ function CountUp({ value, duration = 1400 }: { value: string; duration?: number 
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [duration, parsed.target]);
+  }, [duration, delay, parsed.target]);
 
   // 格式化：整数保留原始小数位（最多 1 位）
   const formatted = useMemo(() => {
@@ -647,6 +649,46 @@ function CookbookGrid({ items }: { items: { slug: string; cover: string; title: 
   );
 }
 
+/* DataScaleGrid — 数据卡片进入视口时交错淡入 */
+function DataScaleGrid({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const cards = el.querySelectorAll<HTMLElement>('[data-scale-card]');
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const card = entry.target as HTMLElement;
+            const delay = Number(card.dataset.scaleIdx || 0) * 100;
+            setTimeout(() => {
+              card.style.opacity = '1';
+              card.style.transform = 'translateY(0)';
+            }, delay);
+            io.unobserve(card);
+          }
+        });
+      },
+      { threshold: 0.2 }
+    );
+    cards.forEach((c) => {
+      c.style.opacity = '0';
+      c.style.transform = 'translateY(12px)';
+      c.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+      io.observe(c);
+    });
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className="mt-6 border-y hairline">
+      <div className="grid grid-cols-2 lg:grid-cols-4">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function Experience() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -1124,9 +1166,8 @@ export default function Experience() {
                 更新于 2026 年 5 月
               </div>
             </div>
-            <div className="mt-6 border-y hairline">
-              <div className="grid grid-cols-2 lg:grid-cols-4">
-                {[
+            <DataScaleGrid>
+              {[
                   { num: "341M+", unit: "篇", label: "学术文献", note: "1400 — 2026 · 跨越六个世纪", pct: 96, Icon: FileText },
                   { num: "105M+", unit: "册", label: "图书", note: "含古籍与手稿", pct: 78, Icon: Layers },
                   { num: "70M+", unit: "件", label: "全球专利", note: "与文献交叉引用", pct: 70, Icon: Atom },
@@ -1134,6 +1175,8 @@ export default function Experience() {
                 ].map((d, i) => (
                   <div
                     key={d.label}
+                    data-scale-card
+                    data-scale-idx={i}
                     className={cn(
                       "group relative px-5 py-7 min-w-0 transition-colors hover:bg-[#f7f6f1]",
                       i !== 0 && "lg:border-l hairline",
@@ -1147,7 +1190,7 @@ export default function Experience() {
                     </div>
                     <div className="mt-3 flex items-baseline gap-1.5 min-w-0">
                       <span className="font-display font-semibold leading-none tracking-[-0.025em] text-[var(--ink)] text-[clamp(30px,3.2vw,44px)] truncate transition-colors duration-300 group-hover:text-[var(--brand)]">
-                        <CountUp value={d.num} />
+                        <CountUp value={d.num} delay={i * 120} />
                       </span>
                       <span className="text-[12px] text-[var(--ink-2)] shrink-0">{d.unit}</span>
                     </div>
@@ -1167,8 +1210,7 @@ export default function Experience() {
                     </div>
                   </div>
                 ))}
-              </div>
-            </div>
+            </DataScaleGrid>
 
             <div className="mt-5 grid md:grid-cols-3 gap-px bg-[var(--brand)]/10 rounded-xl overflow-hidden border hairline">
               {[                { k: "原生", en: "Agent First", metric: "Agent", unit: "优先", v: "原生支持 Manus / Claude / Cursor", Icon: Zap },
