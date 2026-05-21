@@ -38,6 +38,7 @@ export type CookbookItem = {
   estimatedCalls: string;
   tools: string[];
   pipeline: string[];
+  coverImage?: string;
   scenario: string;
   inputExample: string;
   outputExample: string;
@@ -53,6 +54,7 @@ export const COOKBOOKS: CookbookItem[] = [
   // ═══════════════════════════════════════════════════════════
   {
     slug: "literature-review-agent",
+    coverImage: "/manus-storage/cookbook-cover-1-literature-review_709a5f2b.png",
     title: "用 Sciverse 构建科研文献综述 Agent",
     subtitle: "从一句研究问题出发，自动检索、摘要、生成带引用的文献综述",
     tags: ["Agent", "RAG"],
@@ -105,6 +107,7 @@ export const COOKBOOKS: CookbookItem[] = [
   // ═══════════════════════════════════════════════════════════
   {
     slug: "scientific-rag",
+    coverImage: "/manus-storage/cookbook-cover-2-rag-datasource_28fdc177.png",
     title: "用 Sciverse 做科学 RAG 数据源",
     subtitle: "将 Sciverse 作为 RAG pipeline 的检索后端，为 LLM 提供可信科学证据",
     tags: ["RAG", "Agent"],
@@ -156,6 +159,7 @@ export const COOKBOOKS: CookbookItem[] = [
   // ═══════════════════════════════════════════════════════════
   {
     slug: "fulltext-evidence",
+    coverImage: "/manus-storage/cookbook-cover-3-fulltext-evidence_d8bbb7f7.png",
     title: "用 Sciverse 查找论文全文证据",
     subtitle: "从检索片段出发，定位并读取原文完整段落作为可引用证据",
     tags: ["RAG", "检索"],
@@ -202,6 +206,7 @@ export const COOKBOOKS: CookbookItem[] = [
   // ═══════════════════════════════════════════════════════════
   {
     slug: "download-figures",
+    coverImage: "/manus-storage/cookbook-cover-4-chart-download_95926cea.png",
     title: "用 Sciverse 下载论文图表资源",
     subtitle: "从全文 Markdown 中提取图表路径，通过 resource 接口获取二进制文件",
     tags: ["多模态", "检索"],
@@ -248,6 +253,7 @@ export const COOKBOOKS: CookbookItem[] = [
   // ═══════════════════════════════════════════════════════════
   {
     slug: "structured-paper-filter",
+    coverImage: "/manus-storage/cookbook-cover-5-structured-filter_3f56ccaa.png",
     title: "用 Sciverse 做结构化论文筛选",
     subtitle: "通过 meta-catalog 获取可用字段，用 meta-search 精确过滤论文",
     tags: ["检索", "Agent"],
@@ -295,6 +301,7 @@ export const COOKBOOKS: CookbookItem[] = [
   // ═══════════════════════════════════════════════════════════
   {
     slug: "skill-integration",
+    coverImage: "/manus-storage/cookbook-cover-6-skill-integration_05b65d61.png",
     title: "在 Claude / Cursor / Codex 中接入 Sciverse Skill",
     subtitle: "安装 Sciverse MCP 工具，让 AI 助手直接调用科学文献检索",
     tags: ["Skill", "Agent"],
@@ -341,6 +348,7 @@ export const COOKBOOKS: CookbookItem[] = [
   // ═══════════════════════════════════════════════════════════
   {
     slug: "patent-literature-cross",
+    coverImage: "/manus-storage/cookbook-cover-7-patent-explore_ea314eee.png",
     title: "用 Sciverse 做专利与文献语义探索",
     subtitle: "通过语义检索同时探索专利和学术文献，发现技术关联",
     tags: ["专利", "检索", "Agent"],
@@ -387,6 +395,7 @@ export const COOKBOOKS: CookbookItem[] = [
   // ═══════════════════════════════════════════════════════════
   {
     slug: "citation-grounding",
+    coverImage: "/manus-storage/cookbook-cover-8-citation-grounding_fe386fa5.png",
     title: "用 Sciverse 做科学问答的 Citation Grounding",
     subtitle: "为 LLM 回答的每一句话找到可验证的文献来源，消除幻觉",
     tags: ["RAG", "Agent"],
@@ -439,6 +448,7 @@ export const COOKBOOKS: CookbookItem[] = [
   // ═══════════════════════════════════════════════════════════
   {
     slug: "multimodal-figure-retrieval",
+    coverImage: "/manus-storage/cookbook-cover-9-multimodal-chart_5e8cc9b7.png",
     title: "用 Sciverse 做论文图表提取与分析 Demo",
     subtitle: "先检索论文，再从全文 Markdown 中定位图表路径并下载，结合多模态模型分析",
     tags: ["多模态", "检索", "Agent"],
