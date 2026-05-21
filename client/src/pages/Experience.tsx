@@ -31,6 +31,7 @@ import SearchErrorState, {
 } from "@/components/experience/SearchErrorState";
 import ContentSnippet from "@/components/experience/ContentSnippet";
 import { cn } from "@/lib/utils";
+import { COOKBOOKS } from "@/data/cookbooks";
 import { useSessionHistory, findSession, findVersion } from "@/hooks/useSessionHistory";
 import { GitBranch, Plus } from "lucide-react";
 
@@ -1127,7 +1128,7 @@ export default function Experience() {
                 href="/docs#cookbook"
                 className="text-[12px] text-[var(--ink-3)] hover:text-[var(--brand)] transition-colors duration-300 flex items-center gap-2">
                 <span className="inline-block h-px w-8 bg-[var(--ink-3)]/40" />
-                查看全部 15 个案例 →
+                查看全部 {COOKBOOKS.length} 个案例 →
               </a>
             </div>
             <CookbookGrid items={[
@@ -1146,11 +1147,32 @@ export default function Experience() {
                   tags: ["RAG", "Agent"],
                 },
                 {
+                  slug: "evidence-pack",
+                  cover: "https://d2xsxph8kpxj0f.cloudfront.net/310519663059542092/aCWMyC69vqJyddspaJMuZ6/cookbook-cover-13-evidence-pack-5jTfYBjKCbfPMGvdVGnXhM.webp",
+                  title: "论文可信引用包 Evidence Pack",
+                  desc: "标准化 claim/quote/doc_id/offset/title，所有 RAG/Agent 的底层引用模板",
+                  tags: ["RAG", "Agent"],
+                },
+                {
                   slug: "fulltext-evidence",
                   cover: "/manus-storage/cookbook-cover-3-fulltext-evidence_d8bbb7f7.png",
                   title: "论文全文证据检索",
                   desc: "从检索片段出发，定位并读取原文完整段落作为可引用证据",
                   tags: ["RAG", "检索"],
+                },
+                {
+                  slug: "structured-paper-filter",
+                  cover: "/manus-storage/cookbook-cover-5-structured-filter_f8b0c9a1.png",
+                  title: "结构化论文筛选",
+                  desc: "用 meta-catalog + meta-search 按年份、期刊、引用数等字段精确筛选",
+                  tags: ["检索", "元数据"],
+                },
+                {
+                  slug: "paper-reader",
+                  cover: "https://d2xsxph8kpxj0f.cloudfront.net/310519663059542092/aCWMyC69vqJyddspaJMuZ6/cookbook-cover-15-paper-reader-5bMhHLVLdnJGXMqjVMVRhN.webp",
+                  title: "论文阅读助手",
+                  desc: "分段读取全文，抽取方法、数据、结论、局限",
+                  tags: ["工具", "Agent"],
                 },
               ]} />
           </section>
