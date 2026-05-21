@@ -187,8 +187,8 @@ const SCIVERSE_ENDPOINTS: Endpoint[] = [
     ],
     paramsTitle: "请求体（JSON）",
     params: [
-      { name: "query", type: "string", required: true, desc: "你的检索问题；不能为空。", range: "最大 4096 字符" },
-      { name: "top_k", type: "integer", required: false, default: "10", range: "1–100", desc: "返回片段数量。" },
+      { name: "query", type: "string", required: true, desc: "你的检索问题；不能为空。", range: "最大 400 字符" },
+      { name: "top_k", type: "integer", required: false, default: "10", range: "1–150", desc: "返回片段数量。" },
       { name: "sub_queries", type: "integer", required: false, default: "0", range: "0–4", desc: "查询改写数量，0 表示不改写。" },
     ],
     response: [
@@ -213,8 +213,8 @@ const SCIVERSE_ENDPOINTS: Endpoint[] = [
       { code: "502/503", msg: "UPSTREAM_UNAVAILABLE", desc: "服务暂不可用，指数退避重试。" },
     ],
     limits: [
-      { name: "query 长度", value: "≤ 4096 字符" },
-      { name: "top_k 上限", value: "100" },
+      { name: "query 长度", value: "≤ 400 字符" },
+      { name: "top_k 上限", value: "150" },
       { name: "默认限流", value: "60 次 / 分钟" },
     ],
     retry: [
@@ -1229,7 +1229,7 @@ const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 2: 读取原文上下文",
         desc: "对高分片段调用 read_content 获取更完整的上下文",
-        code: { lang: "python", label: "Python", code: `async def read_context(doc_id: str, offset: int = 0, limit: int = 4096):\n    async with httpx.AsyncClient() as client:\n        resp = await client.get(\n            f"{BASE}/content",\n            headers={"Authorization": f"Bearer {TOKEN}"},\n            params={"doc_id": doc_id, "offset": offset, "limit": limit}\n        )\n        return resp.json()\n\n# 对 top 5 高分片段读取上下文\nevidences = []\nfor hit in sorted(hits, key=lambda x: x["score"], reverse=True)[:5]:\n    ctx = await read_context(hit["doc_id"], hit.get("offset", 0))\n    evidences.append({\n        "title": hit["title"],\n        "doc_id": hit["doc_id"],\n        "chunk": hit["chunk"],\n        "context": ctx["content"],\n        "score": hit["score"]\n    })` },
+        code: { lang: "python", label: "Python", code: `async def read_context(doc_id: str, offset: int = 0, limit: int = 4096):\n    async with httpx.AsyncClient() as client:\n        resp = await client.get(\n            f"{BASE}/content",\n            headers={"Authorization": f"Bearer {TOKEN}"},\n            params={"doc_id": doc_id, "offset": offset, "limit": limit}\n        )\n        return resp.json()\n\n# 对 top 5 高分片段读取上下文\nevidences = []\nfor hit in sorted(hits, key=lambda x: x["score"], reverse=True)[:5]:\n    ctx = await read_context(hit["doc_id"], hit.get("offset", 0))\n    evidences.append({\n        "title": hit["title"],\n        "doc_id": hit["doc_id"],\n        "chunk": hit["chunk"],\n        "context": ctx["text"],\n        "score": hit["score"]\n    })` },
       },
       {
         title: "Step 3: 生成带引用的综述",
@@ -1240,7 +1240,7 @@ const COOKBOOKS: CookbookItem[] = [
     notes: [
       "所有引用必须来自 Sciverse 返回的真实 doc_id，不要让 LLM 编造",
       "semantic_search 默认 top_k=10，综述场景建议 top_k=20 以获取更全面的证据",
-      "read_content 单次最大返回 4096 字符，如需更多上下文可多次调用并拼接",
+      "content 接口默认 limit=700，可传入更大值；如需全文请循环调用并拼接",
     ],
     nextSteps: [
       { label: "查看 semantic_search 接口文档", hash: "sciverse/api/agentic-search" },
@@ -1311,18 +1311,18 @@ const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 2: 读取完整上下文",
         desc: "调用 content 接口，以 offset 为起点读取原文",
-        code: { lang: "python", label: "Python", code: `import httpx\n\nasync def get_fulltext(doc_id: str, offset: int = 0, limit: int = 4096):\n    async with httpx.AsyncClient() as client:\n        resp = await client.get(\n            "https://api.sciverse.space/content",\n            headers={"Authorization": "Bearer sv-..."},\n            params={"doc_id": doc_id, "offset": offset, "limit": limit}\n        )\n        return resp.json()\n\n# 读取 chunk 所在位置的完整上下文\nresult = await get_fulltext(hit["doc_id"], offset=max(0, hit["offset"] - 500), limit=4096)\nprint(result["content"][:200] + "...")\nprint(f"Has more: {result['more']}, next_offset: {result.get('next_offset')}")` },
+        code: { lang: "python", label: "Python", code: `import httpx\n\nasync def get_fulltext(doc_id: str, offset: int = 0, limit: int = 4096):\n    async with httpx.AsyncClient() as client:\n        resp = await client.get(\n            "https://api.sciverse.space/content",\n            headers={"Authorization": "Bearer sv-..."},\n            params={"doc_id": doc_id, "offset": offset, "limit": limit}\n        )\n        return resp.json()\n\n# 读取 chunk 所在位置的完整上下文\nresult = await get_fulltext(hit["doc_id"], offset=max(0, hit["offset"] - 500), limit=4096)\nprint(result["text"][:200] + "...")\nprint(f"Has more: {result['more']}, next_offset: {result.get('next_offset')}")` },
       },
       {
         title: "Step 3: 迭代读取（可选）",
         desc: "如果需要更多上下文，使用 next_offset 继续",
-        code: { lang: "python", label: "Python", code: `# 如果 more=True，可以继续读取\nfull_text = result["content"]\nwhile result.get("more") and len(full_text) < 16000:\n    result = await get_fulltext(\n        hit["doc_id"],\n        offset=result["next_offset"],\n        limit=4096\n    )\n    full_text += result["content"]\n\nprint(f"Total context length: {len(full_text)} chars")` },
+        code: { lang: "python", label: "Python", code: `# 如果 more=True，可以继续读取\nfull_text = result["text"]\nwhile result.get("more") and len(full_text) < 16000:\n    result = await get_fulltext(\n        hit["doc_id"],\n        offset=result["next_offset"],\n        limit=4096\n    )\n    full_text += result["text"]\n\nprint(f"Total context length: {len(full_text)} chars")` },
       },
     ],
     notes: [
       "offset 是 Unicode 码点数，不是字节数",
       "建议向前偏移 500 字符读取，以获取片段的前文语境",
-      "单次 limit 最大 4096 字符，如需全文请循环调用",
+      "content 默认 limit=700，可传入更大值；如需全文请循环调用",
     ],
     nextSteps: [
       { label: "查看 content 接口文档", hash: "sciverse/api/content" },
@@ -1351,7 +1351,7 @@ const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 2: 调用 resource 下载图表",
         desc: "对每个路径调用 resource 接口获取二进制数据",
-        code: { lang: "python", label: "Python", code: `import httpx\nfrom pathlib import Path\n\nasync def download_resource(file_name: str, save_dir: str = "./figures"):\n    Path(save_dir).mkdir(exist_ok=True)\n    async with httpx.AsyncClient() as client:\n        resp = await client.get(\n            "https://api.sciverse.space/resource",\n            headers={"Authorization": "Bearer sv-..."},\n            params={"path": file_name}\n        )\n        # 保存文件\n        local_name = file_name.split("/")[-1]\n        save_path = f"{save_dir}/{local_name}"\n        Path(save_path).write_bytes(resp.content)\n        return save_path\n\n# 下载所有图表\nfor path in figure_paths:\n    saved = await download_resource(path)\n    print(f"Saved: {saved}")` },
+        code: { lang: "python", label: "Python", code: `import httpx\nfrom pathlib import Path\n\nasync def download_resource(file_name: str, save_dir: str = "./figures"):\n    Path(save_dir).mkdir(exist_ok=True)\n    async with httpx.AsyncClient() as client:\n        resp = await client.get(\n            "https://api.sciverse.space/resource",\n            headers={"Authorization": "Bearer sv-..."},\n            params={"file_name": file_name}\n        )\n        # 保存文件\n        local_name = file_name.split("/")[-1]\n        save_path = f"{save_dir}/{local_name}"\n        Path(save_path).write_bytes(resp.content)\n        return save_path\n\n# 下载所有图表\nfor path in figure_paths:\n    saved = await download_resource(path)\n    print(f"Saved: {saved}")` },
       },
       {
         title: "Step 3: 多模态分析（可选）",
@@ -1391,7 +1391,7 @@ const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 2: 构造过滤条件并检索",
         desc: "根据 catalog 信息构造 filters，调用 meta-search",
-        code: { lang: "python", label: "Python", code: `async def search_papers(query: str, filters: list, sort: str = None, top_k: int = 20):\n    async with httpx.AsyncClient() as client:\n        body = {"query": query, "filters": filters, "top_k": top_k}\n        if sort:\n            body["sort"] = sort\n        resp = await client.post(\n            "https://api.sciverse.space/meta-search",\n            headers={"Authorization": "Bearer sv-..."},\n            json=body\n        )\n        return resp.json()\n\n# 构造过滤条件\nresults = await search_papers(\n    query="CRISPR gene editing",\n    filters=[\n        {"field": "year", "op": "gte", "value": 2022},\n        {"field": "year", "op": "lte", "value": 2024},\n        {"field": "venue", "op": "in", "value": ["Nature", "Science"]}\n    ],\n    sort="-citations"\n)\nprint(f"Total: {results['total']} papers")\nfor h in results["hits"][:5]:\n    print(f"  {h['title']} ({h['year']}, {h['venue']}, citations: {h.get('citations', 'N/A')})")` },
+        code: { lang: "python", label: "Python", code: `async def search_papers(query: str, filters: list, sort: str = None, top_k: int = 20):\n    async with httpx.AsyncClient() as client:\n        body = {"query": query, "filters": filters, "page_size": top_k}\n        if sort:\n            body["sort"] = sort\n        resp = await client.post(\n            "https://api.sciverse.space/meta-search",\n            headers={"Authorization": "Bearer sv-..."},\n            json=body\n        )\n        return resp.json()\n\n# 构造过滤条件\nresults = await search_papers(\n    query="CRISPR gene editing",\n    filters=[\n        {"field": "publication_published_year", "operator": "FILTER_OP_GTE", "value": 2022},\n        {"field": "publication_published_year", "operator": "FILTER_OP_LTE", "value": 2024},\n        {"field": "publication_venue_name", "operator": "FILTER_OP_IN", "value": ["Nature", "Science"]}\n    ],\n    sort=[{"field": "citation_count", "order": "SORT_ORDER_DESC"}]\n)\nprint(f"Total: {results['total_count']} papers")\nfor h in results["results"][:5]:\n    print(f"  {h['title']} ({h.get('publication_published_year','')}, {h.get('publication_venue_name','')}, citations: {h.get('citations', 'N/A')})")` },
       },
       {
         title: "Step 3: 结合语义检索深入分析",
@@ -1473,7 +1473,9 @@ const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 2: 检索对应学术文献",
         desc: "用 meta-search 按作者、年份筛选学术论文",
-        code: { lang: "python", label: "Python", code: `async def search_academic(query: str, authors: list = None):\n    async with httpx.AsyncClient() as client:\n        filters = []\n        if authors:\n            filters.append({"field": "authors", "op": "in", "value": authors})\n        resp = await client.post(\n            f"{BASE}/meta-search",\n            headers=HEADERS,\n            json={"query": query, "filters": filters, "top_k": 20}\n        )\n        return resp.json()["hits"]\n\n# 检索与专利发明人对应的学术论文\nacademic_hits = await search_academic(\n    "CRISPR base editing adenine cytosine",\n    authors=["David Liu", "Nicole Gaudelli"]\n)\nprint(f"Found {len(academic_hits)} academic papers")` },
+        code: { lang: "python", label: "Python", code: `async def search_academic(query: str, authors: list = None):\n    async with httpx.AsyncClient() as client:\n        filters = []\n        if authors:\n            filters.append({"field": "author", "operator": "FILTER_OP_IN", "value": authors})\n        resp = await client.post(\n            f"{BASE}/meta-search",\n            headers=HEADERS,\n            json={"query": query, "filters": filters, "page_size": 20}\n        )\n        rreturn resp.json()["results"]
+
+# 检索与专利发明人对应的学术论文文\nacademic_hits = await search_academic(\n    "CRISPR base editing adenine cytosine",\n    authors=["David Liu", "Nicole Gaudelli"]\n)\nprint(f"Found {len(academic_hits)} academic papers")` },
       },
       {
         title: "Step 3: 交叉分析与报告生成",
@@ -3274,29 +3276,38 @@ function CookbookIndexPage({ onGo }: { onGo: (a: Active) => void }) {
   const filtered = filter === "all" ? COOKBOOKS : COOKBOOKS.filter((c) => c.tags.includes(filter));
 
   return (
-    <div>
-      <div className="mb-2">
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--brand)]/[0.08] text-[var(--brand)] text-[12px] font-medium">
-          <BookOpen className="h-3.5 w-3.5" />
+    <div className="ed-in">
+      {/* Hero header with brand accent */}
+      <div className="relative overflow-hidden rounded-2xl border hairline bg-white px-7 pt-7 pb-6 mb-8" style={{ backgroundImage: "linear-gradient(135deg, rgba(91,91,247,0.04) 0%, rgba(91,91,247,0) 60%)" }}>
+        <div aria-hidden className="absolute left-0 top-5 bottom-5 w-[2px] rounded-r" style={{ background: "var(--brand)" }} />
+        <div className="flex items-center gap-2 text-[11px] tracking-[0.28em] text-[var(--ink-3)] uppercase font-mono">
+          <span className="inline-block h-px w-4 bg-[var(--ink-3)]/50" />
           Cookbook
         </div>
+        <h1 className="mt-2.5 text-[26px] lg:text-[30px] font-display tracking-tight text-[var(--ink)] leading-tight">
+          Sciverse Cookbook
+        </h1>
+        <p className="mt-2 text-[14px] text-[var(--ink-2)] leading-relaxed max-w-[580px]">
+          场景化开发者案例库—用真实任务展示如何把 Sciverse 接入 Agent、RAG、科研检索。每个案例可复制、可运行。
+        </p>
+        <div className="mt-4 flex items-center gap-3 text-[12px] text-[var(--ink-3)]">
+          <span className="flex items-center gap-1.5"><BookOpen className="h-3.5 w-3.5" />{COOKBOOKS.length} 个案例</span>
+          <span className="h-3 w-px bg-[var(--hairline)]" />
+          <span className="flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" />5 个接口覆盖</span>
+          <span className="h-3 w-px bg-[var(--hairline)]" />
+          <span className="flex items-center gap-1.5"><Cable className="h-3.5 w-3.5" />Colab 可运行</span>
+        </div>
       </div>
-      <h1 className="text-[28px] lg:text-[32px] font-display tracking-tight text-[var(--ink)]">
-        Sciverse Cookbook
-      </h1>
-      <p className="mt-2 text-[15px] text-[var(--ink-2)] leading-relaxed max-w-[640px]">
-        场景化开发者案例库 — 用真实任务展示如何把 Sciverse 接入 Agent、RAG、科研检索。每个案例可复制、可运行。
-      </p>
 
-      {/* 标签筛选 */}
-      <div className="mt-6 flex flex-wrap gap-2">
+      {/* 标签筛选 — 更精致的胶囊样式 */}
+      <div className="flex flex-wrap gap-1.5">
         <button
           onClick={() => setFilter("all")}
           className={cn(
-            "px-3 py-1.5 rounded-full text-[12px] font-medium border transition-colors",
+            "px-3.5 py-1.5 rounded-full text-[12px] font-medium border transition-all duration-200",
             filter === "all"
-              ? "bg-[var(--ink)] text-white border-[var(--ink)]"
-              : "bg-white text-[var(--ink-2)] border-[var(--ink)]/10 hover:border-[var(--ink)]/30",
+              ? "bg-[var(--ink)] text-white border-[var(--ink)] shadow-sm"
+              : "bg-white text-[var(--ink-2)] border-[var(--hairline)] hover:border-[var(--ink)]/25 hover:text-[var(--ink)]",
           )}>
           全部 · {COOKBOOKS.length}
         </button>
@@ -3308,10 +3319,10 @@ function CookbookIndexPage({ onGo }: { onGo: (a: Active) => void }) {
               key={tag}
               onClick={() => setFilter(tag)}
               className={cn(
-                "px-3 py-1.5 rounded-full text-[12px] font-medium border transition-colors",
+                "px-3.5 py-1.5 rounded-full text-[12px] font-medium border transition-all duration-200",
                 filter === tag
-                  ? "bg-[var(--ink)] text-white border-[var(--ink)]"
-                  : "bg-white text-[var(--ink-2)] border-[var(--ink)]/10 hover:border-[var(--ink)]/30",
+                  ? "bg-[var(--ink)] text-white border-[var(--ink)] shadow-sm"
+                  : "bg-white text-[var(--ink-2)] border-[var(--hairline)] hover:border-[var(--ink)]/25 hover:text-[var(--ink)]",
               )}>
               {tag} · {count}
             </button>
@@ -3319,41 +3330,52 @@ function CookbookIndexPage({ onGo }: { onGo: (a: Active) => void }) {
         })}
       </div>
 
-      {/* 卡片网格 */}
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filtered.map((item) => (
+      {/* 卡片网格 — Editorial card-paper 风格 */}
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        {filtered.map((item, idx) => (
           <button
             key={item.slug}
             onClick={() => onGo({ kind: "cookbook-detail", slug: item.slug })}
-            className="group text-left p-5 rounded-xl border hairline bg-white hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-            <div className="flex items-center gap-2 mb-2">
-              {item.tags.map((t) => (
-                <span key={t} className={cn("px-2 py-0.5 rounded text-[11px] font-medium border", TAG_COLORS[t])}>
-                  {t}
+            className="group card-paper text-left p-0 overflow-hidden"
+            style={{ animationDelay: `${idx * 40}ms` }}>
+            {/* 卡片顶部彩色条 */}
+            <div className="h-[3px] w-full" style={{ background: `linear-gradient(90deg, var(--brand) 0%, rgba(91,91,247,0.2) 100%)` }} />
+            <div className="px-5 pt-4 pb-4">
+              {/* 头部：标签 + 难度 */}
+              <div className="flex items-center gap-1.5 mb-3">
+                {item.tags.map((t) => (
+                  <span key={t} className={cn("px-2 py-[2px] rounded-[4px] text-[10.5px] font-medium", TAG_COLORS[t])}>
+                    {t}
+                  </span>
+                ))}
+                <span className={cn("ml-auto text-[10.5px] font-medium tracking-wide", DIFF_COLORS[item.difficulty])}>
+                  {item.difficulty}
                 </span>
-              ))}
-              <span className={cn("ml-auto text-[11px] font-medium", DIFF_COLORS[item.difficulty])}>
-                {item.difficulty}
-              </span>
-            </div>
-            <h3 className="text-[15px] font-semibold text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors leading-snug">
-              {item.title}
-            </h3>
-            <p className="mt-1.5 text-[13px] text-[var(--ink-3)] leading-relaxed line-clamp-2">
-              {item.subtitle}
-            </p>
-            <div className="mt-3 flex items-center gap-3 text-[11px] text-[var(--ink-3)]">
-              <span className="flex items-center gap-1">
-                <Zap className="h-3 w-3" />
-                {item.estimatedCalls}
-              </span>
-              <span className="flex items-center gap-1">
-                <Cable className="h-3 w-3" />
-                {item.tools.length} 接口
-              </span>
-            </div>
-            <div className="mt-3 flex items-center gap-1 text-[12px] text-[var(--brand)] opacity-0 group-hover:opacity-100 transition-opacity">
-              查看详情 <ArrowRight className="h-3 w-3" />
+              </div>
+              {/* 标题 */}
+              <h3 className="text-[15px] font-semibold text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors duration-280 leading-snug tracking-tight">
+                {item.title}
+              </h3>
+              {/* 副标题 */}
+              <p className="mt-1.5 text-[12.5px] text-[var(--ink-3)] leading-relaxed line-clamp-2">
+                {item.subtitle}
+              </p>
+              {/* 底部元信息 */}
+              <div className="mt-4 pt-3 border-t border-[var(--hairline)] flex items-center justify-between">
+                <div className="flex items-center gap-3 text-[11px] text-[var(--ink-3)]">
+                  <span className="flex items-center gap-1">
+                    <Zap className="h-3 w-3 text-[var(--brand)]/60" />
+                    {item.estimatedCalls}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Cable className="h-3 w-3" />
+                    {item.tools.length} 接口
+                  </span>
+                </div>
+                <span className="flex items-center gap-1 text-[11.5px] font-medium text-[var(--brand)] opacity-0 group-hover:opacity-100 translate-x-[-4px] group-hover:translate-x-0 transition-all duration-280">
+                  查看 <ArrowRight className="h-3 w-3" />
+                </span>
+              </div>
             </div>
           </button>
         ))}

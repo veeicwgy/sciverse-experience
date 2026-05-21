@@ -1023,18 +1023,23 @@ export default function Experience() {
 
           {/* DRIFT CARDS */}
           <section className="mt-14">
-            <div className="flex items-end justify-between gap-4 flex-wrap">
-              <h2 className="font-display text-[26px] text-[var(--ink)]">
-                探索 <span className="italic">Sciverse</span> 生态
-              </h2>
-              <div className="text-[12px] text-[var(--ink-3)] flex items-center gap-2">
-                <span className="inline-block h-px w-8 bg-[var(--ink-3)]/40" />
-                三个产品 · 一个 Token 通用
+            <div className="relative">
+              <div className="flex items-center gap-2 text-[11px] tracking-[0.28em] text-[var(--ink-3)] uppercase font-mono">
+                <span className="inline-block h-px w-5 bg-[var(--ink-3)]/50" />
+                Ecosystem
               </div>
+              <div className="mt-2 flex items-end justify-between gap-4 flex-wrap">
+                <h2 className="font-display text-[26px] text-[var(--ink)] leading-tight">
+                  探索 <span className="italic">Sciverse</span> 生态
+                </h2>
+                <div className="text-[11.5px] text-[var(--ink-3)] font-mono tracking-wide">
+                  三个产品 · 一个 Token 通用
+                </div>
+              </div>
+              <p className="mt-2 text-[13.5px] text-[var(--ink-2)] leading-relaxed max-w-[520px]">
+                当一次检索不够时，下钻到反应数据库、蛋白功能分析、开源数据集。
+              </p>
             </div>
-            <p className="mt-1.5 text-[13.5px] text-[var(--ink-2)]">
-              当一次检索不够时，下钻到反应数据库、蛋白功能分析、开源数据集。
-            </p>
             <div className="mt-5 grid md:grid-cols-3 gap-4">
               {[
                 {
@@ -1111,28 +1116,44 @@ export default function Experience() {
               })}
             </div>
 
-            {/* Cookbook 入口卡片 */}
+            {/* Cookbook 入口卡片 — Editorial 高级版 */}
             <a
               href="/docs#cookbook"
-              className="mt-4 block card-paper p-5 group relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-[var(--brand)]/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative flex items-center gap-4">
-                <div className="h-10 w-10 rounded-xl grid place-items-center bg-[var(--brand)]/[0.08] border border-[var(--brand)]/20 shrink-0">
+              className="mt-5 block relative overflow-hidden rounded-2xl border hairline bg-white group transition-all duration-300 hover:shadow-md hover:-translate-y-[1px]">
+              {/* 左侧 brand 竖条 */}
+              <div aria-hidden className="absolute left-0 top-4 bottom-4 w-[2px] rounded-r" style={{ background: "var(--brand)" }} />
+              {/* 背景微光 */}
+              <div className="absolute inset-0 bg-gradient-to-br from-[var(--brand)]/[0.035] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <div className="relative px-6 pl-7 py-5 flex items-center gap-5">
+                {/* 图标容器 */}
+                <div className="h-11 w-11 rounded-xl grid place-items-center border hairline shrink-0 group-hover:border-[var(--brand)]/40 transition-colors duration-300" style={{ background: "var(--brand-soft)" }}>
                   <svg className="h-5 w-5 text-[var(--brand)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
                     <path d="M8 7h6" />
                     <path d="M8 11h4" />
                   </svg>
                 </div>
+                {/* 内容 */}
                 <div className="flex-1 min-w-0">
-                  <div className="font-display text-[16px] text-[var(--ink)] leading-snug group-hover:text-[var(--brand)] transition-colors duration-300">
-                    Sciverse Cookbook · 9 个场景案例
+                  <div className="flex items-center gap-2">
+                    <span className="font-display text-[16px] text-[var(--ink)] leading-snug group-hover:text-[var(--brand)] transition-colors duration-300">
+                      Sciverse Cookbook
+                    </span>
+                    <span className="px-1.5 py-[1px] rounded-[4px] border hairline text-[10px] font-mono tracking-wide text-[var(--brand)] bg-[var(--brand)]/[0.06]">
+                      9 RECIPES
+                    </span>
                   </div>
-                  <div className="text-[12.5px] text-[var(--ink-3)] mt-0.5">
-                    文献综述 Agent、科学 RAG、Citation Grounding、专利交叉探索、多模态图表检索……可复制、可运行的开发者案例库
+                  <div className="text-[12.5px] text-[var(--ink-3)] mt-1 leading-relaxed">
+                    文献综述 Agent、科学 RAG、Citation Grounding、专利交叉探索、多模态图表检索—可复制、可运行的开发者案例库
+                  </div>
+                  <div className="mt-2 flex items-center gap-3 text-[11px] text-[var(--ink-3)]">
+                    <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Python / TypeScript</span>
+                    <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-amber-400" />Colab 可运行</span>
+                    <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-violet-400" />Agent Prompt 示例</span>
                   </div>
                 </div>
-                <svg className="h-4 w-4 text-[var(--ink-3)] group-hover:text-[var(--brand)] transition-all duration-300 group-hover:translate-x-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {/* 箭头 */}
+                <svg className="h-4 w-4 text-[var(--ink-3)] group-hover:text-[var(--brand)] group-hover:translate-x-0.5 transition-all duration-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14" />
                   <path d="m12 5 7 7-7 7" />
                 </svg>
