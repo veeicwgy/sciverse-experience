@@ -1527,42 +1527,8 @@ function OverviewPage({ onGo }: { onGo: (a: Active) => void }) {
         })}
       </section>
 
-      {/* 产品对比表 */}
-      <section className="mt-8 overflow-x-auto">
-        <table className="w-full text-[12.5px] text-[var(--ink-2)] border-collapse">
-          <thead>
-            <tr className="border-b hairline text-left">
-              <th className="py-2.5 pr-4 font-medium text-[var(--ink-3)] text-[11.5px] uppercase tracking-wider"></th>
-              <th className="py-2.5 px-4 font-medium text-[var(--ink)] text-[13px]">Sciverse</th>
-              <th className="py-2.5 px-4 font-medium text-[var(--ink)] text-[13px]">点石 DianShi</th>
-              <th className="py-2.5 px-4 font-medium text-[var(--ink)] text-[13px]">SeqStudio</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-b hairline">
-              <td className="py-2.5 pr-4 text-[var(--ink-3)] font-medium">数据范围</td>
-              <td className="py-2.5 px-4">5.16 亿知识记录·814 种语言·1.3M+ 期刊与会议</td>
-              <td className="py-2.5 px-4">千万级化学物质·亿级反应·百万级专利文献</td>
-              <td className="py-2.5 px-4">BLAST·InterProScan·Foldseek·TMHMM 多源证据</td>
-            </tr>
-            <tr className="border-b hairline">
-              <td className="py-2.5 pr-4 text-[var(--ink-3)] font-medium">接入形态</td>
-              <td className="py-2.5 px-4">API·Skills (MCP)·CLI·SDK</td>
-              <td className="py-2.5 px-4">Skills (MCP)</td>
-              <td className="py-2.5 px-4">在线访问</td>
-            </tr>
-            <tr>
-              <td className="py-2.5 pr-4 text-[var(--ink-3)] font-medium">适用场景</td>
-              <td className="py-2.5 px-4">Agent 科研检索·RAG 证据·文献综述</td>
-              <td className="py-2.5 px-4">化学信息检索·逆合成 RAG·反应路径规划</td>
-              <td className="py-2.5 px-4">蛋白质功能注释·序列同源·结构域分析</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
-
       {/* 热门 Cookbook */}
-      <section className="mt-12">
+      <section className="mt-10">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-[22px] text-[var(--ink)]">热门 Cookbook</h2>
           <button
@@ -1571,22 +1537,24 @@ function OverviewPage({ onGo }: { onGo: (a: Active) => void }) {
             查看全部 {COOKBOOKS.length} 个案例 <ArrowRight className="h-3 w-3" />
           </button>
         </div>
-        <p className="mt-1 text-[13px] text-[var(--ink-3)]">
-          可复制、可运行的场景化开发者案例 — 展示如何用 Sciverse 构建真实应用。
-        </p>
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
           {COOKBOOKS.slice(0, 3).map((item) => (
             <button
               key={item.slug}
               onClick={() => onGo({ kind: "cookbook-detail", slug: item.slug })}
-              className="group text-left p-5 rounded-xl border border-neutral-200 bg-white hover:border-neutral-300 hover:shadow-[0_2px_12px_rgba(0,0,0,0.06)] transition-all duration-200">
-              <BookOpen className="h-4.5 w-4.5 text-neutral-400 mb-2.5" />
-              <h3 className="text-[13.5px] font-semibold text-neutral-900 group-hover:text-neutral-700 transition-colors leading-snug">
-                {item.title}
-              </h3>
-              <p className="mt-1.5 text-[12px] text-neutral-500 leading-relaxed line-clamp-2">
-                {item.subtitle}
-              </p>
+              className="group text-left block rounded-xl border hairline bg-white overflow-hidden hover:shadow-[0_2px_16px_rgba(0,0,0,0.06)] hover:-translate-y-[1px] transition-all duration-200">
+              <div className="aspect-[3/2] overflow-hidden bg-neutral-50">
+                <img src={item.coverImage || ""} alt={item.title} className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]" />
+              </div>
+              <div className="p-4 pb-5">
+                <div className="flex items-center gap-2 mb-2">
+                  {item.tags.map((t) => (
+                    <span key={t} className="text-[10.5px] font-mono text-[var(--ink-3)] tracking-wide">{t}</span>
+                  ))}
+                </div>
+                <h3 className="font-display text-[15px] text-[var(--ink)] leading-snug group-hover:text-[var(--brand)] transition-colors duration-300">{item.title}</h3>
+                <p className="mt-1.5 text-[12.5px] text-[var(--ink-2)] leading-relaxed line-clamp-2">{item.subtitle}</p>
+              </div>
             </button>
           ))}
         </div>
