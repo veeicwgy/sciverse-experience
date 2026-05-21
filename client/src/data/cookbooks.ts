@@ -20,7 +20,7 @@
  *   - 常用字段: publication_published_year, publication_venue_name, author, citation_count
  */
 
-export type CookbookTag = "RAG" | "Agent" | "检索" | "多模态" | "Skill" | "专利";
+export type CookbookTag = "RAG" | "Agent" | "检索" | "多模态" | "Skill" | "专利" | "元数据" | "综述" | "工具";
 
 export type CodeSample = {
   lang: string;
@@ -488,6 +488,301 @@ export const COOKBOOKS: CookbookItem[] = [
       { label: "下载论文图表资源", hash: "cookbook/download-figures" },
       { label: "查看 resource 接口", hash: "sciverse/api/resource" },
       { label: "科学 RAG 数据源", hash: "cookbook/scientific-rag" },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════
+  // 10. 论文去重与版本聚合 Agent
+  // ═══════════════════════════════════════════════════════════
+  {
+    slug: "paper-dedup-agent",
+    coverImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663059542092/aCWMyC69vqJyddspaJMuZ6/cookbook-cover-10-paper-dedup-4cipNBJoD3qMaYkPcsshPd.webp",
+    title: "论文去重与版本聚合 Agent",
+    subtitle: "解决 preprint、正式发表版、PDF/Web 多来源重复引用问题，生成 canonical evidence pack",
+    tags: ["Agent", "元数据"],
+    difficulty: "进阶",
+    estimatedCalls: "~10–20 次 API 调用 / 一次去重任务",
+    tools: ["agentic-search", "meta-search", "content"],
+    pipeline: ["agentic-search", "→ 候选文献列表", "→ meta-search 按 DOI/标题聚合", "→ 去重合并", "→ canonical pack"],
+    scenario: "科研 Agent 在检索时常遇到同一篇论文的 preprint（arXiv）、正式发表版（Nature/Science）、以及 PDF/Web 多来源副本。需要将它们聚合为一条 canonical 记录，避免重复引用。",
+    inputExample: `Agent 检索“Attention Is All You Need”相关文献，返回了 arXiv 预印本、NeurIPS 正式版、以及多个 PDF 镜像。\n需要合并为一条记录，保留最权威版本的元数据。`,
+    outputExample: `{\n  "canonical": {\n    "title": "Attention Is All You Need",\n    "doi": "10.5555/3295222.3295349",\n    "venue": "NeurIPS 2017",\n    "versions": [\n      {"source": "arxiv", "doc_id": "arxiv_1706.03762"},\n      {"source": "neurips", "doc_id": "nips_2017_xxx"},\n      {"source": "pdf_mirror", "doc_id": "pdf_att_yyy"}\n    ],\n    "primary_doc_id": "nips_2017_xxx"\n  }\n}`,
+    agentPrompt: `你是一个论文去重 Agent。当收到一组检索结果时：\n1. 按标题相似度和 DOI 分组\n2. 对每组调用 meta-search 确认正式发表版本\n3. 选择最权威版本作为 primary_doc_id\n4. 输出 canonical evidence pack`,
+    steps: [
+      {
+        title: "Step 1: 环境准备",
+        desc: "安装依赖并配置 API Token",
+        code: { lang: "bash", label: "安装依赖", code: `pip install httpx\n\nexport SCIVERSE_API_TOKEN="sv-your-token-here"` },
+      },
+      {
+        title: "Step 2: 语义检索候选文献",
+        desc: "用 agentic-search 获取与某主题相关的所有片段",
+        code: { lang: "python", label: "Python", code: `import os\nimport asyncio\nimport httpx\nfrom collections import defaultdict\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def search_candidates(query: str, top_k: int = 50):\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.post(\n            f"{BASE}/agentic-search", headers=HEADERS,\n            json={"query": query, "top_k": top_k}\n        )\n        resp.raise_for_status()\n        return resp.json()["hits"]\n\nhits = asyncio.run(search_candidates("Attention Is All You Need transformer"))\nprint(f"Raw hits: {len(hits)}")` },
+      },
+      {
+        title: "Step 3: 按标题相似度聚合",
+        desc: "将同一篇论文的不同版本分组",
+        code: { lang: "python", label: "Python", code: `from difflib import SequenceMatcher\n\ndef title_similarity(a: str, b: str) -> float:\n    return SequenceMatcher(None, a.lower(), b.lower()).ratio()\n\ndef cluster_by_title(hits, threshold=0.85):\n    clusters = []\n    used = set()\n    for i, h in enumerate(hits):\n        if i in used:\n            continue\n        group = [h]\n        used.add(i)\n        for j in range(i + 1, len(hits)):\n            if j in used:\n                continue\n            if title_similarity(h["title"], hits[j]["title"]) >= threshold:\n                group.append(hits[j])\n                used.add(j)\n        clusters.append(group)\n    return clusters\n\nclusters = cluster_by_title(hits)\nprint(f"Clustered into {len(clusters)} unique papers")\nfor c in clusters[:3]:\n    print(f"  [{len(c)} versions] {c[0]['title'][:60]}")` },
+      },
+      {
+        title: "Step 4: 确认正式版本并生成 canonical pack",
+        desc: "用 meta-search 查询 DOI 信息，选择最权威版本",
+        code: { lang: "python", label: "Python", code: `async def find_primary(cluster):\n    """\u4ece\u4e00\u7ec4\u7248\u672c\u4e2d\u627e\u5230\u6700\u6743\u5a01\u7684\u6b63\u5f0f\u53d1\u8868\u7248"""\n    # \u4f18\u5148\u7ea7: \u6709 DOI > \u6709 venue > arXiv\n    best = cluster[0]\n    for item in cluster:\n        # \u7528 meta-search \u67e5\u8be2\u66f4\u591a\u5143\u6570\u636e\n        async with httpx.AsyncClient(timeout=30) as client:\n            resp = await client.post(\n                f"{BASE}/meta-search", headers=HEADERS,\n                json={\n                    "query": item["title"],\n                    "filters": [],\n                    "page": 1, "page_size": 1\n                }\n            )\n            if resp.status_code == 200:\n                results = resp.json().get("results", [])\n                if results and results[0].get("doi"):\n                    best = item\n                    break\n    return {\n        "title": best["title"],\n        "primary_doc_id": best["doc_id"],\n        "versions": [{"doc_id": v["doc_id"], "title": v["title"]} for v in cluster]\n    }\n\nasync def build_canonical_pack(clusters):\n    pack = []\n    for cluster in clusters[:10]:\n        canonical = await find_primary(cluster)\n        pack.append(canonical)\n    return pack\n\npack = asyncio.run(build_canonical_pack(clusters))\nprint(f"Canonical pack: {len(pack)} unique papers")` },
+      },
+    ],
+    notes: [
+      "标题相似度阈值 0.85 适合大多数场景，可根据领域调整",
+      "对于有 DOI 的论文，可直接用 DOI 做精确去重",
+      "建议保留所有版本的 doc_id，以便后续读取不同版本的全文",
+      "canonical pack 可作为下游 RAG/Agent 的标准输入",
+    ],
+    nextSteps: [
+      { label: "查看 meta-search 接口", hash: "sciverse/api/meta-search" },
+      { label: "Evidence Pack 模板", hash: "cookbook/evidence-pack" },
+      { label: "科研文献综述 Agent", hash: "cookbook/literature-review-agent" },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════
+  // 11. DOI / PMID / 标题精确解析
+  // ═══════════════════════════════════════════════════════════
+  {
+    slug: "doi-pmid-resolver",
+    coverImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663059542092/aCWMyC69vqJyddspaJMuZ6/cookbook-cover-11-doi-resolver-4ZtpkpxUjNVfLU4Nx3TNmt.webp",
+    title: "DOI / PMID / 标题精确解析",
+    subtitle: "快速拉取元数据、全文和引用证据，科研 Agent 的基础入口",
+    tags: ["元数据", "检索"],
+    difficulty: "入门",
+    estimatedCalls: "~3–5 次 API 调用 / 一次解析",
+    tools: ["meta-search", "content"],
+    pipeline: ["DOI/PMID/标题", "→ meta-search 精确查询", "→ 元数据", "→ content 全文"],
+    scenario: "用户已有 DOI、PMID 或论文标题，只想快速拉取元数据、全文和引用证据。这是科研 Agent 最基础的入口操作。",
+    inputExample: `用户输入：\n"DOI: 10.1038/s41586-021-03819-2"\n或："论文标题: Highly accurate protein structure prediction with AlphaFold"`,
+    outputExample: `{\n  "title": "Highly accurate protein structure prediction with AlphaFold",\n  "doi": "10.1038/s41586-021-03819-2",\n  "venue": "Nature",\n  "year": 2021,\n  "authors": ["Jumper, J.", "Evans, R.", ...],\n  "doc_id": "nature_af2_xxx",\n  "full_text_preview": "The prediction of protein three-dimensional structure..."\n}`,
+    agentPrompt: `你是一个文献解析 Agent。当用户提供 DOI/PMID/标题时：\n1. 调用 meta-search 精确查找该文献\n2. 返回元数据（标题、作者、年份、期刊、DOI）\n3. 调用 content 读取全文摘要\n4. 结构化输出`,
+    steps: [
+      {
+        title: "Step 1: 环境准备",
+        desc: "安装依赖并配置 API Token",
+        code: { lang: "bash", label: "安装依赖", code: `pip install httpx\n\nexport SCIVERSE_API_TOKEN="sv-your-token-here"` },
+      },
+      {
+        title: "Step 2: 通过 DOI 精确查找文献",
+        desc: "用 meta-search 按 DOI 精确匹配",
+        code: { lang: "python", label: "Python", code: `import os\nimport asyncio\nimport httpx\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def resolve_doi(doi: str):\n    """\u901a\u8fc7 DOI \u7cbe\u786e\u67e5\u627e\u6587\u732e\u5143\u6570\u636e"""\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.post(\n            f"{BASE}/meta-search", headers=HEADERS,\n            json={\n                "query": doi,\n                "filters": [{"field": "doi", "operator": "FILTER_OP_EQ", "value": doi}],\n                "page": 1, "page_size": 1\n            }\n        )\n        resp.raise_for_status()\n        data = resp.json()\n        if data["total_count"] > 0:\n            return data["results"][0]\n        return None\n\nasync def resolve_title(title: str):\n    """\u901a\u8fc7\u6807\u9898\u6a21\u7cca\u67e5\u627e"""\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.post(\n            f"{BASE}/meta-search", headers=HEADERS,\n            json={"query": title, "filters": [], "page": 1, "page_size": 5}\n        )\n        resp.raise_for_status()\n        return resp.json()["results"]\n\n# \u793a\u4f8b\uff1a\u901a\u8fc7 DOI \u89e3\u6790\npaper = asyncio.run(resolve_doi("10.1038/s41586-021-03819-2"))\nif paper:\n    print(f"Title: {paper['title']}")\n    print(f"Venue: {paper.get('publication_venue_name', 'N/A')}")\n    print(f"Year: {paper.get('publication_published_year', 'N/A')}")\n    print(f"Doc ID: {paper.get('doc_id', 'N/A')}")` },
+      },
+      {
+        title: "Step 3: 读取全文摘要",
+        desc: "用 content 接口拉取论文开头段落",
+        code: { lang: "python", label: "Python", code: `async def read_abstract(doc_id: str):\n    """\u8bfb\u53d6\u8bba\u6587\u5f00\u5934 1500 \u5b57\u7b26\u4f5c\u4e3a\u6458\u8981"""\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.get(\n            f"{BASE}/content", headers=HEADERS,\n            params={"doc_id": doc_id, "offset": 0, "limit": 1500}\n        )\n        resp.raise_for_status()\n        return resp.json()["text"]\n\nif paper and paper.get("doc_id"):\n    abstract = asyncio.run(read_abstract(paper["doc_id"]))\n    print(f"\\nFull text preview:\\n{abstract[:500]}...")` },
+      },
+    ],
+    notes: [
+      "DOI 精确查询使用 FILTER_OP_EQ 操作符",
+      "如果 DOI 查不到，可回退到标题模糊查询",
+      "content 接口返回的是 text 字段，非 content",
+      "这是科研 Agent 最基础的入口操作，建议封装为通用工具函数",
+    ],
+    nextSteps: [
+      { label: "查看 meta-search 接口", hash: "sciverse/api/meta-search" },
+      { label: "论文阅读助手", hash: "cookbook/paper-reader" },
+      { label: "Evidence Pack 模板", hash: "cookbook/evidence-pack" },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════
+  // 12. 系统综述初筛助手
+  // ═══════════════════════════════════════════════════════════
+  {
+    slug: "systematic-review-screener",
+    coverImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663059542092/aCWMyC69vqJyddspaJMuZ6/cookbook-cover-12-systematic-review-7uENs3DSS6YzxfZVBUNTiG.webp",
+    title: "系统综述初筛助手",
+    subtitle: "用 meta-catalog → meta-search → agentic-search 做 PRISMA-style 初筛",
+    tags: ["综述", "Agent"],
+    difficulty: "高级",
+    estimatedCalls: "~30–80 次 API 调用 / 一次初筛任务",
+    tools: ["meta-catalog", "meta-search", "agentic-search", "content"],
+    pipeline: ["meta-catalog", "→ 确认可筛字段", "→ meta-search 广撒网", "→ agentic-search 精筛", "→ PRISMA 流程图"],
+    scenario: "医学、生命科学、材料等领域的研究者需要做系统综述，第一步是 PRISMA-style 初筛：从海量文献中筛选出符合纳入标准的候选论文。",
+    inputExample: `系统综述主题：“CAR-T 细胞疗法在实体瘤中的临床试验”\n纳入标准：2019–2024年、英文、临床试验类型\n排除标准：综述文章、动物实验`,
+    outputExample: `PRISMA Flow:\n- Identification: 2,847 records (meta-search)\n- Screening: 892 records (agentic-search relevance > 0.7)\n- Eligibility: 156 records (full-text review)\n- Included: 43 studies\n\nExport: CSV with title, DOI, year, relevance_score, inclusion_reason`,
+    agentPrompt: `你是一个系统综述初筛 Agent。按 PRISMA 流程执行：\n1. meta-catalog 确认可用筛选字段\n2. meta-search 广撒网（年份+关键词）\n3. agentic-search 语义精筛\n4. content 读取摘要判断纳入/排除\n5. 输出 PRISMA 流程图和纳入文献列表`,
+    steps: [
+      {
+        title: "Step 1: 环境准备",
+        desc: "安装依赖并配置 API Token",
+        code: { lang: "bash", label: "安装依赖", code: `pip install httpx pandas\n\nexport SCIVERSE_API_TOKEN="sv-your-token-here"` },
+      },
+      {
+        title: "Step 2: 查询可用筛选字段",
+        desc: "用 meta-catalog 确认数据库支持哪些筛选条件",
+        code: { lang: "python", label: "Python", code: `import os\nimport asyncio\nimport httpx\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def get_catalog():\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.get(f"{BASE}/meta-catalog", headers=HEADERS)\n        resp.raise_for_status()\n        return resp.json()["fields"]\n\nfields = asyncio.run(get_catalog())\nfor f in fields:\n    print(f"{f['name']} ({f['type']}): operators={f['operators']}")` },
+      },
+      {
+        title: "Step 3: 广撒网检索",
+        desc: "用 meta-search 按年份和关键词获取候选池",
+        code: { lang: "python", label: "Python", code: `import pandas as pd\n\nasync def broad_search(query: str, year_from: int, year_to: int, page_size: int = 100):\n    """\u5e7f\u6492\u7f51: \u6309\u5e74\u4efd\u8303\u56f4\u68c0\u7d22\u6240\u6709\u5019\u9009\u6587\u732e"""\n    all_results = []\n    page = 1\n    while True:\n        async with httpx.AsyncClient(timeout=30) as client:\n            resp = await client.post(\n                f"{BASE}/meta-search", headers=HEADERS,\n                json={\n                    "query": query,\n                    "filters": [\n                        {"field": "publication_published_year", "operator": "FILTER_OP_GTE", "value": year_from},\n                        {"field": "publication_published_year", "operator": "FILTER_OP_LTE", "value": year_to},\n                    ],\n                    "page": page, "page_size": page_size\n                }\n            )\n            resp.raise_for_status()\n            data = resp.json()\n            all_results.extend(data["results"])\n            if len(all_results) >= data["total_count"] or len(data["results"]) < page_size:\n                break\n            page += 1\n    return all_results, data["total_count"]\n\nresults, total = asyncio.run(broad_search(\n    "CAR-T cell therapy solid tumor clinical trial", 2019, 2024\n))\nprint(f"Identification: {total} records found")` },
+      },
+      {
+        title: "Step 4: 语义精筛与纳入判断",
+        desc: "用 agentic-search 对候选文献做语义相关性评分，筛选符合纳入标准的论文",
+        code: { lang: "python", label: "Python", code: `async def semantic_screen(query: str, top_k: int = 100):\n    """\u8bed\u4e49\u7cbe\u7b5b: \u7528 agentic-search \u5bf9\u5019\u9009\u6587\u732e\u8bc4\u5206"""\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.post(\n            f"{BASE}/agentic-search", headers=HEADERS,\n            json={"query": query, "top_k": top_k}\n        )\n        resp.raise_for_status()\n        return resp.json()["hits"]\n\nhits = asyncio.run(semantic_screen(\n    "CAR-T cell therapy clinical trial solid tumor patients outcomes"\n))\n\n# \u6309\u76f8\u5173\u6027\u5206\u6570\u7b5b\u9009\nscreened = [h for h in hits if h["score"] >= 0.7]\nprint(f"Screening: {len(screened)} records (score >= 0.7)")\n\n# \u8f93\u51fa PRISMA \u6d41\u7a0b\u6570\u636e\nprisma = {\n    "identification": total,\n    "screening": len(screened),\n    "included": len([h for h in screened if h["score"] >= 0.85])\n}\nprint(f"\\nPRISMA Flow: {prisma}")\n\n# \u5bfc\u51fa CSV\ndf = pd.DataFrame(screened)\ndf.to_csv("screened_papers.csv", index=False)\nprint("Exported to screened_papers.csv")` },
+      },
+    ],
+    notes: [
+      "适合医学、生命科学、材料等高频系统综述场景",
+      "meta-search 广撒网阶段可能需要分页拉取，注意 page_size 上限",
+      "agentic-search 的 score 阈值建议根据领域调整（0.7–0.85）",
+      "完整 PRISMA 流程还需人工全文审阅，本案例覆盖自动化初筛部分",
+      "建议将筛选结果导出为 CSV 便于团队协作审阅",
+    ],
+    nextSteps: [
+      { label: "查看 meta-catalog 接口", hash: "sciverse/api/meta-catalog" },
+      { label: "科研文献综述 Agent", hash: "cookbook/literature-review-agent" },
+      { label: "结构化筛选与排序", hash: "cookbook/structured-paper-filter" },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════
+  // 13. 论文可信引用包 Evidence Pack
+  // ═══════════════════════════════════════════════════════════
+  {
+    slug: "evidence-pack",
+    coverImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663059542092/aCWMyC69vqJyddspaJMuZ6/cookbook-cover-13-evidence-pack-AKMDiqLbtuPAw2hTn8VQ3T.webp",
+    title: "论文可信引用包 Evidence Pack",
+    subtitle: "将 claim / quote / doc_id / chunk_id / offset / page_no / title 标准化，RAG/Agent 的底层模板",
+    tags: ["RAG", "工具"],
+    difficulty: "进阶",
+    estimatedCalls: "~8–15 次 API 调用 / 一次构建",
+    tools: ["agentic-search", "content"],
+    pipeline: ["claim 列表", "→ agentic-search 逐条检索", "→ content 定位原文", "→ 标准化 evidence pack"],
+    scenario: "所有 RAG/Agent 案例都需要一个标准化的引用包格式。本案例定义了 Evidence Pack 的标准结构，并展示如何从 Sciverse 检索结果构建它。",
+    inputExample: `Agent 需要为以下 claim 构建引用包：\n1. "AlphaFold2 在 CASP14 中达到了实验精度"\n2. "mRNA 的 LNP 递送系统显著提高了细胞内化效率"`,
+    outputExample: `{\n  "evidence_pack": [\n    {\n      "claim": "AlphaFold2 \u5728 CASP14 \u4e2d\u8fbe\u5230\u4e86\u5b9e\u9a8c\u7cbe\u5ea6",\n      "quote": "AlphaFold2 achieved a median GDT score of 92.4...",\n      "doc_id": "nature_af2_xxx",\n      "offset": 12480,\n      "title": "Highly accurate protein structure prediction...",\n      "venue": "Nature",\n      "year": 2021,\n      "confidence": 0.95\n    }\n  ]\n}`,
+    agentPrompt: `你是一个 Evidence Pack 构建 Agent。对每个 claim：\n1. 调用 agentic-search 查找支持证据\n2. 调用 content 定位原文确切引用\n3. 标准化为 {claim, quote, doc_id, offset, title, venue, year, confidence}\n4. confidence 基于语义匹配度和来源权威性`,
+    steps: [
+      {
+        title: "Step 1: 环境准备",
+        desc: "安装依赖并配置 API Token",
+        code: { lang: "bash", label: "安装依赖", code: `pip install httpx\n\nexport SCIVERSE_API_TOKEN="sv-your-token-here"` },
+      },
+      {
+        title: "Step 2: 定义 Evidence Pack 标准结构",
+        desc: "定义标准化的引用包数据结构",
+        code: { lang: "python", label: "Python", code: `from dataclasses import dataclass, asdict\nfrom typing import Optional\nimport json\n\n@dataclass\nclass EvidenceItem:\n    claim: str\n    quote: str\n    doc_id: str\n    offset: int\n    title: str\n    venue: Optional[str] = None\n    year: Optional[int] = None\n    confidence: float = 0.0\n\n@dataclass\nclass EvidencePack:\n    items: list[EvidenceItem]\n\n    def to_json(self) -> str:\n        return json.dumps({"evidence_pack": [asdict(i) for i in self.items]}, ensure_ascii=False, indent=2)\n\n# \u793a\u4f8b\npack = EvidencePack(items=[])\nprint(pack.to_json())` },
+      },
+      {
+        title: "Step 3: 为每个 claim 检索并构建引用",
+        desc: "逐条检索 claim 对应的文献证据",
+        code: { lang: "python", label: "Python", code: `import os\nimport asyncio\nimport httpx\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def build_evidence(claim: str) -> Optional[EvidenceItem]:\n    """\u4e3a\u5355\u4e2a claim \u68c0\u7d22\u5e76\u6784\u5efa\u5f15\u7528"""\n    async with httpx.AsyncClient(timeout=30) as client:\n        # Step 1: \u8bed\u4e49\u68c0\u7d22\n        resp = await client.post(\n            f"{BASE}/agentic-search", headers=HEADERS,\n            json={"query": claim, "top_k": 5}\n        )\n        resp.raise_for_status()\n        hits = resp.json()["hits"]\n        if not hits:\n            return None\n        best = hits[0]\n\n        # Step 2: \u8bfb\u53d6\u539f\u6587\u5b9a\u4f4d\u786e\u5207\u5f15\u7528\n        resp2 = await client.get(\n            f"{BASE}/content", headers=HEADERS,\n            params={"doc_id": best["doc_id"], "offset": best.get("offset", 0), "limit": 800}\n        )\n        resp2.raise_for_status()\n        text = resp2.json()["text"]\n\n        return EvidenceItem(\n            claim=claim,\n            quote=text[:200],  # \u53d6\u524d 200 \u5b57\u7b26\u4f5c\u4e3a\u5f15\u7528\n            doc_id=best["doc_id"],\n            offset=best.get("offset", 0),\n            title=best["title"],\n            confidence=best["score"]\n        )\n\nclaims = [\n    "AlphaFold2 \u5728 CASP14 \u4e2d\u8fbe\u5230\u4e86\u5b9e\u9a8c\u7cbe\u5ea6",\n    "mRNA \u7684 LNP \u9012\u9001\u7cfb\u7edf\u663e\u8457\u63d0\u9ad8\u4e86\u7ec6\u80de\u5185\u5316\u6548\u7387",\n]\n\nasync def main():\n    items = []\n    for claim in claims:\n        evidence = await build_evidence(claim)\n        if evidence:\n            items.append(evidence)\n            print(f"\u2713 {claim[:40]}... -> {evidence.doc_id}")\n        else:\n            print(f"\u2717 {claim[:40]}... -> no evidence found")\n    pack = EvidencePack(items=items)\n    print(f"\\nEvidence Pack ({len(items)}/{len(claims)} claims grounded):")\n    print(pack.to_json())\n\nasyncio.run(main())` },
+      },
+    ],
+    notes: [
+      "Evidence Pack 是所有 RAG/Agent 案例的底层模板，建议封装为通用工具",
+      "confidence 基于 agentic-search 的 score，可结合来源权威性进一步调整",
+      "quote 应从 content 返回的 text 中截取，而非 LLM 生成",
+      "可扩展字段：page_no、chunk_id、section_title 等",
+      "生产环境建议对每个 claim 并发检索以提高速度",
+    ],
+    nextSteps: [
+      { label: "Citation Grounding 案例", hash: "cookbook/citation-grounding" },
+      { label: "科研文献综述 Agent", hash: "cookbook/literature-review-agent" },
+      { label: "论文去重与版本聚合", hash: "cookbook/paper-dedup-agent" },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════
+  // 14. 研究方向趋势扫描
+  // ═══════════════════════════════════════════════════════════
+  {
+    slug: "research-trend-scanner",
+    coverImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663059542092/aCWMyC69vqJyddspaJMuZ6/cookbook-cover-14-trend-scanner-oQCypXD7axobB7mYMp3y5c.webp",
+    title: "研究方向趋势扫描",
+    subtitle: "查看某方向近 5 年热度、头部期刊、高被引论文和关键词变化",
+    tags: ["元数据", "检索"],
+    difficulty: "进阶",
+    estimatedCalls: "~10–25 次 API 调用 / 一次扫描",
+    tools: ["meta-search"],
+    pipeline: ["研究方向关键词", "→ meta-search 按年分组", "→ 统计趋势", "→ 排序高被引", "→ 趋势报告"],
+    scenario: "研究者想了解某个方向近 5 年的发展趋势：发文量变化、头部期刊分布、高被引论文、关键词演变。可用 meta-search 分年统计支撑。",
+    inputExample: `用户输入："我想了解 large language model 领域 2020–2024 年的发展趋势"`,
+    outputExample: `## LLM 研究趋势报告 (2020–2024)\n\n| 年份 | 发文量 | 头部期刊 | 高被引论文 |\n|------|--------|----------|----------|\n| 2020 | 1,247  | NeurIPS, ICML | GPT-3 (Brown et al.) |\n| 2021 | 2,891  | ACL, EMNLP | FLAN (Wei et al.) |\n| 2022 | 5,432  | Nature, Science | ChatGPT, InstructGPT |\n| 2023 | 12,876 | Nature, ICML | GPT-4, LLaMA |\n| 2024 | 18,234 | NeurIPS, ICLR | Claude 3, Gemini |`,
+    agentPrompt: `你是一个研究趋势分析 Agent。当用户指定研究方向时：\n1. 用 meta-search 按年分组查询，统计每年发文量\n2. 按 citation_count 排序找出高被引论文\n3. 统计头部期刊分布\n4. 输出结构化趋势报告`,
+    steps: [
+      {
+        title: "Step 1: 环境准备",
+        desc: "安装依赖并配置 API Token",
+        code: { lang: "bash", label: "安装依赖", code: `pip install httpx pandas\n\nexport SCIVERSE_API_TOKEN="sv-your-token-here"` },
+      },
+      {
+        title: "Step 2: 按年统计发文量",
+        desc: "用 meta-search 分年查询，统计每年的发文数量",
+        code: { lang: "python", label: "Python", code: `import os\nimport asyncio\nimport httpx\nimport pandas as pd\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def count_by_year(query: str, year: int) -> int:\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.post(\n            f"{BASE}/meta-search", headers=HEADERS,\n            json={\n                "query": query,\n                "filters": [\n                    {"field": "publication_published_year", "operator": "FILTER_OP_EQ", "value": year}\n                ],\n                "page": 1, "page_size": 1\n            }\n        )\n        resp.raise_for_status()\n        return resp.json()["total_count"]\n\nasync def trend_scan(query: str, start_year: int = 2020, end_year: int = 2024):\n    tasks = [count_by_year(query, y) for y in range(start_year, end_year + 1)]\n    counts = await asyncio.gather(*tasks)\n    return list(zip(range(start_year, end_year + 1), counts))\n\ntrend = asyncio.run(trend_scan("large language model"))\ndf = pd.DataFrame(trend, columns=["year", "count"])\nprint(df.to_string(index=False))` },
+      },
+      {
+        title: "Step 3: 查找高被引论文和头部期刊",
+        desc: "按引用数排序，找出各年最具影响力的论文",
+        code: { lang: "python", label: "Python", code: `async def top_cited_papers(query: str, year: int, top_n: int = 5):\n    """\u67e5\u627e\u67d0\u5e74\u5ea6\u9ad8\u88ab\u5f15\u8bba\u6587"""\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.post(\n            f"{BASE}/meta-search", headers=HEADERS,\n            json={\n                "query": query,\n                "filters": [\n                    {"field": "publication_published_year", "operator": "FILTER_OP_EQ", "value": year}\n                ],\n                "sort": [{"field": "citation_count", "order": "SORT_ORDER_DESC"}],\n                "page": 1, "page_size": top_n\n            }\n        )\n        resp.raise_for_status()\n        return resp.json()["results"]\n\nasync def main():\n    for year in [2022, 2023, 2024]:\n        papers = await top_cited_papers("large language model", year)\n        print(f"\\n=== {year} Top Cited ===")\n        for p in papers:\n            venue = p.get("publication_venue_name", "N/A")\n            cites = p.get("citation_count", 0)\n            print(f"  [{cites} cites] {p['title'][:60]} ({venue})")\n\nasyncio.run(main())` },
+      },
+    ],
+    notes: [
+      "meta-search 的 sort 字段支持 citation_count 降序排列",
+      "分年查询可并发执行（asyncio.gather）提高效率",
+      "total_count 可直接作为当年发文量，无需拉取全部结果",
+      "可进一步统计 venue 分布、作者网络等",
+    ],
+    nextSteps: [
+      { label: "查看 meta-search 接口", hash: "sciverse/api/meta-search" },
+      { label: "结构化筛选与排序", hash: "cookbook/structured-paper-filter" },
+      { label: "科研文献综述 Agent", hash: "cookbook/literature-review-agent" },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════
+  // 15. 论文阅读助手
+  // ═══════════════════════════════════════════════════════════
+  {
+    slug: "paper-reader",
+    coverImage: "https://d2xsxph8kpxj0f.cloudfront.net/310519663059542092/aCWMyC69vqJyddspaJMuZ6/cookbook-cover-15-paper-reader-LLoVqfcLnU5NVGiaNqfe6h.webp",
+    title: "论文阅读助手",
+    subtitle: "给定 doc_id 后分段读取全文，抽取方法、数据、结论、局限",
+    tags: ["工具", "RAG"],
+    difficulty: "入门",
+    estimatedCalls: "~5–12 次 API 调用 / 一篇论文",
+    tools: ["content"],
+    pipeline: ["doc_id", "→ content 循环读取", "→ 分段拼接全文", "→ LLM 抽取结构"],
+    scenario: "用户已知论文 doc_id，需要分段读取全文并抽取关键信息（方法、数据、结论、局限）。比直接综述 Agent 更基础，也更容易跑通。",
+    inputExample: `用户输入：\n"\u8bf7帮我阅读这篇论文：doc_id = nature_af2_xxx\n\u63d0取方法、数据、结论和局限。"`,
+    outputExample: `## \u8bba\u6587\u9605\u8bfb\u62a5\u544a\n\n### \u65b9\u6cd5\n- \u4f7f\u7528 Evoformer \u6a21\u5757\u8fdb\u884c\u591a\u5e8f\u5217\u6bd4\u5bf9\u548c\u7ed3\u6784\u9884\u6d4b...\n\n### \u6570\u636e\n- CASP14 \u6d4b\u8bd5\u96c6: 87 \u4e2a\u86cb\u767d\u8d28\u7ed3\u6784\u57df...\n\n### \u7ed3\u8bba\n- \u4e2d\u4f4d GDT \u5f97\u5206 92.4\uff0c\u8fdc\u8d85\u5176\u4ed6\u65b9\u6cd5...\n\n### \u5c40\u9650\n- \u5bf9\u591a\u805a\u4f53\u590d\u5408\u7269\u7684\u9884\u6d4b\u7cbe\u5ea6\u8f83\u4f4e...`,
+    agentPrompt: `你是一个论文阅读助手。当用户提供 doc_id 时：\n1. 循环调用 content(doc_id, offset, limit=4000) 读取全文\n2. 用 next_offset 继续读取直到 more=false\n3. 将全文传给 LLM 抽取结构化信息\n4. 输出：方法、数据、结论、局限`,
+    steps: [
+      {
+        title: "Step 1: 环境准备",
+        desc: "安装依赖并配置 API Token",
+        code: { lang: "bash", label: "安装依赖", code: `pip install httpx anthropic\n\nexport SCIVERSE_API_TOKEN="sv-your-token-here"\nexport ANTHROPIC_API_KEY="sk-ant-..."` },
+      },
+      {
+        title: "Step 2: 分段读取全文",
+        desc: "循环调用 content 接口，用 next_offset 拼接完整全文",
+        code: { lang: "python", label: "Python", code: `import os\nimport asyncio\nimport httpx\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def read_full_text(doc_id: str, chunk_size: int = 4000) -> str:\n    """\u5faa\u73af\u8bfb\u53d6\u5168\u6587\uff0c\u76f4\u5230 more=false"""\n    full_text = []\n    offset = 0\n    async with httpx.AsyncClient(timeout=30) as client:\n        while True:\n            resp = await client.get(\n                f"{BASE}/content", headers=HEADERS,\n                params={"doc_id": doc_id, "offset": offset, "limit": chunk_size}\n            )\n            resp.raise_for_status()\n            data = resp.json()\n            full_text.append(data["text"])\n            if not data.get("more", False):\n                break\n            offset = data["next_offset"]\n    return "".join(full_text)\n\ndoc_id = "nature_af2_xxx"  # \u66ff\u6362\u4e3a\u771f\u5b9e doc_id\ntext = asyncio.run(read_full_text(doc_id))\nprint(f"Full text length: {len(text)} chars")\nprint(f"Preview: {text[:300]}...")` },
+      },
+      {
+        title: "Step 3: LLM 抽取结构化信息",
+        desc: "将全文传给 LLM，抽取方法、数据、结论、局限",
+        code: { lang: "python", label: "Python", code: `from anthropic import Anthropic\n\nclient = Anthropic()\n\ndef extract_structure(full_text: str) -> str:\n    """\u7528 LLM \u62bd\u53d6\u8bba\u6587\u7ed3\u6784\u5316\u4fe1\u606f"""\n    # \u5982\u679c\u5168\u6587\u592a\u957f\uff0c\u53d6\u524d 15000 \u5b57\u7b26\n    content = full_text[:15000] if len(full_text) > 15000 else full_text\n\n    msg = client.messages.create(\n        model="claude-sonnet-4-20250514",\n        max_tokens=3000,\n        messages=[{\n            "role": "user",\n            "content": f"""\u8bf7\u9605\u8bfb\u4ee5\u4e0b\u8bba\u6587\u5168\u6587\uff0c\u63d0\u53d6\u4ee5\u4e0b\u56db\u4e2a\u65b9\u9762\u7684\u5173\u952e\u4fe1\u606f\uff1a\n\n1. **\u65b9\u6cd5**: \u6838\u5fc3\u6280\u672f\u65b9\u6cd5\u548c\u521b\u65b0\u70b9\n2. **\u6570\u636e**: \u4f7f\u7528\u7684\u6570\u636e\u96c6\u3001\u5b9e\u9a8c\u8bbe\u7f6e\u3001\u5173\u952e\u6570\u503c\n3. **\u7ed3\u8bba**: \u4e3b\u8981\u53d1\u73b0\u548c\u8d21\u732e\n4. **\u5c40\u9650**: \u5df2\u77e5\u5c40\u9650\u548c\u672a\u6765\u5de5\u4f5c\u65b9\u5411\n\n\u8bba\u6587\u5168\u6587:\n{content}"""\n        }]\n    )\n    return msg.content[0].text\n\nreport = extract_structure(text)\nprint(report)` },
+      },
+    ],
+    notes: [
+      "content 接口返回 {text, next_offset, more}，循环读取直到 more=false",
+      "建议 chunk_size=4000，避免单次请求超时",
+      "如果全文超过 LLM 上下文窗口，可分段抽取后合并",
+      "这是最基础的论文阅读流程，可作为更复杂 Agent 的子模块",
+      "部分论文可能无全文（content 返回 404），需做异常处理",
+    ],
+    nextSteps: [
+      { label: "查看 content 接口", hash: "sciverse/api/content" },
+      { label: "DOI 精确解析", hash: "cookbook/doi-pmid-resolver" },
+      { label: "科研文献综述 Agent", hash: "cookbook/literature-review-agent" },
     ],
   },
 ];

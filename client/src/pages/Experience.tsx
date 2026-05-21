@@ -1127,7 +1127,7 @@ export default function Experience() {
                 href="/docs#cookbook"
                 className="text-[12px] text-[var(--ink-3)] hover:text-[var(--brand)] transition-colors duration-300 flex items-center gap-2">
                 <span className="inline-block h-px w-8 bg-[var(--ink-3)]/40" />
-                查看全部 9 个案例 →
+                查看全部 15 个案例 →
               </a>
             </div>
             <CookbookGrid items={[

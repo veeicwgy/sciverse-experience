@@ -2867,6 +2867,9 @@ const TAG_COLORS: Record<CookbookTag, string> = {
   "多模态": "bg-neutral-100 text-neutral-600",
   Skill: "bg-neutral-100 text-neutral-600",
   "专利": "bg-neutral-100 text-neutral-600",
+  "元数据": "bg-neutral-100 text-neutral-600",
+  "综述": "bg-neutral-100 text-neutral-600",
+  "工具": "bg-neutral-100 text-neutral-600",
 };
 
 const DIFF_COLORS: Record<string, string> = {
@@ -2899,7 +2902,7 @@ function CookbookIndexPage({ onGo }: { onGo: (a: Active) => void }) {
     el.querySelectorAll("[data-slug]").forEach((child) => observer.observe(child));
     return () => observer.disconnect();
   }, [filter, search]);
-  const allTags: CookbookTag[] = ["RAG", "Agent", "检索", "多模态", "Skill", "专利"];
+  const allTags: CookbookTag[] = ["RAG", "Agent", "检索", "多模态", "Skill", "专利", "元数据", "综述", "工具"];
   const filtered = COOKBOOKS.filter((c) => {
     const matchTag = filter === "all" || c.tags.includes(filter);
     if (!search.trim()) return matchTag;
