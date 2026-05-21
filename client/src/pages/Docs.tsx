@@ -572,8 +572,8 @@ const SCIVERSE: Product = {
   scope: "5.16 亿条知识记录 · 814 种语言 · 1.3M+ 期刊与会议",
   highlights: [
     "agentic-search 返回文献片段与可回链定位",
-    "meta-search 支持字段级过滤、排序与分面",
-    "content / resource 接口可读取原文与附件",
+    "meta-search 字段级过滤、排序与分面检索",
+    "content / resource 读取原文与附件资源",
   ],
   supports: ["api", "cli", "skills"],
   intro: {
@@ -836,12 +836,12 @@ const DIANSHI: Product = {
   icon: FlaskConical,
   brand: "#7C5CFC",
   oneLine: "大规模化学信息检索与逆合成 RAG 平台",
-  scope: "千万级化学物质·亿级反应·百万级专利文献",
+  scope: "6M+ 化学物质 · 10M+ 反应 · 1M+ 专利文献",
   scopeNumbers: "6M+ 化学物质 · 10M+ 化学反应 · 1M+ 专利文献",
   highlights: [
-    "申请开通后以 Skill / MCP 方式装载到 Agent 使用",
-    "包含逆合成 RAG、差异指纹、结构指纹反应相似度检索",
-    "MCP 14 工具，覆盖物质 / 反应 / 文献 / 逆合成场景",
+    "Skill / MCP 方式装载，即装即用",
+    "逆合成 RAG 与反应指纹相似度检索",
+    "14 个 MCP 工具覆盖物质 / 反应 / 文献",
   ],
   supports: ["skills"],
   intro: {
@@ -1051,11 +1051,11 @@ const SEQSTUDIO: Product = {
   icon: Dna,
   brand: "#10B981",
   oneLine: "蛋白质功能注释的 AI 推理平台",
-  scope: "整合 BLAST · InterProScan · Foldseek · TMHMM 多源证据",
+  scope: "整合 BLAST · InterProScan · Foldseek · TMHMM",
   highlights: [
-    "整合序列同源、结构相似、结构域与膜拓扑多源证据",
-    "结合 LLM 生成结构化注释、置信度与证据综述",
-    "支持 FASTA + PDB 及 UniProt 风格 JSON.gz 批处理",
+    "序列同源 + 结构相似 + 结构域多源证据",
+    "LLM 生成结构化注释与置信度评分",
+    "支持 FASTA / PDB / UniProt JSON.gz 批处理",
   ],
   supports: ["online"],
   intro: {
