@@ -3334,11 +3334,14 @@ function CookbookIndexPage({ onGo }: { onGo: (a: Active) => void }) {
           <button
             key={item.slug}
             onClick={() => onGo({ kind: "cookbook-detail", slug: item.slug })}
-            className="group card-paper text-left p-0 overflow-hidden"
+            className="group relative text-left p-0 overflow-hidden rounded-xl bg-white transition-all duration-300 hover:-translate-y-[2px] hover:shadow-[0_8px_30px_-8px_rgba(91,91,247,0.15)]"
             style={{ animationDelay: `${idx * 40}ms` }}>
+            {/* 渐变边框容器 */}
+            <div className="absolute inset-0 rounded-xl border border-[var(--hairline)] group-hover:border-transparent transition-colors duration-300" />
+            <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ padding: '1px', background: 'linear-gradient(135deg, rgba(91,91,247,0.4) 0%, rgba(91,91,247,0.08) 50%, rgba(91,91,247,0.25) 100%)', mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', maskComposite: 'exclude', WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'xor', borderRadius: 'inherit' }} />
             {/* 卡片顶部彩色条 */}
-            <div className="h-[3px] w-full" style={{ background: `linear-gradient(90deg, var(--brand) 0%, rgba(91,91,247,0.2) 100%)` }} />
-            <div className="px-5 pt-4 pb-4">
+            <div className="relative h-[3px] w-full" style={{ background: `linear-gradient(90deg, var(--brand) 0%, rgba(91,91,247,0.2) 100%)` }} />
+            <div className="relative px-5 pt-4 pb-4">
               {/* 头部：标签 + 难度 */}
               <div className="flex items-center gap-1.5 mb-3">
                 {item.tags.map((t) => (
