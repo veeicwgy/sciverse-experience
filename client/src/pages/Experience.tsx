@@ -1133,13 +1133,6 @@ export default function Experience() {
             </div>
             <CookbookGrid items={[
                 {
-                  slug: "literature-review-agent",
-                  cover: "/manus-storage/cookbook-cover-1-literature-review_709a5f2b.png",
-                  title: "科研文献综述 Agent",
-                  desc: "从一句研究问题出发，自动检索、摘要、生成带引用的文献综述",
-                  tags: ["Agent", "RAG"],
-                },
-                {
                   slug: "scientific-rag",
                   cover: "/manus-storage/cookbook-cover-2-rag-datasource_28fdc177.png",
                   title: "科学 RAG 数据源",
@@ -1154,25 +1147,32 @@ export default function Experience() {
                   tags: ["RAG", "Agent"],
                 },
                 {
-                  slug: "fulltext-evidence",
-                  cover: "/manus-storage/cookbook-cover-3-fulltext-evidence_d8bbb7f7.png",
-                  title: "论文全文证据检索",
-                  desc: "从检索片段出发，定位并读取原文完整段落作为可引用证据",
-                  tags: ["RAG", "检索"],
-                },
-                {
                   slug: "structured-paper-filter",
-                  cover: "/manus-storage/cookbook-cover-5-structured-filter_f8b0c9a1.png",
+                  cover: "/manus-storage/cookbook-cover-5-structured-filter_3f56ccaa.png",
                   title: "结构化论文筛选",
                   desc: "用 meta-catalog + meta-search 按年份、期刊、引用数等字段精确筛选",
                   tags: ["检索", "元数据"],
                 },
                 {
-                  slug: "paper-reader",
-                  cover: "/manus-storage/cookbook-cover-15-paper-reader_cf1e2363.png",
-                  title: "论文阅读助手",
-                  desc: "分段读取全文，抽取方法、数据、结论、局限",
-                  tags: ["工具", "Agent"],
+                  slug: "multimodal-figure-retrieval",
+                  cover: "/manus-storage/cookbook-cover-9-multimodal-chart_5e8cc9b7.png",
+                  title: "图表提取与分析",
+                  desc: "从论文中提取图表资源，结合多模态 LLM 进行结构化分析",
+                  tags: ["工具", "检索"],
+                },
+                {
+                  slug: "patent-literature-cross",
+                  cover: "/manus-storage/cookbook-cover-7-patent-explore_ea314eee.png",
+                  title: "专利与文献语义探索",
+                  desc: "跨专利与学术文献做语义检索，发现技术关联与发展脉络",
+                  tags: ["检索", "Agent"],
+                },
+                {
+                  slug: "skill-integration",
+                  cover: "/manus-storage/cookbook-cover-6-skill-integration_05b65d61.png",
+                  title: "Claude / Cursor / Codex Skill",
+                  desc: "以 MCP Skill 方式接入 Claude、Cursor、Codex 等 Agent 平台",
+                  tags: ["Agent", "工具"],
                 },
               ]} />
           </section>
