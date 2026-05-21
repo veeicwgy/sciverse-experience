@@ -3270,6 +3270,27 @@ const DIFF_COLORS: Record<string, string> = {
 
 function CookbookIndexPage({ onGo }: { onGo: (a: Active) => void }) {
   const [filter, setFilter] = useState<CookbookTag | "all">("all");
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [visibleSet, setVisibleSet] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const slug = (entry.target as HTMLElement).dataset.slug;
+            if (slug) setVisibleSet((prev) => new Set(prev).add(slug));
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
+    );
+    el.querySelectorAll("[data-slug]").forEach((child) => observer.observe(child));
+    return () => observer.disconnect();
+  }, [filter]);
   const allTags: CookbookTag[] = ["RAG", "Agent", "检索", "多模态", "Skill", "专利"];
   const filtered = filter === "all" ? COOKBOOKS : COOKBOOKS.filter((c) => c.tags.includes(filter));
 
@@ -3329,13 +3350,16 @@ function CookbookIndexPage({ onGo }: { onGo: (a: Active) => void }) {
       </div>
 
       {/* 卡片网格 — Editorial card-paper 风格 */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3.5">
+      <div ref={gridRef} className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-3.5">
         {filtered.map((item, idx) => (
           <button
             key={item.slug}
+            data-slug={item.slug}
             onClick={() => onGo({ kind: "cookbook-detail", slug: item.slug })}
-            className="group relative text-left p-0 overflow-hidden rounded-xl bg-white transition-all duration-300 hover:-translate-y-[2px] hover:shadow-[0_8px_30px_-8px_rgba(91,91,247,0.15)]"
-            style={{ animationDelay: `${idx * 40}ms` }}>
+            className={`group relative text-left p-0 overflow-hidden rounded-xl bg-white transition-all duration-500 hover:-translate-y-[2px] hover:shadow-[0_8px_30px_-8px_rgba(91,91,247,0.15)] ${
+              visibleSet.has(item.slug) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+            }`}
+            style={{ transitionDelay: `${idx * 70}ms` }}>
             {/* 渐变边框容器 */}
             <div className="absolute inset-0 rounded-xl border border-[var(--hairline)] group-hover:border-transparent transition-colors duration-300" />
             <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ padding: '1px', background: 'linear-gradient(135deg, rgba(91,91,247,0.4) 0%, rgba(91,91,247,0.08) 50%, rgba(91,91,247,0.25) 100%)', mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', maskComposite: 'exclude', WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)', WebkitMaskComposite: 'xor', borderRadius: 'inherit' }} />
