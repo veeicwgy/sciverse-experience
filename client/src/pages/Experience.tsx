@@ -593,6 +593,60 @@ function useTypewriter(samples: string[], enabled: boolean) {
   return text;
 }
 
+/* CookbookGrid — IntersectionObserver 驱动的交错淡入动画 */
+function CookbookGrid({ items }: { items: { slug: string; cover: string; title: string; desc: string; tags: string[] }[] }) {
+  const gridRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const cards = el.querySelectorAll<HTMLElement>('[data-cb-card]');
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const card = entry.target as HTMLElement;
+            const delay = Number(card.dataset.cbIdx || 0) * 70;
+            setTimeout(() => {
+              card.style.opacity = '1';
+              card.style.transform = 'translateY(0)';
+            }, delay);
+            io.unobserve(card);
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+    cards.forEach((c) => io.observe(c));
+    return () => io.disconnect();
+  }, [items]);
+  return (
+    <div ref={gridRef} className="mt-6 grid md:grid-cols-3 gap-4">
+      {items.map((item, idx) => (
+        <a
+          key={item.slug}
+          href={`/docs#cookbook/${item.slug}`}
+          data-cb-card
+          data-cb-idx={idx}
+          style={{ opacity: 0, transform: 'translateY(16px)', transition: 'opacity 0.45s ease, transform 0.45s ease' }}
+          className="group block rounded-xl border hairline bg-white overflow-hidden hover:shadow-[0_2px_16px_rgba(0,0,0,0.06)] hover:-translate-y-[1px]">
+          <div className="aspect-[3/2] overflow-hidden bg-neutral-50">
+            <img src={item.cover} alt={item.title} className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]" />
+          </div>
+          <div className="p-4 pb-5">
+            <div className="flex items-center gap-2 mb-2">
+              {item.tags.map((t) => (
+                <span key={t} className="text-[10.5px] font-mono text-[var(--ink-3)] tracking-wide">{t}</span>
+              ))}
+            </div>
+            <h3 className="font-display text-[15px] text-[var(--ink)] leading-snug group-hover:text-[var(--brand)] transition-colors duration-300">{item.title}</h3>
+            <p className="mt-1.5 text-[12.5px] text-[var(--ink-2)] leading-relaxed line-clamp-2">{item.desc}</p>
+          </div>
+        </a>
+      ))}
+    </div>
+  );
+}
+
 export default function Experience() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -1046,8 +1100,7 @@ export default function Experience() {
                 用真实任务展示如何把 Sciverse 接入 Agent、RAG、科研检索。每个案例可复制、可运行。
               </p>
             </div>
-            <div className="mt-6 grid md:grid-cols-3 gap-4">
-              {[
+            <CookbookGrid items={[
                 {
                   slug: "literature-review-agent",
                   cover: "/manus-storage/cookbook-cover-1-literature-review_709a5f2b.png",
@@ -1069,36 +1122,7 @@ export default function Experience() {
                   desc: "从检索片段出发，定位并读取原文完整段落作为可引用证据",
                   tags: ["RAG", "检索"],
                 },
-              ].map((item) => (
-                <a
-                  key={item.slug}
-                  href={`/docs#cookbook/${item.slug}`}
-                  className="group block rounded-xl border hairline bg-white overflow-hidden transition-all duration-300 hover:shadow-[0_2px_16px_rgba(0,0,0,0.06)] hover:-translate-y-[1px]">
-                  {/* 封面图 */}
-                  <div className="aspect-[3/2] overflow-hidden bg-neutral-50">
-                    <img
-                      src={item.cover}
-                      alt={item.title}
-                      className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-                    />
-                  </div>
-                  {/* 内容 */}
-                  <div className="p-4 pb-5">
-                    <div className="flex items-center gap-2 mb-2">
-                      {item.tags.map((t) => (
-                        <span key={t} className="text-[10.5px] font-mono text-[var(--ink-3)] tracking-wide">{t}</span>
-                      ))}
-                    </div>
-                    <h3 className="font-display text-[15px] text-[var(--ink)] leading-snug group-hover:text-[var(--brand)] transition-colors duration-300">
-                      {item.title}
-                    </h3>
-                    <p className="mt-1.5 text-[12.5px] text-[var(--ink-2)] leading-relaxed line-clamp-2">
-                      {item.desc}
-                    </p>
-                  </div>
-                </a>
-              ))}
-            </div>
+              ]} />
           </section>
 
           {/* DATA SCALE */}
