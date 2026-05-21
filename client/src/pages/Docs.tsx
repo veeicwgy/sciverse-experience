@@ -2957,7 +2957,7 @@ function CookbookIndexPage({ onGo }: { onGo: (a: Active) => void }) {
               ? "bg-neutral-900 text-white font-medium"
               : "text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100",
           )}>
-          All
+          All <span className="ml-1 text-[11px] opacity-60">{COOKBOOKS.length}</span>
         </button>
         {allTags.map((tag) => {
           const count = COOKBOOKS.filter((c) => c.tags.includes(tag)).length;
@@ -2972,7 +2972,7 @@ function CookbookIndexPage({ onGo }: { onGo: (a: Active) => void }) {
                   ? "bg-neutral-900 text-white font-medium"
                   : "text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100",
               )}>
-              {tag}
+              {tag} <span className="ml-1 text-[11px] opacity-60">{count}</span>
             </button>
           );
         })}
