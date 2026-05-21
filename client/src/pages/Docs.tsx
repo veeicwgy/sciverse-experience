@@ -2615,12 +2615,27 @@ function CodeBlock({ samples }: { samples: CodeSample[] }) {
         <button
           onClick={onCopy}
           className={cn(
-            "px-2 py-0.5 rounded text-[11px] tracking-wider transition-colors shrink-0 border hairline",
+            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium tracking-wider transition-all duration-300 shrink-0 border",
             copied
-              ? "text-[var(--brand)] border-[var(--brand)]/40"
-              : "text-[var(--ink-3)] hover:text-[var(--ink)]",
+              ? "bg-emerald-50 border-emerald-200 text-emerald-700 scale-105"
+              : "border-slate-200 text-[var(--ink-3)] hover:text-[var(--ink)] hover:border-slate-300 hover:shadow-sm",
           )}>
-          {copied ? "已复制" : "复制"}
+          {copied ? (
+            <>
+              <svg className="h-3.5 w-3.5 animate-[bounceIn_0.3s_ease-out]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>已复制</span>
+            </>
+          ) : (
+            <>
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <rect x="9" y="9" width="13" height="13" rx="2" />
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+              </svg>
+              <span>复制</span>
+            </>
+          )}
         </button>
       </div>
       <pre className="text-[12.5px] leading-[1.7] font-mono p-4 overflow-x-auto text-[var(--ink-2)]">
@@ -3017,9 +3032,41 @@ function CookbookDetailPage({ slug, onGo }: { slug: string; onGo: (a: Active) =>
 
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const copyCode = (code: string, idx: number) => {
-    navigator.clipboard.writeText(code);
-    setCopiedIdx(idx);
-    setTimeout(() => setCopiedIdx(null), 2000);
+    navigator.clipboard.writeText(code).then(() => {
+      setCopiedIdx(idx);
+      setTimeout(() => setCopiedIdx(null), 2200);
+    });
+  };
+
+  const CopyBtn = ({ code, idx }: { code: string; idx: number }) => {
+    const isCopied = copiedIdx === idx;
+    return (
+      <button
+        onClick={() => copyCode(code, idx)}
+        className={cn(
+          "absolute top-2.5 right-2.5 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium border transition-all duration-300",
+          isCopied
+            ? "bg-emerald-50 border-emerald-200 text-emerald-700 scale-105"
+            : "bg-white/90 backdrop-blur-sm border-slate-200 text-slate-500 hover:text-slate-700 hover:border-slate-300 hover:shadow-sm"
+        )}>
+        {isCopied ? (
+          <>
+            <svg className="h-3.5 w-3.5 animate-[bounceIn_0.3s_ease-out]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            <span>已复制</span>
+          </>
+        ) : (
+          <>
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <rect x="9" y="9" width="13" height="13" rx="2" />
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+            </svg>
+            <span>复制</span>
+          </>
+        )}
+      </button>
+    );
   };
 
   return (
@@ -3119,11 +3166,7 @@ function CookbookDetailPage({ slug, onGo }: { slug: string; onGo: (a: Active) =>
         <h2 className="text-[16px] font-semibold text-[var(--ink)] mb-3">Agent Prompt 示例</h2>
         <div className="relative">
           <pre className="p-4 rounded-lg bg-violet-50/60 border border-violet-100 text-[12px] text-violet-900 whitespace-pre-wrap overflow-x-auto">{item.agentPrompt}</pre>
-          <button
-            onClick={() => copyCode(item.agentPrompt, -1)}
-            className="absolute top-2 right-2 px-2 py-1 rounded text-[11px] bg-white/80 border hairline text-[var(--ink-3)] hover:text-[var(--ink)] transition-colors">
-            {copiedIdx === -1 ? "✓ 已复制" : "复制"}
-          </button>
+          <CopyBtn code={item.agentPrompt} idx={-1} />
         </div>
       </div>
 
@@ -3139,11 +3182,7 @@ function CookbookDetailPage({ slug, onGo }: { slug: string; onGo: (a: Active) =>
               </div>
               <div className="relative">
                 <pre className="p-4 text-[12px] text-[var(--ink)] bg-white overflow-x-auto leading-relaxed"><code>{step.code.code}</code></pre>
-                <button
-                  onClick={() => copyCode(step.code.code, idx)}
-                  className="absolute top-2 right-2 px-2 py-1 rounded text-[11px] bg-slate-100 border hairline text-[var(--ink-3)] hover:text-[var(--ink)] transition-colors">
-                  {copiedIdx === idx ? "✓ 已复制" : "复制"}
-                </button>
+                <CopyBtn code={step.code.code} idx={idx} />
               </div>
             </div>
           ))}
