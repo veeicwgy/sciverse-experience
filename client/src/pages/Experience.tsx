@@ -596,56 +596,83 @@ function useTypewriter(samples: string[], enabled: boolean) {
   return text;
 }
 
-/* CookbookGrid — IntersectionObserver 驱动的交错淡入动画 */
+/* CookbookGrid — 支持左右翻页 + 淡入动画 */
 function CookbookGrid({ items }: { items: { slug: string; cover: string; title: string; desc: string; tags: string[] }[] }) {
+  const PAGE_SIZE_CB = 3;
+  const [cbPage, setCbPage] = useState(0);
+  const totalPages = Math.ceil(items.length / PAGE_SIZE_CB);
+  const visibleItems = items.slice(cbPage * PAGE_SIZE_CB, (cbPage + 1) * PAGE_SIZE_CB);
   const gridRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = gridRef.current;
     if (!el) return;
     const cards = el.querySelectorAll<HTMLElement>('[data-cb-card]');
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const card = entry.target as HTMLElement;
-            const delay = Number(card.dataset.cbIdx || 0) * 70;
-            setTimeout(() => {
-              card.style.opacity = '1';
-              card.style.transform = 'translateY(0)';
-            }, delay);
-            io.unobserve(card);
-          }
-        });
-      },
-      { threshold: 0.15 }
-    );
-    cards.forEach((c) => io.observe(c));
-    return () => io.disconnect();
-  }, [items]);
+    cards.forEach((card, i) => {
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(16px)';
+      setTimeout(() => {
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+      }, i * 70 + 50);
+    });
+  }, [cbPage]);
   return (
-    <div ref={gridRef} className="mt-6 grid md:grid-cols-3 gap-4">
-      {items.map((item, idx) => (
-        <a
-          key={item.slug}
-          href={`/docs#cookbook/${item.slug}`}
-          data-cb-card
-          data-cb-idx={idx}
-          style={{ opacity: 0, transform: 'translateY(16px)', transition: 'opacity 0.45s ease, transform 0.45s ease' }}
-          className="group block rounded-xl border hairline bg-white overflow-hidden hover:shadow-[0_2px_16px_rgba(0,0,0,0.06)] hover:-translate-y-[1px]">
-          <div className="aspect-[3/2] overflow-hidden bg-neutral-50">
-            <img src={item.cover} alt={item.title} className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]" />
-          </div>
-          <div className="p-4 pb-5">
-            <div className="flex items-center gap-2 mb-2">
-              {item.tags.map((t) => (
-                <span key={t} className="text-[10.5px] font-mono text-[var(--ink-3)] tracking-wide">{t}</span>
-              ))}
+    <div className="mt-6">
+      <div ref={gridRef} className="grid md:grid-cols-3 gap-4">
+        {visibleItems.map((item, idx) => (
+          <a
+            key={item.slug}
+            href={`/docs#cookbook/${item.slug}`}
+            data-cb-card
+            data-cb-idx={idx}
+            style={{ opacity: 0, transform: 'translateY(16px)', transition: 'opacity 0.45s ease, transform 0.45s ease' }}
+            className="group block rounded-xl border hairline bg-white overflow-hidden hover:shadow-[0_2px_16px_rgba(0,0,0,0.06)] hover:-translate-y-[1px]">
+            <div className="aspect-[3/2] overflow-hidden bg-neutral-50">
+              <img src={item.cover} alt={item.title} className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]" />
             </div>
-            <h3 className="font-display text-[15px] text-[var(--ink)] leading-snug group-hover:text-[var(--brand)] transition-colors duration-300">{item.title}</h3>
-            <p className="mt-1.5 text-[12.5px] text-[var(--ink-2)] leading-relaxed line-clamp-2">{item.desc}</p>
+            <div className="p-4 pb-5">
+              <div className="flex items-center gap-2 mb-2">
+                {item.tags.map((t) => (
+                  <span key={t} className="text-[10.5px] font-mono text-[var(--ink-3)] tracking-wide">{t}</span>
+                ))}
+              </div>
+              <h3 className="font-display text-[15px] text-[var(--ink)] leading-snug group-hover:text-[var(--brand)] transition-colors duration-300">{item.title}</h3>
+              <p className="mt-1.5 text-[12.5px] text-[var(--ink-2)] leading-relaxed line-clamp-2">{item.desc}</p>
+            </div>
+          </a>
+        ))}
+      </div>
+      {totalPages > 1 && (
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <button
+            onClick={() => setCbPage((p) => Math.max(0, p - 1))}
+            disabled={cbPage === 0}
+            className="h-8 w-8 inline-flex items-center justify-center rounded-full text-[var(--ink-2)] hover:bg-[#f1f0eb] hover:text-[var(--ink)] disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+            aria-label="上一页">
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCbPage(i)}
+                className={cn(
+                  "h-1.5 rounded-full transition-all duration-300",
+                  i === cbPage ? "w-5 bg-[var(--brand)]" : "w-1.5 bg-[var(--ink-3)]/30 hover:bg-[var(--ink-3)]/60"
+                )}
+                aria-label={`第 ${i + 1} 页`}
+              />
+            ))}
           </div>
-        </a>
-      ))}
+          <button
+            onClick={() => setCbPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={cbPage >= totalPages - 1}
+            className="h-8 w-8 inline-flex items-center justify-center rounded-full text-[var(--ink-2)] hover:bg-[#f1f0eb] hover:text-[var(--ink)] disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+            aria-label="下一页">
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1131,50 +1158,13 @@ export default function Experience() {
                 查看全部 {COOKBOOKS.length} 个案例 →
               </a>
             </div>
-            <CookbookGrid items={[
-                {
-                  slug: "scientific-rag",
-                  cover: "/manus-storage/cookbook-cover-2-rag-datasource_28fdc177.png",
-                  title: "科学 RAG 数据源",
-                  desc: "将 Sciverse 作为 RAG pipeline 的检索后端，为 LLM 提供可信科学证据",
-                  tags: ["RAG", "Agent"],
-                },
-                {
-                  slug: "evidence-pack",
-                  cover: "/manus-storage/cookbook-cover-13-evidence-pack_3acea4a6.png",
-                  title: "论文可信引用包 Evidence Pack",
-                  desc: "标准化 claim/quote/doc_id/offset/title，所有 RAG/Agent 的底层引用模板",
-                  tags: ["RAG", "Agent"],
-                },
-                {
-                  slug: "structured-paper-filter",
-                  cover: "/manus-storage/cookbook-cover-5-structured-filter_3f56ccaa.png",
-                  title: "结构化论文筛选",
-                  desc: "用 meta-catalog + meta-search 按年份、期刊、引用数等字段精确筛选",
-                  tags: ["检索", "元数据"],
-                },
-                {
-                  slug: "multimodal-figure-retrieval",
-                  cover: "/manus-storage/cookbook-cover-9-multimodal-chart_5e8cc9b7.png",
-                  title: "图表提取与分析",
-                  desc: "从论文中提取图表资源，结合多模态 LLM 进行结构化分析",
-                  tags: ["工具", "检索"],
-                },
-                {
-                  slug: "patent-literature-cross",
-                  cover: "/manus-storage/cookbook-cover-7-patent-explore_ea314eee.png",
-                  title: "专利与文献语义探索",
-                  desc: "跨专利与学术文献做语义检索，发现技术关联与发展脉络",
-                  tags: ["检索", "Agent"],
-                },
-                {
-                  slug: "skill-integration",
-                  cover: "/manus-storage/cookbook-cover-6-skill-integration_05b65d61.png",
-                  title: "Claude / Cursor / Codex Skill",
-                  desc: "以 MCP Skill 方式接入 Claude、Cursor、Codex 等 Agent 平台",
-                  tags: ["Agent", "工具"],
-                },
-              ]} />
+            <CookbookGrid items={COOKBOOKS.map((c) => ({
+                  slug: c.slug,
+                  cover: c.coverImage || "",
+                  title: c.title,
+                  desc: c.subtitle,
+                  tags: c.tags as string[],
+                }))} />
           </section>
 
           {/* DATA SCALE */}
