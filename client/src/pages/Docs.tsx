@@ -2975,6 +2975,22 @@ function CookbookIndexPage({ onGo }: { onGo: (a: Active) => void }) {
         })}
       </div>
 
+      {/* 空结果提示 */}
+      {filtered.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <svg className="w-12 h-12 text-neutral-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
+          <p className="text-[15px] text-neutral-500 mb-1">未找到匹配的案例</p>
+          <p className="text-[13px] text-neutral-400 mb-4">试试其他关键词，或清除筛选条件</p>
+          <button
+            onClick={() => { setSearch(""); setFilter("all"); }}
+            className="px-4 py-2 text-[13px] font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition-colors">
+            清空搜索与筛选
+          </button>
+        </div>
+      )}
+
       {/* 卡片网格 — Claude Cookbook 3列极简风格 */}
       <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((item, idx) => (
