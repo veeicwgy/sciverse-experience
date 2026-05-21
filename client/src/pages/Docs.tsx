@@ -2952,32 +2952,57 @@ function CookbookIndexPage({ onGo }: { onGo: (a: Active) => void }) {
             key={item.slug}
             data-slug={item.slug}
             onClick={() => onGo({ kind: "cookbook-detail", slug: item.slug })}
-            className={`group relative text-left rounded-xl border border-neutral-200 bg-white p-5 transition-all duration-400 hover:border-neutral-300 hover:shadow-[0_2px_12px_rgba(0,0,0,0.06)] ${
+            className={`group relative text-left rounded-xl border border-neutral-200 bg-white overflow-hidden transition-all duration-400 hover:border-neutral-300 hover:shadow-[0_2px_12px_rgba(0,0,0,0.06)] ${
               visibleSet.has(item.slug) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
             }`}
             style={{ transitionDelay: `${idx * 60}ms` }}>
-            {/* 图标 — 统一单色 book icon */}
-            <div className="mb-3">
-              <BookOpen className="h-5 w-5 text-neutral-400" />
+            {/* 代码片段预览区域 */}
+            <div className="px-4 pt-3 pb-2 bg-neutral-50 border-b border-neutral-100">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <span className="h-2 w-2 rounded-full bg-neutral-300" />
+                <span className="h-2 w-2 rounded-full bg-neutral-200" />
+                <span className="h-2 w-2 rounded-full bg-neutral-200" />
+                <span className="ml-auto text-[9px] text-neutral-400 font-mono">{item.steps[1]?.code.lang || "python"}</span>
+              </div>
+              <pre className="text-[10.5px] leading-[1.5] font-mono text-neutral-600 overflow-hidden max-h-[54px]">
+                <code>{(() => {
+                  const codeStep = item.steps.find(s => s.code.lang === "python" && s.code.code.includes("async def")) || item.steps.find(s => s.code.lang === "python" && s.code.code.includes("def ")) || item.steps[1];
+                  if (!codeStep) return "";
+                  const lines = codeStep.code.code.split("\n").filter(l => {
+                    const t = l.trim();
+                    if (!t) return false;
+                    if (t.startsWith("#")) return false;
+                    if (t.startsWith("import ") || t.startsWith("from ")) return false;
+                    if (t.startsWith("pip ")) return false;
+                    if (t.startsWith("BASE =") || t.startsWith("TOKEN =") || t.startsWith("HEADERS =")) return false;
+                    if (t.startsWith("export ") && t.includes("=")) return false;
+                    return true;
+                  });
+                  return lines.slice(0, 3).join("\n");
+                })()}</code>
+              </pre>
             </div>
-            {/* 标题 */}
-            <h3 className="text-[14px] font-semibold text-neutral-900 leading-snug tracking-tight group-hover:text-neutral-700 transition-colors">
-              {item.title}
-            </h3>
-            {/* 描述 */}
-            <p className="mt-2 text-[13px] text-neutral-500 leading-relaxed line-clamp-2">
-              {item.subtitle}
-            </p>
-            {/* 底部标签 — 统一灰色 */}
-            <div className="mt-4 flex items-center gap-1.5">
-              {item.tags.slice(0, 2).map((t) => (
-                <span key={t} className="px-2 py-0.5 rounded text-[11px] font-medium bg-neutral-100 text-neutral-500">
-                  {t}
+            {/* 内容区域 */}
+            <div className="px-5 pt-3.5 pb-4">
+              {/* 标题 */}
+              <h3 className="text-[14px] font-semibold text-neutral-900 leading-snug tracking-tight group-hover:text-neutral-700 transition-colors">
+                {item.title}
+              </h3>
+              {/* 描述 */}
+              <p className="mt-1.5 text-[12.5px] text-neutral-500 leading-relaxed line-clamp-2">
+                {item.subtitle}
+              </p>
+              {/* 底部标签 — 统一灰色 */}
+              <div className="mt-3 flex items-center gap-1.5">
+                {item.tags.slice(0, 2).map((t) => (
+                  <span key={t} className="px-2 py-0.5 rounded text-[10.5px] font-medium bg-neutral-100 text-neutral-500">
+                    {t}
+                  </span>
+                ))}
+                <span className="ml-auto text-[10.5px] text-neutral-400">
+                  {item.difficulty}
                 </span>
-              ))}
-              <span className="ml-auto text-[11px] text-neutral-400">
-                {item.difficulty}
-              </span>
+              </div>
             </div>
           </button>
         ))}
