@@ -2949,10 +2949,10 @@ function CookbookIndexPage({ onGo }: { onGo: (a: Active) => void }) {
       {/* Minimal header — Claude Cookbook style */}
       <div className="mb-8">
         <h1 className="text-[28px] lg:text-[32px] font-semibold tracking-tight text-[var(--ink)] leading-tight">
-          Sciverse Cookbook
+          Sciverse 场景案例
         </h1>
         <p className="mt-2 text-[15px] text-[var(--ink-2)] leading-relaxed">
-          Practical guides and examples for integrating Sciverse into your workflow
+          可复制、可运行的场景化开发者案例，展示如何用 Sciverse 构建真实应用
         </p>
         <div className="mt-5 h-px bg-[var(--hairline)]" />
       </div>
