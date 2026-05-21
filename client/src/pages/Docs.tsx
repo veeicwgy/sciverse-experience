@@ -2956,31 +2956,29 @@ function CookbookIndexPage({ onGo }: { onGo: (a: Active) => void }) {
               visibleSet.has(item.slug) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
             }`}
             style={{ transitionDelay: `${idx * 60}ms` }}>
-            {/* 代码片段预览区域 */}
-            <div className="px-4 pt-3 pb-2 bg-neutral-50 border-b border-neutral-100">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <span className="h-2 w-2 rounded-full bg-neutral-300" />
-                <span className="h-2 w-2 rounded-full bg-neutral-200" />
-                <span className="h-2 w-2 rounded-full bg-neutral-200" />
-                <span className="ml-auto text-[9px] text-neutral-400 font-mono">{item.steps[1]?.code.lang || "python"}</span>
+            {/* Pipeline 流程缩略图 */}
+            <div className="px-4 pt-3.5 pb-3 bg-neutral-50/60 border-b border-neutral-100 overflow-hidden">
+              <div className="flex items-center gap-0.5">
+                {item.pipeline.slice(0, 3).map((step, i) => {
+                  const label = step.replace("→ ", "").replace(/\(.+\)/, "").trim();
+                  const short = label.length > 12 ? label.slice(0, 12) + "…" : label;
+                  return (
+                    <div key={i} className="flex items-center gap-0.5">
+                      <span className="px-1.5 py-0.5 rounded bg-white border border-neutral-200/80 text-[9.5px] text-neutral-500 font-medium whitespace-nowrap">
+                        {short}
+                      </span>
+                      {i < Math.min(item.pipeline.length, 3) - 1 && (
+                        <svg className="w-2.5 h-2.5 text-neutral-300 shrink-0" fill="none" viewBox="0 0 12 12">
+                          <path d="M4.5 2.5L8 6L4.5 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </div>
+                  );
+                })}
+                {item.pipeline.length > 3 && (
+                  <span className="text-[9px] text-neutral-400 ml-0.5">+{item.pipeline.length - 3}</span>
+                )}
               </div>
-              <pre className="text-[10.5px] leading-[1.5] font-mono text-neutral-600 overflow-hidden max-h-[54px]">
-                <code>{(() => {
-                  const codeStep = item.steps.find(s => s.code.lang === "python" && s.code.code.includes("async def")) || item.steps.find(s => s.code.lang === "python" && s.code.code.includes("def ")) || item.steps[1];
-                  if (!codeStep) return "";
-                  const lines = codeStep.code.code.split("\n").filter(l => {
-                    const t = l.trim();
-                    if (!t) return false;
-                    if (t.startsWith("#")) return false;
-                    if (t.startsWith("import ") || t.startsWith("from ")) return false;
-                    if (t.startsWith("pip ")) return false;
-                    if (t.startsWith("BASE =") || t.startsWith("TOKEN =") || t.startsWith("HEADERS =")) return false;
-                    if (t.startsWith("export ") && t.includes("=")) return false;
-                    return true;
-                  });
-                  return lines.slice(0, 3).join("\n");
-                })()}</code>
-              </pre>
             </div>
             {/* 内容区域 */}
             <div className="px-5 pt-3.5 pb-4">
