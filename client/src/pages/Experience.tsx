@@ -1076,7 +1076,7 @@ export default function Experience() {
           )}
 
           {/* COOKBOOK SHOWCASE */}
-          <section className="mt-14">
+          <section className="mt-16">
             <div className="flex items-end justify-between gap-4 flex-wrap">
               <h2 className="font-display text-[26px] text-[var(--ink)]">
                 场景案例<span className="italic"> Cookbook</span>
@@ -1114,7 +1114,7 @@ export default function Experience() {
           </section>
 
           {/* DATA SCALE */}
-          <section className="mt-14">
+          <section className="mt-16">
             <div className="flex items-end justify-between gap-4 flex-wrap">
               <h2 className="font-display text-[26px] text-[var(--ink)]">
                 Sciverse 数据能力<span className="italic"> 全景</span>
@@ -1199,7 +1199,7 @@ export default function Experience() {
             </div>
           </section>
 
-          <footer className="mt-20 pb-10 pt-8 border-t hairline flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] text-[var(--ink-3)]">
+          <footer className="mt-24 pb-10 pt-8 border-t hairline flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] text-[var(--ink-3)]">
             <span className="font-mono">© 2026 Sciverse · OpenDataLab</span>
             <span>v0.1 · Editorial Lab</span>
             <a href="/docs" className="link-edit ml-auto">查看 API 文档</a>
