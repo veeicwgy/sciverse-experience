@@ -1077,28 +1077,16 @@ export default function Experience() {
 
           {/* COOKBOOK SHOWCASE */}
           <section className="mt-14">
-            <div className="relative">
-              <div className="flex items-center gap-2 text-[11px] tracking-[0.28em] text-[var(--ink-3)] uppercase font-mono">
-                <span className="inline-block h-px w-5 bg-[var(--ink-3)]/50" />
-                Cookbook
-              </div>
-              <div className="mt-2 flex items-end justify-between gap-4 flex-wrap">
-                <h2 className="font-display text-[26px] text-[var(--ink)] leading-tight">
-                  场景案例
-                </h2>
-                <a
-                  href="/docs#cookbook"
-                  className="text-[12.5px] text-[var(--ink-3)] hover:text-[var(--brand)] transition-colors duration-300 flex items-center gap-1 font-mono tracking-wide">
-                  查看全部 9 个案例
-                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14" />
-                    <path d="m12 5 7 7-7 7" />
-                  </svg>
-                </a>
-              </div>
-              <p className="mt-2 text-[13.5px] text-[var(--ink-2)] leading-relaxed max-w-[560px]">
-                用真实任务展示如何把 Sciverse 接入 Agent、RAG、科研检索。每个案例可复制、可运行。
-              </p>
+            <div className="flex items-end justify-between gap-4 flex-wrap">
+              <h2 className="font-display text-[26px] text-[var(--ink)]">
+                场景案例<span className="italic"> Cookbook</span>
+              </h2>
+              <a
+                href="/docs#cookbook"
+                className="text-[12px] text-[var(--ink-3)] hover:text-[var(--brand)] transition-colors duration-300 flex items-center gap-2">
+                <span className="inline-block h-px w-8 bg-[var(--ink-3)]/40" />
+                查看全部 9 个案例 →
+              </a>
             </div>
             <CookbookGrid items={[
                 {
