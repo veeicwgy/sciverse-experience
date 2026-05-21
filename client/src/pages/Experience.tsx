@@ -596,13 +596,14 @@ function useTypewriter(samples: string[], enabled: boolean) {
   return text;
 }
 
-/* CookbookGrid — 支持左右翻页 + 淡入动画 */
+/* CookbookGrid — 每页 6 个（2行x3列）+ 左右翻页 + 键盘快捷键 + 淡入动画 */
 function CookbookGrid({ items }: { items: { slug: string; cover: string; title: string; desc: string; tags: string[] }[] }) {
-  const PAGE_SIZE_CB = 3;
+  const PAGE_SIZE_CB = 6;
   const [cbPage, setCbPage] = useState(0);
   const totalPages = Math.ceil(items.length / PAGE_SIZE_CB);
   const visibleItems = items.slice(cbPage * PAGE_SIZE_CB, (cbPage + 1) * PAGE_SIZE_CB);
   const gridRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = gridRef.current;
     if (!el) return;
@@ -616,8 +617,22 @@ function CookbookGrid({ items }: { items: { slug: string; cover: string; title: 
       }, i * 70 + 50);
     });
   }, [cbPage]);
+  /* 键盘左右箭头快捷键 */
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        setCbPage((p) => Math.max(0, p - 1));
+      } else if (e.key === 'ArrowRight') {
+        setCbPage((p) => Math.min(totalPages - 1, p + 1));
+      }
+    };
+    const container = containerRef.current;
+    if (!container) return;
+    container.addEventListener('keydown', handler);
+    return () => container.removeEventListener('keydown', handler);
+  }, [totalPages]);
   return (
-    <div className="mt-6">
+    <div className="mt-6" ref={containerRef} tabIndex={0} style={{ outline: 'none' }}>
       <div ref={gridRef} className="grid md:grid-cols-3 gap-4">
         {visibleItems.map((item, idx) => (
           <a
@@ -643,7 +658,7 @@ function CookbookGrid({ items }: { items: { slug: string; cover: string; title: 
         ))}
       </div>
       {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-center gap-2">
+        <div className="mt-5 flex items-center justify-center gap-3">
           <button
             onClick={() => setCbPage((p) => Math.max(0, p - 1))}
             disabled={cbPage === 0}
@@ -651,7 +666,7 @@ function CookbookGrid({ items }: { items: { slug: string; cover: string; title: 
             aria-label="上一页">
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             {Array.from({ length: totalPages }).map((_, i) => (
               <button
                 key={i}
