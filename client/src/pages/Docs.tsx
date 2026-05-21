@@ -3159,10 +3159,8 @@ function KeyBanner() {
           登录控制台「密钥」即可创建。<strong>一个 Token 通用于 Sciverse、点石、Skills 全部接口</strong>，免费额度对开发者完全开放。
         </p>
       </div>
-      <Link href="/keys">
-        <a className="inline-flex items-center gap-1.5 text-[13px] text-[var(--brand)] hover:opacity-80 transition-opacity shrink-0">
+      <Link href="/keys" className="inline-flex items-center gap-1.5 text-[13px] text-[var(--brand)] hover:opacity-80 transition-opacity shrink-0">
           前往控制台 <ArrowUpRight className="h-3.5 w-3.5" />
-        </a>
       </Link>
     </section>
   );
