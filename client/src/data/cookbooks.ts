@@ -70,22 +70,109 @@ export const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 1: 环境准备",
         desc: "安装依赖并配置 API Token",
-        code: { lang: "bash", label: "安装依赖", code: `# 安装所需 Python 包\npip install httpx anthropic\n\n# 设置环境变量（替换为你的真实 Token）\nexport SCIVERSE_API_TOKEN="sv-your-token-here"\nexport ANTHROPIC_API_KEY="sk-ant-..."` },
+        code: { lang: "bash", label: "安装依赖", code: `# 安装所需 Python 包
+!pip install httpx anthropic
+# 设置环境变量（替换为你的真实 Token）
+import os
+os.environ["SCIVERSE_API_TOKEN"] = "sv-your-token-here"  # 替换为你的真实值
+import os
+os.environ["ANTHROPIC_API_KEY"] = "sk-ant-..."  # 替换为你的真实值
+` },
       },
       {
         title: "Step 2: 语义检索相关片段",
         desc: "使用 agentic-search 获取与研究问题最相关的文献片段",
-        code: { lang: "python", label: "Python", code: `import os\nimport asyncio\nimport httpx\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def search_literature(query: str, top_k: int = 20):\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.post(\n            f"{BASE}/agentic-search",\n            headers=HEADERS,\n            json={"query": query, "top_k": top_k}\n        )\n        resp.raise_for_status()\n        return resp.json()["hits"]\n\nasync def main():\n    hits = await search_literature(\n        "Transformer applications in protein structure prediction 2020-2024"\n    )\n    print(f"Found {len(hits)} relevant chunks")\n    for h in hits[:3]:\n        print(f"  [{h['score']:.2f}] {h['title'][:60]}...")\n    return hits\n\nhits = asyncio.run(main())` },
+        code: { lang: "python", label: "Python", code: `import os
+import asyncio
+import httpx
+
+BASE = "https://api.sciverse.space"
+TOKEN = os.environ["SCIVERSE_API_TOKEN"]
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
+
+async def search_literature(query: str, top_k: int = 20):
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            f"{BASE}/agentic-search",
+            headers=HEADERS,
+            json={"query": query, "top_k": top_k}
+        )
+        resp.raise_for_status()
+        return (resp.json().get("hits") or [])
+
+async def main():
+    hits = await search_literature(
+        "Transformer applications in protein structure prediction 2020-2024"
+    )
+    print(f"Found {len(hits)} relevant chunks")
+    for h in hits[:3]:
+        print(f"  [{h['score']:.2f}] {h['title'][:60]}...")
+    return hits
+
+hits = await main()
+` },
       },
       {
         title: "Step 3: 读取原文上下文",
         desc: "对高分片段调用 content 接口获取更完整的上下文",
-        code: { lang: "python", label: "Python", code: `async def read_context(doc_id: str, offset: int = 0, limit: int = 2000):\n    """读取指定文档的原文片段。返回 {text, next_offset, more}"""\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.get(\n            f"{BASE}/content",\n            headers=HEADERS,\n            params={"doc_id": doc_id, "offset": offset, "limit": limit}\n        )\n        resp.raise_for_status()\n        return resp.json()\n\nasync def gather_evidence(hits, top_n=5):\n    sorted_hits = sorted(hits, key=lambda x: x["score"], reverse=True)[:top_n]\n    evidences = []\n    for hit in sorted_hits:\n        ctx = await read_context(hit["doc_id"], hit.get("offset", 0))\n        evidences.append({\n            "title": hit["title"],\n            "doc_id": hit["doc_id"],\n            "offset": hit.get("offset", 0),\n            "chunk": hit["chunk"],\n            "context": ctx["text"],  # 注意：响应字段是 text\n            "score": hit["score"]\n        })\n    return evidences\n\nevidences = asyncio.run(gather_evidence(hits))` },
+        code: { lang: "python", label: "Python", code: `async def read_context(doc_id: str, offset: int = 0, limit: int = 2000):
+    """读取指定文档的原文片段。返回 {text, next_offset, more}"""
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.get(
+            f"{BASE}/content",
+            headers=HEADERS,
+            params={"doc_id": doc_id, "offset": offset, "limit": limit}
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+async def gather_evidence(hits, top_n=5):
+    sorted_hits = sorted(hits, key=lambda x: x["score"], reverse=True)[:top_n]
+    evidences = []
+    for hit in sorted_hits:
+        ctx = await read_context(hit["doc_id"], hit.get("offset", 0))
+        evidences.append({
+            "title": hit["title"],
+            "doc_id": hit["doc_id"],
+            "offset": hit.get("offset", 0),
+            "chunk": hit.get("chunk", ""),
+            "context": ctx["text"],  # 注意：响应字段是 text
+            "score": hit["score"]
+        })
+    return evidences
+
+evidences = await gather_evidence(hits)
+` },
       },
       {
         title: "Step 4: 生成带引用的综述（可选增强）",
         desc: "将证据传给 LLM 生成结构化综述。此步骤依赖 Anthropic API Key，非 Sciverse 必需",
-        code: { lang: "python", label: "Python", code: `from anthropic import Anthropic\n\nclient = Anthropic()  # 自动读取 ANTHROPIC_API_KEY\n\nevidence_text = "\\n\\n".join([\n    f"[{e['doc_id']}, offset={e['offset']}] {e['title']}\\n{e['context']}"\n    for e in evidences\n])\n\nmsg = client.messages.create(\n    model="claude-sonnet-4-20250514",\n    max_tokens=4096,\n    messages=[{\n        "role": "user",\n        "content": f"""基于以下文献证据，生成一份关于 Transformer 在蛋白质结构预测中应用的综述。\n每个论点必须标注来源 [doc_id, offset]。\n不要编造任何未在证据中出现的信息。\n\n{evidence_text}"""\n    }]\n)\nprint(msg.content[0].text)` },
+        code: { lang: "python", label: "Python", code: `from anthropic import Anthropic
+
+client = Anthropic()  # 自动读取 ANTHROPIC_API_KEY
+
+evidence_text = "\\
+\\
+".join([
+    f"[{e['doc_id']}, offset={e['offset']}] {e['title']}\\
+{e['context']}"
+    for e in evidences
+])
+
+msg = client.messages.create(
+    model="claude-sonnet-4-20250514",
+    max_tokens=4096,
+    messages=[{
+        "role": "user",
+        "content": f"""基于以下文献证据，生成一份关于 Transformer 在蛋白质结构预测中应用的综述。
+每个论点必须标注来源 [doc_id, offset]。
+不要编造任何未在证据中出现的信息。
+
+{evidence_text}"""
+    }]
+)
+print(msg.content[0].text)
+` },
       },
     ],
     notes: [
@@ -123,22 +210,85 @@ export const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 1: 环境准备",
         desc: "安装依赖并配置环境变量",
-        code: { lang: "bash", label: "安装依赖", code: `pip install httpx openai\n\nexport SCIVERSE_API_TOKEN="sv-your-token-here"\nexport OPENAI_API_KEY="sk-..."` },
+        code: { lang: "bash", label: "安装依赖", code: `!pip install httpx openai
+import os
+os.environ["SCIVERSE_API_TOKEN"] = "sv-your-token-here"  # 替换为你的真实值
+import os
+os.environ["OPENAI_API_KEY"] = "sk-..."  # 替换为你的真实值
+` },
       },
       {
         title: "Step 2: 调用 agentic-search 获取证据",
         desc: "一次调用即可获得经过打分的文献片段",
-        code: { lang: "python", label: "Python", code: `import os\nimport asyncio\nimport httpx\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def sciverse_retrieve(query: str, top_k: int = 10):\n    """调用 agentic-search 获取相关文献片段"""\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.post(\n            f"{BASE}/agentic-search",\n            headers=HEADERS,\n            json={"query": query, "top_k": top_k}\n        )\n        resp.raise_for_status()\n        data = resp.json()\n        return [\n            {"text": h["chunk"], "doc_id": h["doc_id"],\n             "title": h["title"], "score": h["score"]}\n            for h in data["hits"]\n        ]` },
+        code: { lang: "python", label: "Python", code: `import os
+import asyncio
+import httpx
+
+BASE = "https://api.sciverse.space"
+TOKEN = os.environ["SCIVERSE_API_TOKEN"]
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
+
+async def sciverse_retrieve(query: str, top_k: int = 10):
+    """调用 agentic-search 获取相关文献片段"""
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            f"{BASE}/agentic-search",
+            headers=HEADERS,
+            json={"query": query, "top_k": top_k}
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return [
+            {"text": h.get("chunk", ""), "doc_id": h["doc_id"],
+             "title": h["title"], "score": h["score"]}
+            for h in (data.get("hits") or [])
+        ]
+` },
       },
       {
         title: "Step 3: 证据过滤",
         desc: "按 score 阈值过滤低质量片段",
-        code: { lang: "python", label: "Python", code: `def filter_evidence(hits: list, threshold: float = 0.65) -> list:\n    """过滤低分片段，按 score 降序排列"""\n    filtered = [h for h in hits if h["score"] >= threshold]\n    return sorted(filtered, key=lambda x: x["score"], reverse=True)\n\nasync def main():\n    hits = await sciverse_retrieve("mRNA LNP delivery system improvements")\n    top_evidence = filter_evidence(hits, threshold=0.65)\n    print(f"Retrieved {len(hits)} chunks, filtered to {len(top_evidence)} high-quality")\n    return top_evidence\n\ntop_evidence = asyncio.run(main())` },
+        code: { lang: "python", label: "Python", code: `def filter_evidence(hits: list, threshold: float = 0.65) -> list:
+    """过滤低分片段，按 score 降序排列"""
+    filtered = [h for h in hits if h["score"] >= threshold]
+    return sorted(filtered, key=lambda x: x["score"], reverse=True)
+
+async def main():
+    hits = await sciverse_retrieve("mRNA LNP delivery system improvements")
+    top_evidence = filter_evidence(hits, threshold=0.65)
+    print(f"Retrieved {len(hits)} chunks, filtered to {len(top_evidence)} high-quality")
+    return top_evidence
+
+top_evidence = await main()
+` },
       },
       {
         title: "Step 4: 基于证据生成 Grounded Answer（可选增强）",
         desc: "将证据注入 LLM prompt，生成带引用的回答。此步骤依赖 OpenAI API Key，非 Sciverse 必需",
-        code: { lang: "python", label: "Python", code: `from openai import OpenAI\n\nclient = OpenAI()  # 自动读取 OPENAI_API_KEY\n\ncontext = "\\n\\n".join([\n    f"[{i+1}] {e['title']}\\n{e['chunk']}"\n    for i, e in enumerate(top_evidence[:5])\n])\n\nresp = client.chat.completions.create(\n    model="gpt-4o",\n    messages=[\n        {"role": "system", "content": "基于提供的文献证据回答问题。每个论点用 [编号] 标注来源。如果证据不足，说明无法确定。不要编造未在证据中出现的信息。"},\n        {"role": "user", "content": f"问题：mRNA LNP 递送系统最新改进？\\n\\n证据：\\n{context}"}\n    ]\n)\nprint(resp.choices[0].message.content)` },
+        code: { lang: "python", label: "Python", code: `from openai import OpenAI
+
+client = OpenAI()  # 自动读取 OPENAI_API_KEY
+
+context = "\\
+\\
+".join([
+    f"[{i+1}] {e['title']}\\
+{e['text']}"
+    for i, e in enumerate(top_evidence[:5])
+])
+
+resp = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[
+        {"role": "system", "content": "基于提供的文献证据回答问题。每个论点用 [编号] 标注来源。如果证据不足，说明无法确定。不要编造未在证据中出现的信息。"},
+        {"role": "user", "content": f"问题：mRNA LNP 递送系统最新改进？\\
+\\
+证据：\\
+{context}"}
+    ]
+)
+print(resp.choices[0].message.content)
+` },
       },
     ],
     notes: [
@@ -175,17 +325,88 @@ export const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 1: 环境准备",
         desc: "安装依赖并配置环境变量",
-        code: { lang: "bash", label: "安装依赖", code: `pip install httpx\n\nexport SCIVERSE_API_TOKEN="sv-your-token-here"` },
+        code: { lang: "bash", label: "安装依赖", code: `!pip install httpx
+import os
+os.environ["SCIVERSE_API_TOKEN"] = "sv-your-token-here"  # 替换为你的真实值
+` },
       },
       {
         title: "Step 2: 读取完整上下文",
         desc: "调用 content 接口，以 offset 为起点读取原文。响应字段为 text（非 content）",
-        code: { lang: "python", label: "Python", code: `import os\nimport asyncio\nimport httpx\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def get_fulltext(doc_id: str, offset: int = 0, limit: int = 2000):\n    """读取文档原文。返回 {text, next_offset, more}"""\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.get(\n            f"{BASE}/content",\n            headers=HEADERS,\n            params={"doc_id": doc_id, "offset": offset, "limit": limit}\n        )\n        resp.raise_for_status()\n        return resp.json()\n\nasync def main():\n    # 先通过 agentic-search 获取真实 doc_id\n    search_resp = await httpx.AsyncClient(timeout=30).__aenter__()\n    # 示例：用真实查询获取 hit\n    resp = await search_resp.post(f"{BASE}/agentic-search", headers=HEADERS, json={"query": "AlphaFold2 protein structure prediction", "top_k": 3})\n    resp.raise_for_status()\n    hit = resp.json()["hits"][0]  # 取最高分结果\n\n    # 向前偏移 300 字符以获取前文语境\n    start = max(0, hit["offset"] - 300)\n    result = await get_fulltext(hit["doc_id"], offset=start, limit=2000)\n\n    print(f"Text length: {len(result['text'])} chars")\n    print(f"Has more: {result['more']}")\n    if result.get("next_offset"):\n        print(f"Next offset: {result['next_offset']}")\n    print(f"\\nContent preview:\\n{result['text'][:300]}...")\n    return result\n\nresult = asyncio.run(main())` },
+        code: { lang: "python", label: "Python", code: `import os
+import asyncio
+import httpx
+
+BASE = "https://api.sciverse.space"
+TOKEN = os.environ["SCIVERSE_API_TOKEN"]
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
+
+async def get_fulltext(doc_id: str, offset: int = 0, limit: int = 2000):
+    """读取文档原文。返回 {text, next_offset, more}"""
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.get(
+            f"{BASE}/content",
+            headers=HEADERS,
+            params={"doc_id": doc_id, "offset": offset, "limit": limit}
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+async def find_top_hit(query: str) -> dict:
+    """Use agentic-search to get a real hit for the content example."""
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            f"{BASE}/agentic-search",
+            headers=HEADERS,
+            json={"query": query, "top_k": 3},
+        )
+        resp.raise_for_status()
+        hits = (resp.json().get("hits") or [])
+        if not hits:
+            raise ValueError(f"No papers found for query: {query}")
+        return hits[0]
+
+async def main():
+    hit = await find_top_hit("AlphaFold2 protein structure prediction")
+
+    # 向前偏移 300 字符以获取前文语境
+    start = max(0, hit.get("offset", 0) - 300)
+    result = await get_fulltext(hit["doc_id"], offset=start, limit=2000)
+
+    print(f"Text length: {len(result['text'])} chars")
+    print(f"Has more: {result['more']}")
+    if result.get("next_offset"):
+        print(f"Next offset: {result['next_offset']}")
+    print(f"\\
+Content preview:\\
+{result['text'][:300]}...")
+    return hit, result
+
+hit, result = await main()
+` },
       },
       {
         title: "Step 3: 迭代读取全文（可选）",
         desc: "如果需要更多上下文，使用 next_offset 循环读取",
-        code: { lang: "python", label: "Python", code: `async def read_full_document(doc_id: str, max_chars: int = 16000):\n    \"\"\"循环读取直到全文或达到字符上限\"\"\"\n    full_text = \"\"\n    offset = 0\n    while len(full_text) < max_chars:\n        result = await get_fulltext(doc_id, offset=offset, limit=4000)\n        full_text += result[\"text\"]\n        if not result.get(\"more\"):\n            break\n        offset = result[\"next_offset\"]\n    return full_text\n\nasync def main():\n    # 使用上一步 agentic-search 返回的真实 doc_id\n    text = await read_full_document(hit[\"doc_id\"], max_chars=16000)\n    print(f\"Total document length: {len(text)} chars\")\n\nasyncio.run(main())` }
+        code: { lang: "python", label: "Python", code: `async def read_full_document(doc_id: str, max_chars: int = 16000):
+    """循环读取直到全文或达到字符上限"""
+    full_text = ""
+    offset = 0
+    while len(full_text) < max_chars:
+        result = await get_fulltext(doc_id, offset=offset, limit=4000)
+        full_text += result["text"]
+        if not result.get("more"):
+            break
+        offset = result["next_offset"]
+    return full_text
+
+async def main():
+    # 使用上一步 agentic-search 返回的真实 hit
+    text = await read_full_document(hit["doc_id"], max_chars=16000)
+    print(f"Total document length: {len(text)} chars")
+
+await main()
+` }
       },
     ],
     notes: [
@@ -222,17 +443,94 @@ export const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 1: 环境准备",
         desc: "安装依赖并配置环境变量",
-        code: { lang: "bash", label: "安装依赖", code: `pip install httpx\n\nexport SCIVERSE_API_TOKEN="sv-your-token-here"` },
+        code: { lang: "bash", label: "安装依赖", code: `!pip install httpx
+import os
+os.environ["SCIVERSE_API_TOKEN"] = "sv-your-token-here"  # 替换为你的真实值
+` },
       },
       {
         title: "Step 2: 从全文中提取图表路径",
         desc: "content 返回的 Markdown 中，图表以标准 Markdown 图片语法引用",
-        code: { lang: "python", label: "Python", code: `import os\nimport re\nimport asyncio\nimport httpx\nfrom pathlib import Path\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def get_content(doc_id: str, offset: int = 0, limit: int = 4000):\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.get(\n            f"{BASE}/content", headers=HEADERS,\n            params={"doc_id": doc_id, "offset": offset, "limit": limit}\n        )\n        resp.raise_for_status()\n        return resp.json()\n\nasync def main():\n    # 先通过 agentic-search 获取真实 doc_id\n    search_resp = await httpx.AsyncClient(timeout=30).post(\n        f\"{BASE}/agentic-search\", headers=HEADERS,\n        json={\"query\": \"AlphaFold2 protein structure\", \"top_k\": 3}\n    )\n    search_resp.raise_for_status()\n    doc_id = search_resp.json()[\"hits\"][0][\"doc_id\"]\n    result = await get_content(doc_id, offset=0, limit=4000)\n    # 注意：响应字段是 text\n    markdown_text = result["text"]\n    # 提取所有图片路径\n    figure_paths = re.findall(r'!\\[.*?\\]\\((.*?)\\)', markdown_text)\n    print(f"Found {len(figure_paths)} figures:")\n    for p in figure_paths:\n        print(f"  {p}")\n    return figure_paths\n\nfigure_paths = asyncio.run(main())` },
+        code: { lang: "python", label: "Python", code: `import os
+import re
+import asyncio
+import httpx
+from pathlib import Path
+
+BASE = "https://api.sciverse.space"
+TOKEN = os.environ["SCIVERSE_API_TOKEN"]
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
+
+async def get_content(doc_id: str, offset: int = 0, limit: int = 4000):
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.get(
+            f"{BASE}/content", headers=HEADERS,
+            params={"doc_id": doc_id, "offset": offset, "limit": limit}
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+async def find_doc_id(query: str) -> str:
+    """Use agentic-search to get a real doc_id for the figure example."""
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            f"{BASE}/agentic-search",
+            headers=HEADERS,
+            json={"query": query, "top_k": 3},
+        )
+        resp.raise_for_status()
+        hits = (resp.json().get("hits") or [])
+        if not hits:
+            raise ValueError(f"No papers found for query: {query}")
+        return hits[0]["doc_id"]
+
+async def main():
+    # 先通过 agentic-search 获取真实 doc_id
+    doc_id = await find_doc_id("AlphaFold2 protein structure")
+    result = await get_content(doc_id, offset=0, limit=4000)
+    # 注意：响应字段是 text
+    markdown_text = result["text"]
+    # 提取所有图片路径
+    figure_paths = re.findall(r'!\\\\[.*?\\\\]\\\\((.*?)\\\\)', markdown_text)
+    print(f"Found {len(figure_paths)} figures:")
+    for p in figure_paths:
+        print(f"  {p}")
+    return figure_paths
+
+figure_paths = await main()
+` },
       },
       {
         title: "Step 3: 调用 resource 下载图表",
         desc: "对每个路径调用 resource 接口获取二进制数据。参数是 file_name（非 path）",
-        code: { lang: "python", label: "Python", code: `async def download_resource(file_name: str, save_dir: str = "./figures"):\n    """下载资源文件。参数 file_name 为 content 中提取的相对路径"""\n    Path(save_dir).mkdir(exist_ok=True)\n    async with httpx.AsyncClient(timeout=60) as client:\n        resp = await client.get(\n            f"{BASE}/resource",\n            headers=HEADERS,\n            params={"file_name": file_name}  # 注意：参数是 file_name\n        )\n        resp.raise_for_status()\n        local_name = file_name.split("/")[-1]\n        save_path = f"{save_dir}/{local_name}"\n        Path(save_path).write_bytes(resp.content)\n        print(f"  Saved: {save_path} ({len(resp.content)} bytes)")\n        return save_path\n\nasync def download_all(paths: list):\n    results = []\n    for p in paths:\n        try:\n            saved = await download_resource(p)\n            results.append(saved)\n        except httpx.HTTPStatusError as e:\n            print(f"  Failed: {p} ({e.response.status_code})")\n    return results\n\nsaved_files = asyncio.run(download_all(figure_paths))` },
+        code: { lang: "python", label: "Python", code: `async def download_resource(file_name: str, save_dir: str = "./figures"):
+    """下载资源文件。参数 file_name 为 content 中提取的相对路径"""
+    Path(save_dir).mkdir(exist_ok=True)
+    async with httpx.AsyncClient(timeout=60) as client:
+        resp = await client.get(
+            f"{BASE}/resource",
+            headers=HEADERS,
+            params={"file_name": file_name}  # 注意：参数是 file_name
+        )
+        resp.raise_for_status()
+        local_name = file_name.split("/")[-1]
+        save_path = f"{save_dir}/{local_name}"
+        Path(save_path).write_bytes(resp.content)
+        print(f"  Saved: {save_path} ({len(resp.content)} bytes)")
+        return save_path
+
+async def download_all(paths: list):
+    results = []
+    for p in paths:
+        try:
+            saved = await download_resource(p)
+            results.append(saved)
+        except httpx.HTTPStatusError as e:
+            print(f"  Failed: {p} ({e.response.status_code})")
+    return results
+
+saved_files = await download_all(figure_paths)
+` },
       },
     ],
     notes: [
@@ -269,17 +567,93 @@ export const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 1: 环境准备",
         desc: "安装依赖并配置环境变量",
-        code: { lang: "bash", label: "安装依赖", code: `pip install httpx\n\nexport SCIVERSE_API_TOKEN="sv-your-token-here"` },
+        code: { lang: "bash", label: "安装依赖", code: `!pip install httpx
+import os
+os.environ["SCIVERSE_API_TOKEN"] = "sv-your-token-here"  # 替换为你的真实值
+` },
       },
       {
         title: "Step 2: 查询可用字段",
         desc: "meta-catalog 返回所有可过滤、可排序的字段及其算子",
-        code: { lang: "python", label: "Python", code: `import os\nimport asyncio\nimport httpx\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def get_catalog():\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.get(f"{BASE}/meta-catalog", headers=HEADERS)\n        resp.raise_for_status()\n        return resp.json()\n\nasync def main():\n    catalog = await get_catalog()\n    print("Available fields:")\n    for field in catalog["fields"]:\n        print(f"  {field['name']} ({field['type']}) - operators: {field['operators']}")\n    return catalog\n\ncatalog = asyncio.run(main())` },
+        code: { lang: "python", label: "Python", code: `import os
+import asyncio
+import httpx
+
+BASE = "https://api.sciverse.space"
+TOKEN = os.environ["SCIVERSE_API_TOKEN"]
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
+
+async def get_catalog():
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.get(f"{BASE}/meta-catalog", headers=HEADERS)
+        resp.raise_for_status()
+        return resp.json()
+
+async def main():
+    catalog = await get_catalog()
+    print("Available fields:")
+    for field in catalog["fields"]:
+        print(f"  {field['name']} ({field.get('type','')}) - operators: {field.get('operators', [])}")
+    return catalog
+
+catalog = await main()
+` },
       },
       {
         title: "Step 3: 构造过滤条件并检索",
         desc: "使用 FILTER_OP_* 枚举构造 filters，SORT_ORDER_* 构造排序",
-        code: { lang: "python", label: "Python", code: `async def search_papers(filters: list, query: str = None, sort: list = None, page_size: int = 20):\n    \"\"\"调用 meta-search 进行结构化检索\n    \n    注意: query 和 sort 不能同时传！\n    - 要相关性排序：传 query，不传 sort\n    - 要字段排序（如引用数）：传 sort，不传 query\n    \n    filters 格式: [{field, operator, value}]\n    operator 枚举: FILTER_OP_EQ / FILTER_OP_IN / FILTER_OP_GTE / FILTER_OP_LTE\n    sort 格式: [{field, order}]\n    order 枚举: SORT_ORDER_ASC / SORT_ORDER_DESC\n    \"\"\"\n    async with httpx.AsyncClient(timeout=30) as client:\n        body = {\"filters\": filters, \"page_size\": page_size}\n        if query:\n            body[\"query\"] = query\n        if sort:\n            body[\"sort\"] = sort\n        resp = await client.post(\n            f\"{BASE}/meta-search\", headers=HEADERS, json=body\n        )\n        resp.raise_for_status()\n        return resp.json()\n\nasync def main():\n    # 示例 1: 按引用数排序（不传 query）\n    results = await search_papers(\n        filters=[\n            {\"field\": \"publication_published_year\", \"operator\": \"FILTER_OP_GTE\", \"value\": 2022},\n            {\"field\": \"publication_published_year\", \"operator\": \"FILTER_OP_LTE\", \"value\": 2024},\n            {\"field\": \"publication_venue_name\", \"operator\": \"FILTER_OP_IN\", \"value\": [\"Nature\", \"Science\"]}\n        ],\n        sort=[{\"field\": \"citation_count\", \"order\": \"SORT_ORDER_DESC\"}]\n    )\n    print(f\"Found {results['total_count']} papers\")\n    for h in results[\"results\"][:5]:\n        print(f\"  {h['title']} ({h.get('publication_published_year','')}, \"\n              f\"{h.get('publication_venue_name','')}, \"\n              f\"citations: {h.get('citation_count', 'N/A')})\")\n\n    # 示例 2: 按相关性排序（传 query，不传 sort）\n    results2 = await search_papers(\n        query=\"CRISPR gene editing delivery\",\n        filters=[\n            {\"field\": \"publication_published_year\", \"operator\": \"FILTER_OP_GTE\", \"value\": 2023}\n        ]\n    )\n    print(f\"\\nRelevance search: {results2['total_count']} papers\")\n\nasyncio.run(main())` },
+        code: { lang: "python", label: "Python", code: `async def search_papers(filters: list, query: str = None, sort: list = None, page_size: int = 20):
+    """调用 meta-search 进行结构化检索
+    
+    注意: query 和 sort 不能同时传！
+    - 要相关性排序：传 query，不传 sort
+    - 要字段排序（如引用数）：传 sort，不传 query
+    
+    filters 格式: [{field, operator, value}]
+    operator 枚举: FILTER_OP_EQ / FILTER_OP_IN / FILTER_OP_GTE / FILTER_OP_LTE
+    sort 格式: [{field, order}]
+    order 枚举: SORT_ORDER_ASC / SORT_ORDER_DESC
+    """
+    async with httpx.AsyncClient(timeout=30) as client:
+        body = {"filters": filters, "page_size": page_size}
+        if query:
+            body["query"] = query
+        if sort:
+            body["sort"] = sort
+        resp = await client.post(
+            f"{BASE}/meta-search", headers=HEADERS, json=body
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+async def main():
+    # 示例 1: 按引用数排序（不传 query）
+    results = await search_papers(
+        filters=[
+            {"field": "publication_published_year", "operator": "FILTER_OP_GTE", "value": 2022},
+            {"field": "publication_published_year", "operator": "FILTER_OP_LTE", "value": 2024},
+            {"field": "publication_venue_name", "operator": "FILTER_OP_IN", "value": ["Nature", "Science"]}
+        ],
+        sort=[{"field": "citation_count", "order": "SORT_ORDER_DESC"}]
+    )
+    print(f"Found {results.get('total_count', 0)} papers")
+    for h in (results.get("results") or [])[:5]:
+        print(f"  {h['title']} ({h.get('publication_published_year','')}, "
+              f"{h.get('publication_venue_name','')}, "
+              f"citations: {h.get('citation_count', 'N/A')})")
+
+    # 示例 2: 按相关性排序（传 query，不传 sort）
+    results2 = await search_papers(
+        query="CRISPR gene editing delivery",
+        filters=[
+            {"field": "publication_published_year", "operator": "FILTER_OP_GTE", "value": 2023}
+        ]
+    )
+    print(f"\\
+Relevance search: {results2.get('total_count', 0)} papers")
+
+await main()
+` },
       },
     ],
     notes: [
@@ -365,17 +739,89 @@ export const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 1: 环境准备",
         desc: "安装依赖并配置环境变量",
-        code: { lang: "bash", label: "安装依赖", code: `pip install httpx anthropic\n\nexport SCIVERSE_API_TOKEN="sv-your-token-here"\nexport ANTHROPIC_API_KEY="sk-ant-..."` },
+        code: { lang: "bash", label: "安装依赖", code: `!pip install httpx anthropic
+import os
+os.environ["SCIVERSE_API_TOKEN"] = "sv-your-token-here"  # 替换为你的真实值
+import os
+os.environ["ANTHROPIC_API_KEY"] = "sk-ant-..."  # 替换为你的真实值
+` },
       },
       {
         title: "Step 2: 语义检索专利和学术文献",
         desc: "分别用专利和学术关键词进行语义检索",
-        code: { lang: "python", label: "Python", code: `import os\nimport asyncio\nimport httpx\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def search(query: str, top_k: int = 15):\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.post(\n            f"{BASE}/agentic-search",\n            headers=HEADERS,\n            json={"query": query, "top_k": top_k}\n        )\n        resp.raise_for_status()\n        return resp.json()["hits"]\n\nasync def main():\n    # 检索专利相关内容\n    patent_hits = await search("CRISPR base editing patent method composition")\n    print(f"Patent-related: {len(patent_hits)} chunks")\n\n    # 检索学术文献\n    academic_hits = await search("CRISPR base editing adenine cytosine mechanism")\n    print(f"Academic-related: {len(academic_hits)} chunks")\n\n    return patent_hits, academic_hits\n\npatent_hits, academic_hits = asyncio.run(main())` },
+        code: { lang: "python", label: "Python", code: `import os
+import asyncio
+import httpx
+
+BASE = "https://api.sciverse.space"
+TOKEN = os.environ["SCIVERSE_API_TOKEN"]
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
+
+async def search(query: str, top_k: int = 15):
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            f"{BASE}/agentic-search",
+            headers=HEADERS,
+            json={"query": query, "top_k": top_k}
+        )
+        resp.raise_for_status()
+        return (resp.json().get("hits") or [])
+
+async def main():
+    # 检索专利相关内容
+    patent_hits = await search("CRISPR base editing patent method composition")
+    print(f"Patent-related: {len(patent_hits)} chunks")
+
+    # 检索学术文献
+    academic_hits = await search("CRISPR base editing adenine cytosine mechanism")
+    print(f"Academic-related: {len(academic_hits)} chunks")
+
+    return patent_hits, academic_hits
+
+patent_hits, academic_hits = await main()
+` },
       },
       {
         title: "Step 3: 交叉分析与报告生成",
         desc: "将两组检索结果交给 LLM 进行关联分析",
-        code: { lang: "python", label: "Python", code: `from anthropic import Anthropic\n\nclient = Anthropic()\n\npatent_summary = "\\n".join([\n    f"- [{h['doc_id']}] (score: {h['score']:.2f}) {h['title']}: {h['chunk'][:80]}..."\n    for h in patent_hits[:8]\n])\nacademic_summary = "\\n".join([\n    f"- [{h['doc_id']}] (score: {h['score']:.2f}) {h['title']}: {h['chunk'][:80]}..."\n    for h in academic_hits[:8]\n])\n\nmsg = client.messages.create(\n    model="claude-sonnet-4-20250514",\n    max_tokens=4096,\n    messages=[{\n        "role": "user",\n        "content": f"""分析以下两组检索结果的技术关联：\n\n## 专利相关片段\n{patent_summary}\n\n## 学术文献片段\n{academic_summary}\n\n请输出：\n1) 两组结果中的技术主题对比\n2) 可能的专利-论文关联（基于内容相似性）\n3) 技术发展脉络推测\n\n注意：所有结论必须基于上述检索结果，标注 doc_id。"""\n    }]\n)\nprint(msg.content[0].text)` },
+        code: { lang: "python", label: "Python", code: `from anthropic import Anthropic
+
+client = Anthropic()
+
+patent_summary = "\\
+".join([
+    f"- [{h['doc_id']}] (score: {h['score']:.2f}) {h['title']}: {h.get('chunk', '')[:80]}..."
+    for h in patent_hits[:8]
+])
+academic_summary = "\\
+".join([
+    f"- [{h['doc_id']}] (score: {h['score']:.2f}) {h['title']}: {h.get('chunk', '')[:80]}..."
+    for h in academic_hits[:8]
+])
+
+msg = client.messages.create(
+    model="claude-sonnet-4-20250514",
+    max_tokens=4096,
+    messages=[{
+        "role": "user",
+        "content": f"""分析以下两组检索结果的技术关联：
+
+## 专利相关片段
+{patent_summary}
+
+## 学术文献片段
+{academic_summary}
+
+请输出：
+1) 两组结果中的技术主题对比
+2) 可能的专利-论文关联（基于内容相似性）
+3) 技术发展脉络推测
+
+注意：所有结论必须基于上述检索结果，标注 doc_id。"""
+    }]
+)
+print(msg.content[0].text)
+` },
       },
     ],
     notes: [
@@ -412,22 +858,122 @@ export const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 1: 环境准备",
         desc: "安装依赖并配置环境变量",
-        code: { lang: "bash", label: "安装依赖", code: `pip install httpx\n\nexport SCIVERSE_API_TOKEN="sv-your-token-here"` },
+        code: { lang: "bash", label: "安装依赖", code: `!pip install httpx
+import os
+os.environ["SCIVERSE_API_TOKEN"] = "sv-your-token-here"  # 替换为你的真实值` },
       },
       {
         title: "Step 2: 拆分草稿并逐句检索",
         desc: "将 LLM 回答拆分为独立论点，对每个论点调用 agentic-search",
-        code: { lang: "python", label: "Python", code: `import os\nimport asyncio\nimport httpx\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\ndef split_claims(draft: str) -> list:\n    """将草稿拆分为独立论点句子"""\n    sentences = [s.strip() for s in draft.split("。") if s.strip()]\n    return [s for s in sentences if len(s) > 10]\n\nasync def search_evidence(claim: str):\n    """对单个论点检索支持证据"""\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.post(\n            f"{BASE}/agentic-search",\n            headers=HEADERS,\n            json={"query": claim, "top_k": 5}\n        )\n        resp.raise_for_status()\n        return resp.json()["hits"]\n\ndraft = "mRNA 疫苗使用可电离脂质纳米颗粒(iLNP)包裹 mRNA。其中 MC3 是最广泛使用的可电离脂质。LNP 的粒径通常在 80-100nm。"\nclaims = split_claims(draft)\nprint(f"Split into {len(claims)} claims")` },
+        code: { lang: "python", label: "Python", code: `import os
+import httpx
+
+BASE = "https://api.sciverse.space"
+TOKEN = os.environ["SCIVERSE_API_TOKEN"]
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
+
+def split_claims(draft: str) -> list:
+    """将草稿拆分为独立论点句子"""
+    sentences = [s.strip() for s in draft.split("。") if s.strip()]
+    return [s for s in sentences if len(s) > 10]
+
+async def search_evidence(claim: str):
+    """对单个论点检索支持证据"""
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            f"{BASE}/agentic-search",
+            headers=HEADERS,
+            json={"query": claim, "top_k": 5}
+        )
+        resp.raise_for_status()
+        return (resp.json().get("hits") or [])
+
+draft = "mRNA 疫苗使用可电离脂质纳米颗粒(iLNP)包裹 mRNA。其中 MC3 是最广泛使用的可电离脂质。LNP 的粒径通常在 80-100nm。"
+claims = split_claims(draft)
+print(f"Split into {len(claims)} claims")
+` },
       },
       {
         title: "Step 3: 调用 content 验证原文",
         desc: "对高分 hit 调用 content 读取原文，确认是否真正支持论点",
-        code: { lang: "python", label: "Python", code: `async def verify_with_content(hit: dict, claim: str) -> dict:\n    """读取原文验证证据是否真正支持论点"""\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.get(\n            f"{BASE}/content",\n            headers=HEADERS,\n            params={"doc_id": hit["doc_id"], "offset": hit.get("offset", 0), "limit": 1000}\n        )\n        resp.raise_for_status()\n        data = resp.json()\n        # 检查原文中是否包含与论点相关的关键词\n        text = data["text"].lower()\n        claim_keywords = [w for w in claim.lower().split() if len(w) > 3]\n        match_count = sum(1 for kw in claim_keywords if kw in text)\n        match_ratio = match_count / max(len(claim_keywords), 1)\n        return {\n            "doc_id": hit["doc_id"],\n            "offset": hit.get("offset", 0),\n            "quote": data["text"][:150],\n            "match_ratio": match_ratio,\n            "verified": match_ratio >= 0.3 and hit["score"] >= 0.7\n        }\n\nasync def ground_claims(claims: list):\n    results = []\n    for claim in claims:\n        hits = await search_evidence(claim)\n        if hits and hits[0]["score"] >= 0.6:\n            verification = await verify_with_content(hits[0], claim)\n            results.append({"claim": claim, **verification})\n        else:\n            results.append({"claim": claim, "verified": False, "doc_id": None})\n        status = "\\u2713" if results[-1]["verified"] else "\\u2717"\n        print(f"  {status} {claim[:50]}...")\n    return results\n\nresults = asyncio.run(ground_claims(claims))` },
+        code: { lang: "python", label: "Python", code: `async def verify_with_content(hit: dict, claim: str) -> dict:
+    """读取原文验证证据是否真正支持论点"""
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.get(
+            f"{BASE}/content",
+            headers=HEADERS,
+            params={"doc_id": hit["doc_id"], "offset": hit.get("offset", 0), "limit": 1000}
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        # 检查原文中是否包含与论点相关的关键词
+        text = data["text"].lower()
+        claim_keywords = [w for w in claim.lower().split() if len(w) > 3]
+        match_count = sum(1 for kw in claim_keywords if kw in text)
+        match_ratio = match_count / max(len(claim_keywords), 1)
+        return {
+            "doc_id": hit["doc_id"],
+            "offset": hit.get("offset", 0),
+            "quote": data["text"][:150],
+            "match_ratio": match_ratio,
+            "verified": match_ratio >= 0.3 and hit["score"] >= 0.7
+        }
+
+async def ground_claims(claims: list):
+    results = []
+    for claim in claims:
+        hits = await search_evidence(claim)
+        if hits and hits[0]["score"] >= 0.6:
+            verification = await verify_with_content(hits[0], claim)
+            results.append({"claim": claim, **verification})
+        else:
+            results.append({"claim": claim, "verified": False, "doc_id": None})
+        status = "\\\\u2713" if results[-1]["verified"] else "\\\\u2717"
+        print(f"  {status} {claim[:50]}...")
+    return results
+
+results = await ground_claims(claims)
+` },
       },
       {
         title: "Step 4: 生成带引用的最终回答",
         desc: "将验证结果组装为带 citation 的最终输出",
-        code: { lang: "python", label: "Python", code: `def build_grounded_answer(results: list) -> dict:\n    citations = []\n    grounded_parts = []\n    unverified = []\n\n    for r in results:\n        if r["verified"]:\n            cite_id = len(citations) + 1\n            citations.append({\n                "id": cite_id,\n                "doc_id": r["doc_id"],\n                "offset": r.get("offset", 0),\n                "quote": r.get("quote", ""),\n                "verified": True\n            })\n            grounded_parts.append(f"{r['claim']} [{cite_id}]")\n        else:\n            grounded_parts.append(f"{r['claim']} [unverified]")\n            unverified.append(r["claim"])\n\n    return {\n        "grounded_answer": "\\u3002".join(grounded_parts) + "\\u3002",\n        "citations": citations,\n        "unverified_claims": unverified\n    }\n\nfinal = build_grounded_answer(results)\nprint(f"\\nGrounded answer:\\n{final['grounded_answer']}")\nprint(f"\\nCitations: {len(final['citations'])}")\nprint(f"Unverified: {len(final['unverified_claims'])}")\nfor c in final["citations"]:\n    print(f"  [{c['id']}] {c['doc_id']} (offset: {c['offset']})")` },
+        code: { lang: "python", label: "Python", code: `def build_grounded_answer(results: list) -> dict:
+    citations = []
+    grounded_parts = []
+    unverified = []
+
+    for r in results:
+        if r["verified"]:
+            cite_id = len(citations) + 1
+            citations.append({
+                "id": cite_id,
+                "doc_id": r["doc_id"],
+                "offset": r.get("offset", 0),
+                "quote": r.get("quote", ""),
+                "verified": True
+            })
+            grounded_parts.append(f"{r['claim']} [{cite_id}]")
+        else:
+            grounded_parts.append(f"{r['claim']} [unverified]")
+            unverified.append(r["claim"])
+
+    return {
+        "grounded_answer": "\\\\u3002".join(grounded_parts) + "\\\\u3002",
+        "citations": citations,
+        "unverified_claims": unverified
+    }
+
+final = build_grounded_answer(results)
+print(f"\\
+Grounded answer:\\
+{final['grounded_answer']}")
+print(f"\\
+Citations: {len(final['citations'])}")
+print(f"Unverified: {len(final['unverified_claims'])}")
+for c in final["citations"]:
+    print(f"  [{c['id']}] {c['doc_id']} (offset: {c['offset']})")
+` },
       },
     ],
     notes: [
@@ -466,17 +1012,114 @@ export const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 1: 环境准备",
         desc: "安装依赖并配置环境变量",
-        code: { lang: "bash", label: "安装依赖", code: `pip install httpx anthropic\n\nexport SCIVERSE_API_TOKEN="sv-your-token-here"\nexport ANTHROPIC_API_KEY="sk-ant-..."` },
+        code: { lang: "bash", label: "安装依赖", code: `!pip install httpx anthropic
+import os
+os.environ["SCIVERSE_API_TOKEN"] = "sv-your-token-here"  # 替换为你的真实值
+import os
+os.environ["ANTHROPIC_API_KEY"] = "sk-ant-..."  # 替换为你的真实值
+` },
       },
       {
         title: "Step 2: 检索论文并提取图表路径",
         desc: "先通过语义检索找到相关论文，再从全文中定位图表",
-        code: { lang: "python", label: "Python", code: `import os\nimport re\nimport asyncio\nimport httpx\nfrom pathlib import Path\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def search_papers(query: str, top_k: int = 10):\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.post(\n            f"{BASE}/agentic-search", headers=HEADERS,\n            json={"query": query, "top_k": top_k}\n        )\n        resp.raise_for_status()\n        return resp.json()["hits"]\n\nasync def get_figures_from_doc(doc_id: str):\n    """读取全文并提取图表路径"""\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.get(\n            f"{BASE}/content", headers=HEADERS,\n            params={"doc_id": doc_id, "offset": 0, "limit": 4000}\n        )\n        resp.raise_for_status()\n        text = resp.json()["text"]  # 注意：字段是 text\n        figure_paths = re.findall(r'!\\[.*?\\]\\((.*?)\\)', text)\n        return figure_paths\n\nasync def main():\n    hits = await search_papers("AlphaFold2 protein structure prediction accuracy")\n    print(f"Found {len(hits)} relevant papers")\n    # 对 top 3 论文提取图表\n    all_figures = []\n    for hit in hits[:3]:\n        paths = await get_figures_from_doc(hit["doc_id"])\n        print(f"  {hit['title'][:50]}: {len(paths)} figures")\n        all_figures.extend([(hit["doc_id"], p) for p in paths])\n    return all_figures\n\nall_figures = asyncio.run(main())` },
+        code: { lang: "python", label: "Python", code: `import os
+import re
+import asyncio
+import httpx
+from pathlib import Path
+
+BASE = "https://api.sciverse.space"
+TOKEN = os.environ["SCIVERSE_API_TOKEN"]
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
+
+async def search_papers(query: str, top_k: int = 10):
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            f"{BASE}/agentic-search", headers=HEADERS,
+            json={"query": query, "top_k": top_k}
+        )
+        resp.raise_for_status()
+        return (resp.json().get("hits") or [])
+
+async def get_figures_from_doc(doc_id: str):
+    """读取全文并提取图表路径"""
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.get(
+            f"{BASE}/content", headers=HEADERS,
+            params={"doc_id": doc_id, "offset": 0, "limit": 4000}
+        )
+        resp.raise_for_status()
+        text = resp.json()["text"]  # 注意：字段是 text
+        figure_paths = re.findall(r'!\\\\[.*?\\\\]\\\\((.*?)\\\\)', text)
+        return figure_paths
+
+async def main():
+    hits = await search_papers("AlphaFold2 protein structure prediction accuracy")
+    print(f"Found {len(hits)} relevant papers")
+    # 对 top 3 论文提取图表
+    all_figures = []
+    for hit in hits[:3]:
+        paths = await get_figures_from_doc(hit["doc_id"])
+        print(f"  {hit['title'][:50]}: {len(paths)} figures")
+        all_figures.extend([(hit["doc_id"], p) for p in paths])
+    return all_figures
+
+all_figures = await main()
+` },
       },
       {
         title: "Step 3: 下载图表并用多模态模型分析",
         desc: "调用 resource 下载图片，传给多模态 LLM 分析",
-        code: { lang: "python", label: "Python", code: `import base64\nfrom anthropic import Anthropic\n\nasync def download_figure(file_name: str, save_dir: str = "./figures"):\n    Path(save_dir).mkdir(exist_ok=True)\n    async with httpx.AsyncClient(timeout=60) as client:\n        resp = await client.get(\n            f"{BASE}/resource", headers=HEADERS,\n            params={"file_name": file_name}  # 参数是 file_name\n        )\n        resp.raise_for_status()\n        local = f"{save_dir}/{file_name.split('/')[-1]}"\n        Path(local).write_bytes(resp.content)\n        return local\n\ndef analyze_figure(image_path: str, question: str) -> str:\n    """用多模态 LLM 分析图表"""\n    client = Anthropic()\n    with open(image_path, "rb") as f:\n        img_data = base64.b64encode(f.read()).decode()\n\n    msg = client.messages.create(\n        model="claude-sonnet-4-20250514",\n        max_tokens=2048,\n        messages=[{\n            "role": "user",\n            "content": [\n                {"type": "image", "source": {\n                    "type": "base64", "media_type": "image/png", "data": img_data\n                }},\n                {"type": "text", "text": question}\n            ]\n        }]\n    )\n    return msg.content[0].text\n\nasync def main():\n    if all_figures:\n        doc_id, path = all_figures[0]\n        try:\n            local = await download_figure(path)\n            analysis = analyze_figure(local, "请描述这张图表的主要发现，提取关键数值。")\n            print(f"\\nFigure from {doc_id}:\\n{analysis}")\n        except httpx.HTTPStatusError as e:\n            print(f"Download failed: {e.response.status_code}")\n\nasyncio.run(main())` },
+        code: { lang: "python", label: "Python", code: `import base64
+from anthropic import Anthropic
+
+async def download_figure(file_name: str, save_dir: str = "./figures"):
+    Path(save_dir).mkdir(exist_ok=True)
+    async with httpx.AsyncClient(timeout=60) as client:
+        resp = await client.get(
+            f"{BASE}/resource", headers=HEADERS,
+            params={"file_name": file_name}  # 参数是 file_name
+        )
+        resp.raise_for_status()
+        local = f"{save_dir}/{file_name.split('/')[-1]}"
+        Path(local).write_bytes(resp.content)
+        return local
+
+def analyze_figure(image_path: str, question: str) -> str:
+    """用多模态 LLM 分析图表"""
+    client = Anthropic()
+    with open(image_path, "rb") as f:
+        img_data = base64.b64encode(f.read()).decode()
+
+    msg = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=2048,
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "image", "source": {
+                    "type": "base64", "media_type": "image/png", "data": img_data
+                }},
+                {"type": "text", "text": question}
+            ]
+        }]
+    )
+    return msg.content[0].text
+
+async def main():
+    if all_figures:
+        doc_id, path = all_figures[0]
+        try:
+            local = await download_figure(path)
+            analysis = analyze_figure(local, "请描述这张图表的主要发现，提取关键数值。")
+            print(f"\\
+Figure from {doc_id}:\\
+{analysis}")
+        except httpx.HTTPStatusError as e:
+            print(f"Download failed: {e.response.status_code}")
+
+await main()
+` },
       },
     ],
     notes: [
@@ -514,22 +1157,106 @@ export const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 1: 环境准备",
         desc: "安装依赖并配置 API Token",
-        code: { lang: "bash", label: "安装依赖", code: `pip install httpx\n\nexport SCIVERSE_API_TOKEN="sv-your-token-here"` },
+        code: { lang: "bash", label: "安装依赖", code: `!pip install httpx
+import os
+os.environ["SCIVERSE_API_TOKEN"] = "sv-your-token-here"  # 替换为你的真实值
+` },
       },
       {
         title: "Step 2: 语义检索候选文献",
         desc: "用 agentic-search 获取与某主题相关的所有片段",
-        code: { lang: "python", label: "Python", code: `import os\nimport asyncio\nimport httpx\nfrom collections import defaultdict\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def search_candidates(query: str, top_k: int = 50):\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.post(\n            f"{BASE}/agentic-search", headers=HEADERS,\n            json={"query": query, "top_k": top_k}\n        )\n        resp.raise_for_status()\n        return resp.json()["hits"]\n\nhits = asyncio.run(search_candidates("Attention Is All You Need transformer"))\nprint(f"Raw hits: {len(hits)}")` },
+        code: { lang: "python", label: "Python", code: `import os
+import asyncio
+import httpx
+from collections import defaultdict
+
+BASE = "https://api.sciverse.space"
+TOKEN = os.environ["SCIVERSE_API_TOKEN"]
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
+
+async def search_candidates(query: str, top_k: int = 50):
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            f"{BASE}/agentic-search", headers=HEADERS,
+            json={"query": query, "top_k": top_k}
+        )
+        resp.raise_for_status()
+        return (resp.json().get("hits") or [])
+
+hits = await search_candidates("Attention Is All You Need transformer")
+print(f"Raw hits: {len(hits)}")
+` },
       },
       {
         title: "Step 3: 按标题相似度聚合",
         desc: "将同一篇论文的不同版本分组",
-        code: { lang: "python", label: "Python", code: `from difflib import SequenceMatcher\n\ndef title_similarity(a: str, b: str) -> float:\n    return SequenceMatcher(None, a.lower(), b.lower()).ratio()\n\ndef cluster_by_title(hits, threshold=0.85):\n    clusters = []\n    used = set()\n    for i, h in enumerate(hits):\n        if i in used:\n            continue\n        group = [h]\n        used.add(i)\n        for j in range(i + 1, len(hits)):\n            if j in used:\n                continue\n            if title_similarity(h["title"], hits[j]["title"]) >= threshold:\n                group.append(hits[j])\n                used.add(j)\n        clusters.append(group)\n    return clusters\n\nclusters = cluster_by_title(hits)\nprint(f"Clustered into {len(clusters)} unique papers")\nfor c in clusters[:3]:\n    print(f"  [{len(c)} versions] {c[0]['title'][:60]}")` },
+        code: { lang: "python", label: "Python", code: `from difflib import SequenceMatcher
+
+def title_similarity(a: str, b: str) -> float:
+    return SequenceMatcher(None, a.lower(), b.lower()).ratio()
+
+def cluster_by_title(hits, threshold=0.85):
+    clusters = []
+    used = set()
+    for i, h in enumerate(hits):
+        if i in used:
+            continue
+        group = [h]
+        used.add(i)
+        for j in range(i + 1, len(hits)):
+            if j in used:
+                continue
+            if title_similarity(h["title"], hits[j]["title"]) >= threshold:
+                group.append(hits[j])
+                used.add(j)
+        clusters.append(group)
+    return clusters
+
+clusters = cluster_by_title(hits)
+print(f"Clustered into {len(clusters)} unique papers")
+for c in clusters[:3]:
+    print(f"  [{len(c)} versions] {c[0]['title'][:60]}")
+` },
       },
       {
         title: "Step 4: 确认正式版本并生成 canonical pack",
         desc: "用 meta-search 查询 DOI 信息，选择最权威版本",
-        code: { lang: "python", label: "Python", code: `async def find_primary(cluster):\n    """\u4ece\u4e00\u7ec4\u7248\u672c\u4e2d\u627e\u5230\u6700\u6743\u5a01\u7684\u6b63\u5f0f\u53d1\u8868\u7248"""\n    # \u4f18\u5148\u7ea7: \u6709 DOI > \u6709 venue > arXiv\n    best = cluster[0]\n    for item in cluster:\n        # \u7528 meta-search \u67e5\u8be2\u66f4\u591a\u5143\u6570\u636e\n        async with httpx.AsyncClient(timeout=30) as client:\n            resp = await client.post(\n                f"{BASE}/meta-search", headers=HEADERS,\n                json={\n                    "query": item["title"],\n                    "filters": [],\n                    "page": 1, "page_size": 1\n                }\n            )\n            if resp.status_code == 200:\n                results = resp.json().get("results", [])\n                if results and results[0].get("doi"):\n                    best = item\n                    break\n    return {\n        "title": best["title"],\n        "primary_doc_id": best["doc_id"],\n        "versions": [{"doc_id": v["doc_id"], "title": v["title"]} for v in cluster]\n    }\n\nasync def build_canonical_pack(clusters):\n    pack = []\n    for cluster in clusters[:10]:\n        canonical = await find_primary(cluster)\n        pack.append(canonical)\n    return pack\n\npack = asyncio.run(build_canonical_pack(clusters))\nprint(f"Canonical pack: {len(pack)} unique papers")` },
+        code: { lang: "python", label: "Python", code: `async def find_primary(cluster):
+    """\\u4ece\\u4e00\\u7ec4\\u7248\\u672c\\u4e2d\\u627e\\u5230\\u6700\\u6743\\u5a01\\u7684\\u6b63\\u5f0f\\u53d1\\u8868\\u7248"""
+    # \\u4f18\\u5148\\u7ea7: \\u6709 DOI > \\u6709 venue > arXiv
+    best = cluster[0]
+    for item in cluster:
+        # \\u7528 meta-search \\u67e5\\u8be2\\u66f4\\u591a\\u5143\\u6570\\u636e
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                f"{BASE}/meta-search", headers=HEADERS,
+                json={
+                    "query": item["title"],
+                    "filters": [],
+                    "page": 1, "page_size": 1
+                }
+            )
+            if resp.status_code == 200:
+                results = resp.json().get("results", [])
+                if results and results[0].get("doi"):
+                    best = item
+                    break
+    return {
+        "title": best["title"],
+        "primary_doc_id": best["doc_id"],
+        "versions": [{"doc_id": v["doc_id"], "title": v["title"]} for v in cluster]
+    }
+
+async def build_canonical_pack(clusters):
+    pack = []
+    for cluster in clusters[:10]:
+        canonical = await find_primary(cluster)
+        pack.append(canonical)
+    return pack
+
+pack = await build_canonical_pack(clusters)
+print(f"Canonical pack: {len(pack)} unique papers")
+` },
       },
     ],
     notes: [
@@ -566,17 +1293,77 @@ export const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 1: 环境准备",
         desc: "安装依赖并配置 API Token",
-        code: { lang: "bash", label: "安装依赖", code: `pip install httpx\n\nexport SCIVERSE_API_TOKEN="sv-your-token-here"` },
+        code: { lang: "bash", label: "安装依赖", code: `!pip install httpx
+import os
+os.environ["SCIVERSE_API_TOKEN"] = "sv-your-token-here"  # 替换为你的真实值
+` },
       },
       {
         title: "Step 2: 通过 DOI 精确查找文献",
         desc: "用 meta-search 按 DOI 精确匹配",
-        code: { lang: "python", label: "Python", code: `import os\nimport asyncio\nimport httpx\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def resolve_doi(doi: str):\n    """\u901a\u8fc7 DOI \u7cbe\u786e\u67e5\u627e\u6587\u732e\u5143\u6570\u636e"""\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.post(\n            f"{BASE}/meta-search", headers=HEADERS,\n            json={\n                "query": doi,\n                "filters": [{"field": "doi", "operator": "FILTER_OP_EQ", "value": doi}],\n                "page": 1, "page_size": 1\n            }\n        )\n        resp.raise_for_status()\n        data = resp.json()\n        if data["total_count"] > 0:\n            return data["results"][0]\n        return None\n\nasync def resolve_title(title: str):\n    """\u901a\u8fc7\u6807\u9898\u6a21\u7cca\u67e5\u627e"""\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.post(\n            f"{BASE}/meta-search", headers=HEADERS,\n            json={"query": title, "filters": [], "page": 1, "page_size": 5}\n        )\n        resp.raise_for_status()\n        return resp.json()["results"]\n\n# \u793a\u4f8b\uff1a\u901a\u8fc7 DOI \u89e3\u6790\npaper = asyncio.run(resolve_doi("10.1038/s41586-021-03819-2"))\nif paper:\n    print(f"Title: {paper['title']}")\n    print(f"Venue: {paper.get('publication_venue_name', 'N/A')}")\n    print(f"Year: {paper.get('publication_published_year', 'N/A')}")\n    print(f"Doc ID: {paper.get('doc_id', 'N/A')}")` },
+        code: { lang: "python", label: "Python", code: `import os
+import asyncio
+import httpx
+
+BASE = "https://api.sciverse.space"
+TOKEN = os.environ["SCIVERSE_API_TOKEN"]
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
+
+async def resolve_doi(doi: str):
+    """\\u901a\\u8fc7 DOI \\u7cbe\\u786e\\u67e5\\u627e\\u6587\\u732e\\u5143\\u6570\\u636e"""
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            f"{BASE}/meta-search", headers=HEADERS,
+            json={
+                "query": doi,
+                "filters": [{"field": "doi", "operator": "FILTER_OP_EQ", "value": doi}],
+                "page": 1, "page_size": 1
+            }
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if data.get("total_count", 0) > 0:
+            return (data.get("results") or [None])[0]
+        return None
+
+async def resolve_title(title: str):
+    """\\u901a\\u8fc7\\u6807\\u9898\\u6a21\\u7cca\\u67e5\\u627e"""
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            f"{BASE}/meta-search", headers=HEADERS,
+            json={"query": title, "filters": [], "page": 1, "page_size": 5}
+        )
+        resp.raise_for_status()
+        return (resp.json().get("results") or [])
+
+# \\u793a\\u4f8b\\uff1a\\u901a\\u8fc7 DOI \\u89e3\\u6790
+paper = await resolve_doi("10.1038/s41586-021-03819-2")
+if paper:
+    print(f"Title: {paper['title']}")
+    print(f"Venue: {paper.get('publication_venue_name', 'N/A')}")
+    print(f"Year: {paper.get('publication_published_year', 'N/A')}")
+    print(f"Doc ID: {paper.get('doc_id', 'N/A')}")
+` },
       },
       {
         title: "Step 3: 读取全文摘要",
         desc: "用 content 接口拉取论文开头段落",
-        code: { lang: "python", label: "Python", code: `async def read_abstract(doc_id: str):\n    """\u8bfb\u53d6\u8bba\u6587\u5f00\u5934 1500 \u5b57\u7b26\u4f5c\u4e3a\u6458\u8981"""\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.get(\n            f"{BASE}/content", headers=HEADERS,\n            params={"doc_id": doc_id, "offset": 0, "limit": 1500}\n        )\n        resp.raise_for_status()\n        return resp.json()["text"]\n\nif paper and paper.get("doc_id"):\n    abstract = asyncio.run(read_abstract(paper["doc_id"]))\n    print(f"\\nFull text preview:\\n{abstract[:500]}...")` },
+        code: { lang: "python", label: "Python", code: `async def read_abstract(doc_id: str):
+    """\\u8bfb\\u53d6\\u8bba\\u6587\\u5f00\\u5934 1500 \\u5b57\\u7b26\\u4f5c\\u4e3a\\u6458\\u8981"""
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.get(
+            f"{BASE}/content", headers=HEADERS,
+            params={"doc_id": doc_id, "offset": 0, "limit": 1500}
+        )
+        resp.raise_for_status()
+        return resp.json()["text"]
+
+if paper and paper.get("doc_id"):
+    abstract = await read_abstract(paper["doc_id"])
+    print(f"\\
+Full text preview:\\
+{abstract[:500]}...")
+` },
       },
     ],
     notes: [
@@ -613,22 +1400,107 @@ export const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 1: 环境准备",
         desc: "安装依赖并配置 API Token",
-        code: { lang: "bash", label: "安装依赖", code: `pip install httpx pandas\n\nexport SCIVERSE_API_TOKEN="sv-your-token-here"` },
+        code: { lang: "bash", label: "安装依赖", code: `!pip install httpx pandas
+import os
+os.environ["SCIVERSE_API_TOKEN"] = "sv-your-token-here"  # 替换为你的真实值
+` },
       },
       {
         title: "Step 2: 查询可用筛选字段",
         desc: "用 meta-catalog 确认数据库支持哪些筛选条件",
-        code: { lang: "python", label: "Python", code: `import os\nimport asyncio\nimport httpx\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def get_catalog():\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.get(f"{BASE}/meta-catalog", headers=HEADERS)\n        resp.raise_for_status()\n        return resp.json()["fields"]\n\nfields = asyncio.run(get_catalog())\nfor f in fields:\n    print(f"{f['name']} ({f['type']}): operators={f['operators']}")` },
+        code: { lang: "python", label: "Python", code: `import os
+import asyncio
+import httpx
+
+BASE = "https://api.sciverse.space"
+TOKEN = os.environ["SCIVERSE_API_TOKEN"]
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
+
+async def get_catalog():
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.get(f"{BASE}/meta-catalog", headers=HEADERS)
+        resp.raise_for_status()
+        return resp.json()["fields"]
+
+fields = await get_catalog()
+for f in fields:
+    print(f"{f['name']} ({f.get('type','')}): operators={f.get('operators', [])}")
+` },
       },
       {
         title: "Step 3: 广撒网检索",
         desc: "用 meta-search 按年份和关键词获取候选池",
-        code: { lang: "python", label: "Python", code: `import pandas as pd\n\nasync def broad_search(query: str, year_from: int, year_to: int, page_size: int = 100):\n    """\u5e7f\u6492\u7f51: \u6309\u5e74\u4efd\u8303\u56f4\u68c0\u7d22\u6240\u6709\u5019\u9009\u6587\u732e"""\n    all_results = []\n    page = 1\n    while True:\n        async with httpx.AsyncClient(timeout=30) as client:\n            resp = await client.post(\n                f"{BASE}/meta-search", headers=HEADERS,\n                json={\n                    "query": query,\n                    "filters": [\n                        {"field": "publication_published_year", "operator": "FILTER_OP_GTE", "value": year_from},\n                        {"field": "publication_published_year", "operator": "FILTER_OP_LTE", "value": year_to},\n                    ],\n                    "page": page, "page_size": page_size\n                }\n            )\n            resp.raise_for_status()\n            data = resp.json()\n            all_results.extend(data["results"])\n            if len(all_results) >= data["total_count"] or len(data["results"]) < page_size:\n                break\n            page += 1\n    return all_results, data["total_count"]\n\nresults, total = asyncio.run(broad_search(\n    "CAR-T cell therapy solid tumor clinical trial", 2019, 2024\n))\nprint(f"Identification: {total} records found")` },
+        code: { lang: "python", label: "Python", code: `import pandas as pd
+
+async def broad_search(query: str, year_from: int, year_to: int, page_size: int = 100):
+    """\\u5e7f\\u6492\\u7f51: \\u6309\\u5e74\\u4efd\\u8303\\u56f4\\u68c0\\u7d22\\u6240\\u6709\\u5019\\u9009\\u6587\\u732e"""
+    all_results = []
+    page = 1
+    while True:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                f"{BASE}/meta-search", headers=HEADERS,
+                json={
+                    "query": query,
+                    "filters": [
+                        {"field": "publication_published_year", "operator": "FILTER_OP_GTE", "value": year_from},
+                        {"field": "publication_published_year", "operator": "FILTER_OP_LTE", "value": year_to},
+                    ],
+                    "page": page, "page_size": page_size
+                }
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            all_results.extend((data.get("results") or []))
+            if len(all_results) >= data.get("total_count", 0) or len((data.get("results") or [])) < page_size:
+                break
+            page += 1
+    return all_results, data.get("total_count", 0)
+
+INCLUSION_QUERY = "CAR-T cell therapy solid tumor clinical trial"
+results, total = await broad_search(INCLUSION_QUERY, 2019, 2024)
+print(f"Identification: {total} records found")
+` },
       },
       {
         title: "Step 4: 语义精筛与纳入判断",
         desc: "用 agentic-search 对候选文献做语义相关性评分，筛选符合纳入标准的论文",
-        code: { lang: "python", label: "Python", code: `async def semantic_screen(query: str, top_k: int = 100):\n    """\u8bed\u4e49\u7cbe\u7b5b: \u7528 agentic-search \u5bf9\u5019\u9009\u6587\u732e\u8bc4\u5206"""\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.post(\n            f"{BASE}/agentic-search", headers=HEADERS,\n            json={"query": query, "top_k": top_k}\n        )\n        resp.raise_for_status()\n        return resp.json()["hits"]\n\nhits = asyncio.run(semantic_screen(\n    "CAR-T cell therapy clinical trial solid tumor patients outcomes"\n))\n\n# \u6309\u76f8\u5173\u6027\u5206\u6570\u7b5b\u9009\nscreened = [h for h in hits if h["score"] >= 0.7]\nprint(f"Screening: {len(screened)} records (score >= 0.7)")\n\n# \u8f93\u51fa PRISMA \u6d41\u7a0b\u6570\u636e\nprisma = {\n    "identification": total,\n    "screening": len(screened),\n    "included": len([h for h in screened if h["score"] >= 0.85])\n}\nprint(f"\\nPRISMA Flow: {prisma}")\n\n# \u5bfc\u51fa CSV\ndf = pd.DataFrame(screened)\ndf.to_csv("screened_papers.csv", index=False)\nprint("Exported to screened_papers.csv")` },
+        code: { lang: "python", label: "Python", code: `async def semantic_screen(candidates: list[dict], query: str, top_k: int = 100):
+    """\\u8bed\\u4e49\\u7cbe\\u7b5b: \\u7528 agentic-search \\u5bf9\\u5019\\u9009\\u6587\\u732e\\u8bc4\\u5206"""
+    candidate_ids = {r["doc_id"] for r in candidates if r.get("doc_id")}
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            f"{BASE}/agentic-search", headers=HEADERS,
+            json={"query": query, "top_k": top_k}
+        )
+        resp.raise_for_status()
+        hits = (resp.json().get("hits") or [])
+    return [h for h in hits if h.get("doc_id") in candidate_ids]
+
+hits = await semantic_screen(
+    results,
+    "CAR-T cell therapy clinical trial solid tumor patients outcomes"
+)
+
+# \\u6309\\u76f8\\u5173\\u6027\\u5206\\u6570\\u7b5b\\u9009
+# screening 现在是 identification 候选池的子集
+screened = [h for h in hits if h["score"] >= 0.7]
+print(f"Screening: {len(screened)} records (score >= 0.7)")
+
+# \\u8f93\\u51fa PRISMA \\u6d41\\u7a0b\\u6570\\u636e
+prisma = {
+    "identification": total,
+    "screening": len(screened),
+    "included": len([h for h in screened if h["score"] >= 0.85])
+}
+print(f"\\
+PRISMA Flow: {prisma}")
+
+# \\u5bfc\\u51fa CSV
+df = pd.DataFrame(screened)
+df.to_csv("screened_papers.csv", index=False)
+print("Exported to screened_papers.csv")
+` },
       },
     ],
     notes: [
@@ -668,17 +1540,104 @@ export const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 1: 环境准备",
         desc: "安装依赖并配置 API Token",
-        code: { lang: "bash", label: "安装依赖", code: `pip install httpx\n\nexport SCIVERSE_API_TOKEN="sv-your-token-here"` },
+        code: { lang: "bash", label: "安装依赖", code: `!pip install httpx
+import os
+os.environ["SCIVERSE_API_TOKEN"] = "sv-your-token-here"  # 替换为你的真实值
+` },
       },
       {
         title: "Step 2: 定义 Evidence Pack 标准结构",
         desc: "定义标准化的引用包数据结构",
-        code: { lang: "python", label: "Python", code: `from dataclasses import dataclass, asdict\nfrom typing import Optional\nimport json\n\n@dataclass\nclass EvidenceItem:\n    claim: str\n    quote: str\n    doc_id: str\n    offset: int\n    title: str\n    venue: Optional[str] = None\n    year: Optional[int] = None\n    confidence: float = 0.0\n\n@dataclass\nclass EvidencePack:\n    items: list[EvidenceItem]\n\n    def to_json(self) -> str:\n        return json.dumps({"evidence_pack": [asdict(i) for i in self.items]}, ensure_ascii=False, indent=2)\n\n# \u793a\u4f8b\npack = EvidencePack(items=[])\nprint(pack.to_json())` },
+        code: { lang: "python", label: "Python", code: `from dataclasses import dataclass, asdict
+from typing import Optional
+import json
+
+@dataclass
+class EvidenceItem:
+    claim: str
+    quote: str
+    doc_id: str
+    offset: int
+    title: str
+    venue: Optional[str] = None
+    year: Optional[int] = None
+    confidence: float = 0.0
+
+@dataclass
+class EvidencePack:
+    items: list[EvidenceItem]
+
+    def to_json(self) -> str:
+        return json.dumps({"evidence_pack": [asdict(i) for i in self.items]}, ensure_ascii=False, indent=2)
+
+# \\u793a\\u4f8b
+pack = EvidencePack(items=[])
+print(pack.to_json())
+` },
       },
       {
         title: "Step 3: 为每个 claim 检索并构建引用",
         desc: "逐条检索 claim 对应的文献证据",
-        code: { lang: "python", label: "Python", code: `import os\nimport asyncio\nimport httpx\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def build_evidence(claim: str) -> Optional[EvidenceItem]:\n    """\u4e3a\u5355\u4e2a claim \u68c0\u7d22\u5e76\u6784\u5efa\u5f15\u7528"""\n    async with httpx.AsyncClient(timeout=30) as client:\n        # Step 1: \u8bed\u4e49\u68c0\u7d22\n        resp = await client.post(\n            f"{BASE}/agentic-search", headers=HEADERS,\n            json={"query": claim, "top_k": 5}\n        )\n        resp.raise_for_status()\n        hits = resp.json()["hits"]\n        if not hits:\n            return None\n        best = hits[0]\n\n        # Step 2: \u8bfb\u53d6\u539f\u6587\u5b9a\u4f4d\u786e\u5207\u5f15\u7528\n        resp2 = await client.get(\n            f"{BASE}/content", headers=HEADERS,\n            params={"doc_id": best["doc_id"], "offset": best.get("offset", 0), "limit": 800}\n        )\n        resp2.raise_for_status()\n        text = resp2.json()["text"]\n\n        return EvidenceItem(\n            claim=claim,\n            quote=text[:200],  # \u53d6\u524d 200 \u5b57\u7b26\u4f5c\u4e3a\u5f15\u7528\n            doc_id=best["doc_id"],\n            offset=best.get("offset", 0),\n            title=best["title"],\n            confidence=best["score"]\n        )\n\nclaims = [\n    "AlphaFold2 \u5728 CASP14 \u4e2d\u8fbe\u5230\u4e86\u5b9e\u9a8c\u7cbe\u5ea6",\n    "mRNA \u7684 LNP \u9012\u9001\u7cfb\u7edf\u663e\u8457\u63d0\u9ad8\u4e86\u7ec6\u80de\u5185\u5316\u6548\u7387",\n]\n\nasync def main():\n    items = []\n    for claim in claims:\n        evidence = await build_evidence(claim)\n        if evidence:\n            items.append(evidence)\n            print(f"\u2713 {claim[:40]}... -> {evidence.doc_id}")\n        else:\n            print(f"\u2717 {claim[:40]}... -> no evidence found")\n    pack = EvidencePack(items=items)\n    print(f"\\nEvidence Pack ({len(items)}/{len(claims)} claims grounded):")\n    print(pack.to_json())\n\nasyncio.run(main())` },
+        code: { lang: "python", label: "Python", code: `import os
+import asyncio
+import httpx
+
+BASE = "https://api.sciverse.space"
+TOKEN = os.environ["SCIVERSE_API_TOKEN"]
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
+
+async def build_evidence(claim: str) -> Optional[EvidenceItem]:
+    """\\u4e3a\\u5355\\u4e2a claim \\u68c0\\u7d22\\u5e76\\u6784\\u5efa\\u5f15\\u7528"""
+    async with httpx.AsyncClient(timeout=30) as client:
+        # Step 1: \\u8bed\\u4e49\\u68c0\\u7d22
+        resp = await client.post(
+            f"{BASE}/agentic-search", headers=HEADERS,
+            json={"query": claim, "top_k": 5}
+        )
+        resp.raise_for_status()
+        hits = (resp.json().get("hits") or [])
+        if not hits:
+            return None
+        best = hits[0]
+
+        # Step 2: \\u8bfb\\u53d6\\u539f\\u6587\\u5b9a\\u4f4d\\u786e\\u5207\\u5f15\\u7528
+        resp2 = await client.get(
+            f"{BASE}/content", headers=HEADERS,
+            params={"doc_id": best["doc_id"], "offset": best.get("offset", 0), "limit": 800}
+        )
+        resp2.raise_for_status()
+        text = resp2.json()["text"]
+
+        return EvidenceItem(
+            claim=claim,
+            quote=text[:200],  # \\u53d6\\u524d 200 \\u5b57\\u7b26\\u4f5c\\u4e3a\\u5f15\\u7528
+            doc_id=best["doc_id"],
+            offset=best.get("offset", 0),
+            title=best["title"],
+            confidence=best["score"]
+        )
+
+claims = [
+    "AlphaFold2 \\u5728 CASP14 \\u4e2d\\u8fbe\\u5230\\u4e86\\u5b9e\\u9a8c\\u7cbe\\u5ea6",
+    "mRNA \\u7684 LNP \\u9012\\u9001\\u7cfb\\u7edf\\u663e\\u8457\\u63d0\\u9ad8\\u4e86\\u7ec6\\u80de\\u5185\\u5316\\u6548\\u7387",
+]
+
+async def main():
+    items = []
+    for claim in claims:
+        evidence = await build_evidence(claim)
+        if evidence:
+            items.append(evidence)
+            print(f"\\u2713 {claim[:40]}... -> {evidence.doc_id}")
+        else:
+            print(f"\\u2717 {claim[:40]}... -> no evidence found")
+    pack = EvidencePack(items=items)
+    print(f"\\
+Evidence Pack ({len(items)}/{len(claims)} claims grounded):")
+    print(pack.to_json())
+
+await main()
+` },
       },
     ],
     notes: [
@@ -716,17 +1675,84 @@ export const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 1: 环境准备",
         desc: "安装依赖并配置 API Token",
-        code: { lang: "bash", label: "安装依赖", code: `pip install httpx pandas\n\nexport SCIVERSE_API_TOKEN="sv-your-token-here"` },
+        code: { lang: "bash", label: "安装依赖", code: `!pip install httpx pandas
+import os
+os.environ["SCIVERSE_API_TOKEN"] = "sv-your-token-here"  # 替换为你的真实值
+` },
       },
       {
         title: "Step 2: 按年统计发文量",
         desc: "用 meta-search 分年查询，统计每年的发文数量",
-        code: { lang: "python", label: "Python", code: `import os\nimport asyncio\nimport httpx\nimport pandas as pd\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def count_by_year(query: str, year: int) -> int:\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.post(\n            f"{BASE}/meta-search", headers=HEADERS,\n            json={\n                "query": query,\n                "filters": [\n                    {"field": "publication_published_year", "operator": "FILTER_OP_EQ", "value": year}\n                ],\n                "page": 1, "page_size": 1\n            }\n        )\n        resp.raise_for_status()\n        return resp.json()["total_count"]\n\nasync def trend_scan(query: str, start_year: int = 2020, end_year: int = 2024):\n    tasks = [count_by_year(query, y) for y in range(start_year, end_year + 1)]\n    counts = await asyncio.gather(*tasks)\n    return list(zip(range(start_year, end_year + 1), counts))\n\ntrend = asyncio.run(trend_scan("large language model"))\ndf = pd.DataFrame(trend, columns=["year", "count"])\nprint(df.to_string(index=False))` },
+        code: { lang: "python", label: "Python", code: `import os
+import asyncio
+import httpx
+import pandas as pd
+
+BASE = "https://api.sciverse.space"
+TOKEN = os.environ["SCIVERSE_API_TOKEN"]
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
+
+async def count_by_year(query: str, year: int) -> int:
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            f"{BASE}/meta-search", headers=HEADERS,
+            json={
+                "query": query,
+                "filters": [
+                    {"field": "publication_published_year", "operator": "FILTER_OP_EQ", "value": year}
+                ],
+                "page": 1, "page_size": 1
+            }
+        )
+        resp.raise_for_status()
+        return resp.json().get("total_count", 0)
+
+async def trend_scan(query: str, start_year: int = 2020, end_year: int = 2024):
+    tasks = [count_by_year(query, y) for y in range(start_year, end_year + 1)]
+    counts = await asyncio.gather(*tasks)
+    return list(zip(range(start_year, end_year + 1), counts))
+
+QUERY = "large language model"
+trend = await trend_scan(QUERY)
+df = pd.DataFrame(trend, columns=["year", "count"])
+print(df.to_string(index=False))
+` },
       },
       {
         title: "Step 3: 查找高被引论文和头部期刊",
         desc: "按引用数排序，找出各年最具影响力的论文",
-        code: { lang: "python", label: "Python", code: `async def top_cited_papers(year: int, top_n: int = 5):\n    \"\"\"查找某年度高被引论文（按引用数排序时不传 query）\"\"\"\n    async with httpx.AsyncClient(timeout=30) as client:\n        resp = await client.post(\n            f\"{BASE}/meta-search\", headers=HEADERS,\n            json={\n                \"filters\": [\n                    {\"field\": \"publication_published_year\", \"operator\": \"FILTER_OP_EQ\", \"value\": year}\n                ],\n                \"sort\": [{\"field\": \"citation_count\", \"order\": \"SORT_ORDER_DESC\"}],\n                \"page\": 1, \"page_size\": top_n\n            }\n        )\n        resp.raise_for_status()\n        return resp.json()["results"]\n\nasync def main():\n    for year in [2022, 2023, 2024]:\n        papers = await top_cited_papers(year)\n        print(f"\\n=== {year} Top Cited ===")\n        for p in papers:\n            venue = p.get("publication_venue_name", "N/A")\n            cites = p.get("citation_count", 0)\n            print(f"  [{cites} cites] {p['title'][:60]} ({venue})")\n\nasyncio.run(main())` },
+        code: { lang: "python", label: "Python", code: `async def top_cited_papers(query: str, year: int, top_n: int = 5, candidate_pool: int = 50):
+    """查找某主题在某年度的高被引论文。
+
+    meta-search 不同时传 query 和 sort；这里先按 query 取候选，再在本地按引用数排序。
+    """
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            f"{BASE}/meta-search", headers=HEADERS,
+            json={
+                "query": query,
+                "filters": [
+                    {"field": "publication_published_year", "operator": "FILTER_OP_EQ", "value": year}
+                ],
+                "page": 1, "page_size": candidate_pool
+            }
+        )
+        resp.raise_for_status()
+        papers = (resp.json().get("results") or [])
+        return sorted(papers, key=lambda p: p.get("citation_count", 0), reverse=True)[:top_n]
+
+async def main():
+    for year in [2022, 2023, 2024]:
+        papers = await top_cited_papers(QUERY, year)
+        print(f"\\
+=== {year} Top Cited for '{QUERY}' ===")
+        for p in papers:
+            venue = p.get("publication_venue_name", "N/A")
+            cites = p.get("citation_count", 0)
+            print(f"  [{cites} cites] {p['title'][:60]} ({venue})")
+
+await main()
+` },
       },
     ],
     notes: [
@@ -763,17 +1789,96 @@ export const COOKBOOKS: CookbookItem[] = [
       {
         title: "Step 1: 环境准备",
         desc: "安装依赖并配置 API Token",
-        code: { lang: "bash", label: "安装依赖", code: `pip install httpx anthropic\n\nexport SCIVERSE_API_TOKEN="sv-your-token-here"\nexport ANTHROPIC_API_KEY="sk-ant-..."` },
+        code: { lang: "bash", label: "安装依赖", code: `!pip install httpx anthropic
+import os
+os.environ["SCIVERSE_API_TOKEN"] = "sv-your-token-here"  # 替换为你的真实值
+import os
+os.environ["ANTHROPIC_API_KEY"] = "sk-ant-..."  # 替换为你的真实值
+` },
       },
       {
         title: "Step 2: 分段读取全文",
         desc: "循环调用 content 接口，用 next_offset 拼接完整全文",
-        code: { lang: "python", label: "Python", code: `import os\nimport asyncio\nimport httpx\n\nBASE = "https://api.sciverse.space"\nTOKEN = os.environ["SCIVERSE_API_TOKEN"]\nHEADERS = {"Authorization": f"Bearer {TOKEN}"}\n\nasync def read_full_text(doc_id: str, chunk_size: int = 4000) -> str:\n    """\u5faa\u73af\u8bfb\u53d6\u5168\u6587\uff0c\u76f4\u5230 more=false"""\n    full_text = []\n    offset = 0\n    async with httpx.AsyncClient(timeout=30) as client:\n        while True:\n            resp = await client.get(\n                f"{BASE}/content", headers=HEADERS,\n                params={"doc_id": doc_id, "offset": offset, "limit": chunk_size}\n            )\n            resp.raise_for_status()\n            data = resp.json()\n            full_text.append(data["text"])\n            if not data.get("more", False):\n                break\n            offset = data["next_offset"]\n    return "".join(full_text)\n\n# \u5148\u901a\u8fc7 agentic-search \u83b7\u53d6\u771f\u5b9e doc_id\nhits_resp = await client.post(f\"{BASE}/agentic-search\", headers=HEADERS, json={\"query\": \"AlphaFold2\", \"top_k\": 1})\nhits_resp.raise_for_status()\ndoc_id = hits_resp.json()[\"hits\"][0][\"doc_id\"]\ntext = asyncio.run(read_full_text(doc_id))\nprint(f"Full text length: {len(text)} chars")\nprint(f"Preview: {text[:300]}...")` },
+        code: { lang: "python", label: "Python", code: `import os
+import asyncio
+import httpx
+
+BASE = "https://api.sciverse.space"
+TOKEN = os.environ["SCIVERSE_API_TOKEN"]
+HEADERS = {"Authorization": f"Bearer {TOKEN}"}
+
+async def read_full_text(doc_id: str, chunk_size: int = 4000) -> str:
+    """\\u5faa\\u73af\\u8bfb\\u53d6\\u5168\\u6587\\uff0c\\u76f4\\u5230 more=false"""
+    full_text = []
+    offset = 0
+    async with httpx.AsyncClient(timeout=30) as client:
+        while True:
+            resp = await client.get(
+                f"{BASE}/content", headers=HEADERS,
+                params={"doc_id": doc_id, "offset": offset, "limit": chunk_size}
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            full_text.append(data["text"])
+            if not data.get("more", False):
+                break
+            offset = data["next_offset"]
+    return "".join(full_text)
+
+# \\u5148\\u901a\\u8fc7 agentic-search \\u83b7\\u53d6\\u771f\\u5b9e doc_id
+async def find_doc_id(query: str) -> str:
+    """Find a real doc_id before reading full text."""
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            f"{BASE}/agentic-search",
+            headers=HEADERS,
+            json={"query": query, "top_k": 1},
+        )
+        resp.raise_for_status()
+        hits = (resp.json().get("hits") or [])
+        if not hits:
+            raise ValueError(f"No papers found for query: {query}")
+        return hits[0]["doc_id"]
+
+doc_id = await find_doc_id("AlphaFold2")
+text = await read_full_text(doc_id)
+print(f"Full text length: {len(text)} chars")
+print(f"Preview: {text[:300]}...")
+` },
       },
       {
         title: "Step 3: LLM 抽取结构化信息",
         desc: "将全文传给 LLM，抽取方法、数据、结论、局限",
-        code: { lang: "python", label: "Python", code: `from anthropic import Anthropic\n\nclient = Anthropic()\n\ndef extract_structure(full_text: str) -> str:\n    """\u7528 LLM \u62bd\u53d6\u8bba\u6587\u7ed3\u6784\u5316\u4fe1\u606f"""\n    # \u5982\u679c\u5168\u6587\u592a\u957f\uff0c\u53d6\u524d 15000 \u5b57\u7b26\n    content = full_text[:15000] if len(full_text) > 15000 else full_text\n\n    msg = client.messages.create(\n        model="claude-sonnet-4-20250514",\n        max_tokens=3000,\n        messages=[{\n            "role": "user",\n            "content": f"""\u8bf7\u9605\u8bfb\u4ee5\u4e0b\u8bba\u6587\u5168\u6587\uff0c\u63d0\u53d6\u4ee5\u4e0b\u56db\u4e2a\u65b9\u9762\u7684\u5173\u952e\u4fe1\u606f\uff1a\n\n1. **\u65b9\u6cd5**: \u6838\u5fc3\u6280\u672f\u65b9\u6cd5\u548c\u521b\u65b0\u70b9\n2. **\u6570\u636e**: \u4f7f\u7528\u7684\u6570\u636e\u96c6\u3001\u5b9e\u9a8c\u8bbe\u7f6e\u3001\u5173\u952e\u6570\u503c\n3. **\u7ed3\u8bba**: \u4e3b\u8981\u53d1\u73b0\u548c\u8d21\u732e\n4. **\u5c40\u9650**: \u5df2\u77e5\u5c40\u9650\u548c\u672a\u6765\u5de5\u4f5c\u65b9\u5411\n\n\u8bba\u6587\u5168\u6587:\n{content}"""\n        }]\n    )\n    return msg.content[0].text\n\nreport = extract_structure(text)\nprint(report)` },
+        code: { lang: "python", label: "Python", code: `from anthropic import Anthropic
+
+client = Anthropic()
+
+def extract_structure(full_text: str) -> str:
+    """\\u7528 LLM \\u62bd\\u53d6\\u8bba\\u6587\\u7ed3\\u6784\\u5316\\u4fe1\\u606f"""
+    # \\u5982\\u679c\\u5168\\u6587\\u592a\\u957f\\uff0c\\u53d6\\u524d 15000 \\u5b57\\u7b26
+    content = full_text[:15000] if len(full_text) > 15000 else full_text
+
+    msg = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=3000,
+        messages=[{
+            "role": "user",
+            "content": f"""\\u8bf7\\u9605\\u8bfb\\u4ee5\\u4e0b\\u8bba\\u6587\\u5168\\u6587\\uff0c\\u63d0\\u53d6\\u4ee5\\u4e0b\\u56db\\u4e2a\\u65b9\\u9762\\u7684\\u5173\\u952e\\u4fe1\\u606f\\uff1a
+
+1. **\\u65b9\\u6cd5**: \\u6838\\u5fc3\\u6280\\u672f\\u65b9\\u6cd5\\u548c\\u521b\\u65b0\\u70b9
+2. **\\u6570\\u636e**: \\u4f7f\\u7528\\u7684\\u6570\\u636e\\u96c6\\u3001\\u5b9e\\u9a8c\\u8bbe\\u7f6e\\u3001\\u5173\\u952e\\u6570\\u503c
+3. **\\u7ed3\\u8bba**: \\u4e3b\\u8981\\u53d1\\u73b0\\u548c\\u8d21\\u732e
+4. **\\u5c40\\u9650**: \\u5df2\\u77e5\\u5c40\\u9650\\u548c\\u672a\\u6765\\u5de5\\u4f5c\\u65b9\\u5411
+
+\\u8bba\\u6587\\u5168\\u6587:
+{content}"""
+        }]
+    )
+    return msg.content[0].text
+
+report = extract_structure(text)
+print(report)
+` },
       },
     ],
     notes: [
