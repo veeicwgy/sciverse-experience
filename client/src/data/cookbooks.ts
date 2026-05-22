@@ -180,7 +180,7 @@ print(msg.content[0].text)
       "agentic-search 的 top_k 范围为 1–100，综述场景建议 top_k=20",
       "content 接口默认 limit=700 字符；如需更多上下文可传入更大值（如 2000–4096）",
       "如需全文，可循环调用 content 并使用 next_offset 拼接",
-      "生产环境建议加 try/except 处理 404（文档无全文）和 429（限流）",
+      "生产环境建议加 try/except 处理 404（文档无全文）和 429（限流）"
     ],
     nextSteps: [
       { label: "查看 agentic-search 接口文档", hash: "sciverse/api/agentic-search" },
@@ -295,7 +295,7 @@ print(resp.choices[0].message.content)
       "agentic-search 的 top_k 范围为 1–100，RAG 场景建议 10–20",
       "score 阈值建议 0.6–0.7，过低会引入噪声，过高可能丢失相关证据",
       "生产环境建议缓存高频查询结果，减少 API 调用和延迟",
-      "如需更精确的证据，可对 top hits 再调用 content(doc_id, offset) 接口获取完整段落上下文",
+      "如需更精确的证据，可对 top hits 再调用 content(doc_id, offset) 接口获取完整段落上下文"
     ],
     nextSteps: [
       { label: "查看 agentic-search 接口", hash: "sciverse/api/agentic-search" },
@@ -414,7 +414,7 @@ await main()
       "offset 是 Unicode 码点数，不是字节数",
       "默认 limit=700 字符，建议传入 2000–4000 以减少调用次数",
       "部分文档可能无全文（返回 404），需做异常处理",
-      "建议向前偏移 300–500 字符读取，以获取片段的前文语境",
+      "建议向前偏移 300–500 字符读取，以获取片段的前文语境"
     ],
     nextSteps: [
       { label: "查看 content 接口文档", hash: "sciverse/api/content" },
@@ -538,7 +538,7 @@ saved_files = await download_all(figure_paths)
       "resource 接口返回原始二进制流，Content-Type 为实际 MIME 类型",
       "图表路径格式通常为 dt=文献ID/p_页码/文件名，由 content 接口给出",
       "部分文档可能没有图表资源（resource 返回 404），需做异常处理",
-      "建议在 Agent 侧缓存已下载的图表，避免重复请求",
+      "建议在 Agent 侧缓存已下载的图表，避免重复请求"
     ],
     nextSteps: [
       { label: "查看 resource 接口文档", hash: "sciverse/api/resource" },
@@ -663,7 +663,7 @@ await main()
       "sort 中的 order 必须使用 SORT_ORDER_ASC 或 SORT_ORDER_DESC",
       "响应中论文列表字段是 results（非 hits），总数字段是 total_count（非 total）",
       "常用字段名：publication_published_year、publication_venue_name、author、citation_count",
-      "分页使用 page 和 page_size 参数",
+      "分页使用 page 和 page_size 参数"
     ],
     nextSteps: [
       { label: "查看 meta-catalog 接口", hash: "sciverse/api/meta-catalog" },
@@ -828,7 +828,7 @@ print(msg.content[0].text)
       "当前为语义探索模式：通过关键词区分专利和学术内容，不保证 100% 准确分类",
       "如需精确区分文档类型，请先调用 meta-catalog 确认是否有 source_type 等字段可用",
       "Sciverse 数据库覆盖学术文献和部分专利，具体覆盖范围请参考数据深度页面",
-      "建议对关键片段调用 content 接口验证完整上下文后再下结论",
+      "建议对关键片段调用 content 接口验证完整上下文后再下结论"
     ],
     nextSteps: [
       { label: "查看 agentic-search 接口", hash: "sciverse/api/agentic-search" },
@@ -982,7 +982,7 @@ for c in final["citations"]:
       "验证逻辑可根据需求增强：如使用 LLM 判断原文是否支持论点（NLI 任务）",
       "score 阈值 0.7 是建议值，医学领域建议 0.8+",
       "生产环境建议并发验证多个 claims（asyncio.gather）以提升速度",
-      "对于 unverified 的论点，建议在最终输出中明确标注或要求用户确认",
+      "对于 unverified 的论点，建议在最终输出中明确标注或要求用户确认"
     ],
     nextSteps: [
       { label: "查看 agentic-search 接口", hash: "sciverse/api/agentic-search" },
@@ -1127,7 +1127,7 @@ await main()
       "resource 接口参数是 file_name，传入 content 中提取的相对路径",
       "部分论文可能没有可下载的图表资源（resource 返回 404）",
       "多模态分析质量取决于图表清晰度和 LLM 能力",
-      "建议对图表分析结果做结构化提取（JSON schema）便于下游使用",
+      "建议对图表分析结果做结构化提取（JSON schema）便于下游使用"
     ],
     nextSteps: [
       { label: "下载论文图表资源", hash: "cookbook/download-figures" },
@@ -1263,7 +1263,7 @@ print(f"Canonical pack: {len(pack)} unique papers")
       "标题相似度阈值 0.85 适合大多数场景，可根据领域调整",
       "对于有 DOI 的论文，可直接用 DOI 做精确去重",
       "建议保留所有版本的 doc_id，以便后续读取不同版本的全文",
-      "canonical pack 可作为下游 RAG/Agent 的标准输入",
+      "canonical pack 可作为下游 RAG/Agent 的标准输入"
     ],
     nextSteps: [
       { label: "查看 meta-search 接口", hash: "sciverse/api/meta-search" },
@@ -1370,7 +1370,7 @@ Full text preview:\\
       "DOI 精确查询使用 FILTER_OP_EQ 操作符",
       "如果 DOI 查不到，可回退到标题模糊查询",
       "content 接口返回的是 text 字段，非 content",
-      "这是科研 Agent 最基础的入口操作，建议封装为通用工具函数",
+      "这是科研 Agent 最基础的入口操作，建议封装为通用工具函数"
     ],
     nextSteps: [
       { label: "查看 meta-search 接口", hash: "sciverse/api/meta-search" },
@@ -1508,7 +1508,7 @@ print("Exported to screened_papers.csv")
       "meta-search 广撒网阶段可能需要分页拉取，注意 page_size 上限，建议设置 max_pages 防止无限循环",
       "agentic-search 的 score 阈值建议根据领域调整（0.7–0.85）",
       "完整 PRISMA 流程还需人工全文审阅，本案例覆盖自动化初筛部分",
-      "建议将筛选结果导出为 CSV 便于团队协作审阅",
+      "建议将筛选结果导出为 CSV 便于团队协作审阅"
     ],
     nextSteps: [
       { label: "查看 meta-catalog 接口", hash: "sciverse/api/meta-catalog" },
@@ -1645,7 +1645,7 @@ await main()
       "confidence 基于 agentic-search 的 score，可结合来源权威性进一步调整",
       "quote 应从 content 返回的 text 中截取，而非 LLM 生成",
       "可扩展字段：page_no、chunk_id、section_title 等",
-      "生产环境建议对每个 claim 并发检索以提高速度",
+      "生产环境建议对每个 claim 并发检索以提高速度"
     ],
     nextSteps: [
       { label: "Citation Grounding 案例", hash: "cookbook/citation-grounding" },
@@ -1759,7 +1759,7 @@ await main()
       "meta-search 的 sort 和 query 不能同时传；按引用数排序时只传 filters + sort",
       "分年查询可并发执行（asyncio.gather）提高效率",
       "total_count 可直接作为当年发文量，无需拉取全部结果",
-      "可进一步统计 venue 分布、作者网络等",
+      "可进一步统计 venue 分布、作者网络等"
     ],
     nextSteps: [
       { label: "查看 meta-search 接口", hash: "sciverse/api/meta-search" },
@@ -1886,7 +1886,7 @@ print(report)
       "建议 chunk_size=4000，避免单次请求超时",
       "如果全文超过 LLM 上下文窗口，可分段抽取后合并",
       "这是最基础的论文阅读流程，可作为更复杂 Agent 的子模块",
-      "部分论文可能无全文（content 返回 404），需做异常处理",
+      "部分论文可能无全文（content 返回 404），需做异常处理"
     ],
     nextSteps: [
       { label: "查看 content 接口", hash: "sciverse/api/content" },

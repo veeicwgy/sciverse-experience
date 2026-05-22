@@ -1482,6 +1482,34 @@ function OverviewPage({ onGo }: { onGo: (a: Active) => void }) {
         }
       />
 
+      {/* 官方 Cookbook 仓库入口 */}
+      <a
+        href="https://github.com/opendatalab/Sciverse-Agent-Tools"
+        target="_blank"
+        rel="noreferrer"
+        className="group mt-6 flex items-center justify-between gap-4 px-5 py-4 rounded-xl border hairline bg-gradient-to-r from-slate-50/80 via-white to-slate-50/80 hover:from-slate-100/80 hover:to-slate-100/80 transition-all duration-200">
+        <div className="flex items-start gap-4 min-w-0">
+          <span className="h-10 w-10 rounded-xl bg-[var(--ink)] text-white grid place-items-center shrink-0">
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.39.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.02 0c2.28-1.55 3.29-1.23 3.29-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.21.7.82.58A12.01 12.01 0 0 0 24 12c0-6.63-5.37-12-12-12Z"/>
+            </svg>
+          </span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-display text-[15px] text-[var(--ink)] tracking-tight">官方 Cookbook 仓库</span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--ink)]/8 text-[var(--ink-2)] tracking-wide">opendatalab/Sciverse-Agent-Tools</span>
+            </div>
+            <p className="mt-1 text-[12.5px] text-[var(--ink-2)] leading-relaxed">在 GitHub 获取 14 个可运行的 Notebook、Skills CLI 安装脚本与最新 SDK，克隆后设置 <code className="px-1 py-0.5 rounded bg-[var(--ink)]/6 font-mono text-[11.5px]">SCIVERSE_API_TOKEN</code> 即可运行。</p>
+          </div>
+        </div>
+        <span className="shrink-0 inline-flex items-center gap-1.5 text-[12.5px] text-[var(--ink-2)] group-hover:text-[var(--ink)] transition-colors">
+          前往 GitHub
+          <svg className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M7 17 17 7M7 7h10v10"/>
+          </svg>
+        </span>
+      </a>
+
       <section className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-3">
         {PRODUCTS.map((p) => {
           const PIcon = p.icon;
