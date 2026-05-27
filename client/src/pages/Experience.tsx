@@ -22,6 +22,13 @@ import {
   Layers,
   Atom,
   Boxes,
+  SlidersHorizontal,
+  Calendar,
+  BookOpen,
+  TrendingUp,
+  Database,
+  Languages,
+  ArrowUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import Sidebar from "@/components/layout/Sidebar";
@@ -33,7 +40,7 @@ import ContentSnippet from "@/components/experience/ContentSnippet";
 import { cn } from "@/lib/utils";
 import { COOKBOOKS } from "@/data/cookbooks";
 import { useSessionHistory, findSession, findVersion } from "@/hooks/useSessionHistory";
-import { GitBranch, Plus } from "lucide-react";
+import { GitBranch, Plus, Check } from "lucide-react";
 
 /**
  * CountUp · IntersectionObserver 首次入视口才跳动。
@@ -732,6 +739,106 @@ function DataScaleGrid({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ─────────── 条件筛选字段配置 ───────────
+type FilterValue = { fieldKey: string; value: string };
+type FilterFieldType = "range" | "text" | "number" | "select";
+type FilterField = {
+  key: string;
+  label: string;
+  desc: string;
+  icon: React.ComponentType<{ className?: string }>;
+  type: FilterFieldType;
+  placeholder?: string;
+  options?: { value: string; label: string }[];
+};
+const FILTER_FIELDS: FilterField[] = [
+  { key: "year", label: "年份", desc: "发表年份范围", icon: Calendar, type: "range", placeholder: "如 2024-2026" },
+  { key: "journal", label: "期刊", desc: "限定发表期刊", icon: BookOpen, type: "text", placeholder: "如 Nature Biotechnology" },
+  { key: "citations", label: "引用", desc: "最低引用数阈值", icon: TrendingUp, type: "number", placeholder: "如 50" },
+  { key: "source", label: "来源", desc: "文献来源类型", icon: Database, type: "select", options: [
+    { value: "journal", label: "期刊论文" },
+    { value: "preprint", label: "预印本" },
+    { value: "conference", label: "会议论文" },
+    { value: "patent", label: "专利" },
+  ] },
+  { key: "language", label: "语言", desc: "文献语言", icon: Languages, type: "select", options: [
+    { value: "en", label: "英文" },
+    { value: "zh", label: "中文" },
+    { value: "ja", label: "日文" },
+    { value: "de", label: "德文" },
+  ] },
+  { key: "sort", label: "排序", desc: "结果排序方式", icon: ArrowUpDown, type: "select", options: [
+    { value: "relevance", label: "相关度" },
+    { value: "date_desc", label: "最新发表" },
+    { value: "citations_desc", label: "高被引" },
+  ] },
+];
+
+// ─────────── 筛选 pill 内联编辑器 ───────────
+function FilterValueEditor({
+  field,
+  value,
+  onCommit,
+  onCancel,
+}: {
+  field: FilterField;
+  value: string;
+  onCommit: (v: string) => void;
+  onCancel: () => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const selectRef = useRef<HTMLSelectElement>(null);
+  useEffect(() => {
+    if (field.type === "select") {
+      selectRef.current?.focus();
+    } else {
+      inputRef.current?.focus();
+      inputRef.current?.select?.();
+    }
+  }, [field.type]);
+
+  if (field.type === "select") {
+    return (
+      <div className="px-1.5 inline-flex items-center bg-white">
+        <select
+          ref={selectRef}
+          value={value || field.options?.[0]?.value || ""}
+          onChange={(e) => onCommit(e.target.value)}
+          onBlur={() => onCancel()}
+          className="bg-transparent outline-none text-[13px] text-[var(--ink)] cursor-pointer pr-1">
+          {field.options?.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  return (
+    <input
+      ref={inputRef}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          onCommit(draft);
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          onCancel();
+        }
+      }}
+      onBlur={() => onCommit(draft)}
+      placeholder={field.placeholder}
+      type={field.type === "number" ? "number" : "text"}
+      className="px-2 w-[120px] bg-white outline-none text-[13px] text-[var(--ink)] placeholder:text-[var(--ink-3)]"
+    />
+  );
+}
+
 export default function Experience() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -830,7 +937,16 @@ export default function Experience() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const canSubmit = query.trim().length > 0 && !loading;
+  // ─────────── 双态搜索：自由检索 / 条件筛选 ───────────
+  const [searchMode, setSearchMode] = useState<"free" | "filter">("free");
+  const [filters, setFilters] = useState<FilterValue[]>([]);
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
+  const filterAreaRef = useRef<HTMLDivElement>(null);
+
+  const canSubmit =
+    !loading &&
+    (searchMode === "free" ? query.trim().length > 0 : filters.length > 0);
 
   // 内部：仅执行检索动作（不写历史、不改 URL）— 用于复现历史版本
   // v18: 加入失败概率与自动重试一次；opts.silent=true 不重置 burst
@@ -932,7 +1048,55 @@ export default function Experience() {
 
   const clear = () => {
     setQuery("");
+    setFilters([]);
     inputRef.current?.focus();
+  };
+
+  // 关闭下拉：点击区域外
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (!filterAreaRef.current) return;
+      if (!filterAreaRef.current.contains(e.target as Node)) {
+        setFilterMenuOpen(false);
+        setEditingFieldKey(null);
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  const upsertFilter = (fieldKey: string, value: string) => {
+    setFilters((prev) => {
+      const idx = prev.findIndex((f) => f.fieldKey === fieldKey);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { fieldKey, value };
+        return next;
+      }
+      return [...prev, { fieldKey, value }];
+    });
+  };
+
+  const removeFilter = (fieldKey: string) => {
+    setFilters((prev) => prev.filter((f) => f.fieldKey !== fieldKey));
+  };
+
+  const buildFilterQuery = () => {
+    if (!filters.length) return "";
+    return filters
+      .filter((f) => f.value.trim())
+      .map((f) => {
+        const def = FILTER_FIELDS.find((x) => x.key === f.fieldKey);
+        return `${def?.label ?? f.fieldKey}:${f.value}`;
+      })
+      .join(" ");
+  };
+
+  const submitFilters = async () => {
+    const q = buildFilterQuery();
+    if (!q) return;
+    setQuery(q);
+    await submit(q);
   };
 
   return (
@@ -949,43 +1113,184 @@ export default function Experience() {
           <section className="relative">
             <div
               className={cn(
-                "card-paper sv-search-shell px-5 pt-4 pb-3 flex flex-col gap-2",
+                "card-paper sv-search-shell px-5 pt-4 pb-3 flex flex-col",
                 focused && "is-focused",
               )}>
-              <textarea
-                ref={inputRef as unknown as React.RefObject<HTMLTextAreaElement>}
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  const el = e.currentTarget;
-                  el.style.height = "auto";
-                  el.style.height = Math.min(el.scrollHeight, 220) + "px";
-                }}
-                onKeyDown={onKey as unknown as React.KeyboardEventHandler<HTMLTextAreaElement>}
-                onCompositionStart={() => (composing.current = true)}
-                onCompositionEnd={() => (composing.current = false)}
-                onFocus={() => setFocused(true)}
-                onBlur={() => setFocused(false)}
-                disabled={loading}
-                rows={2}
-                placeholder={focused ? "输入科学问题或关键词..." : (typedPlaceholder ? `${typedPlaceholder} ▊` : "")}
-                className="w-full bg-transparent outline-none text-[15.5px] leading-[1.7] placeholder:text-[var(--ink-3)] disabled:opacity-60 resize-none min-h-[88px] max-h-[220px]"
-              />
-              <div className="flex items-center justify-end pt-1">
+              {/* 顶部：自由检索 textarea / 条件筛选 pill 区 */}
+              {searchMode === "free" ? (
+                <textarea
+                  ref={inputRef as unknown as React.RefObject<HTMLTextAreaElement>}
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    const el = e.currentTarget;
+                    el.style.height = "auto";
+                    el.style.height = Math.min(el.scrollHeight, 220) + "px";
+                  }}
+                  onKeyDown={onKey as unknown as React.KeyboardEventHandler<HTMLTextAreaElement>}
+                  onCompositionStart={() => (composing.current = true)}
+                  onCompositionEnd={() => (composing.current = false)}
+                  onFocus={() => setFocused(true)}
+                  onBlur={() => setFocused(false)}
+                  disabled={loading}
+                  rows={2}
+                  placeholder={focused ? "输入科学问题或关键词..." : (typedPlaceholder ? `${typedPlaceholder} ▊` : "")}
+                  className="w-full bg-transparent outline-none text-[15.5px] leading-[1.7] placeholder:text-[var(--ink-3)] disabled:opacity-60 resize-none min-h-[88px] max-h-[220px]"
+                />
+              ) : (
+                <div ref={filterAreaRef} className="relative min-h-[88px] py-1">
+                  {filters.length === 0 && !filterMenuOpen ? (
+                    <button
+                      onClick={() => setFilterMenuOpen(true)}
+                      className="text-[14px] text-[var(--ink-3)] hover:text-[var(--ink)] transition-colors inline-flex items-center gap-1.5">
+                      <Plus className="h-3.5 w-3.5" />
+                      添加筛选条件——例如年份、期刊、最低引用数
+                    </button>
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {filters.map((f) => {
+                        const def = FILTER_FIELDS.find((x) => x.key === f.fieldKey);
+                        if (!def) return null;
+                        const display =
+                          def.type === "select"
+                            ? def.options?.find((o) => o.value === f.value)?.label ?? f.value
+                            : f.value;
+                        const editing = editingFieldKey === f.fieldKey;
+                        return (
+                          <span
+                            key={f.fieldKey}
+                            className="inline-flex items-stretch h-7 rounded-md border border-[var(--hairline)] bg-white text-[13px] overflow-hidden">
+                            <span className="px-2 inline-flex items-center gap-1 bg-[#F5F4EE] text-[var(--ink-2)]">
+                              <def.icon className="h-3.5 w-3.5" />
+                              {def.label}
+                            </span>
+                            {editing ? (
+                              <FilterValueEditor
+                                field={def}
+                                value={f.value}
+                                onCommit={(v) => {
+                                  upsertFilter(def.key, v);
+                                  setEditingFieldKey(null);
+                                }}
+                                onCancel={() => setEditingFieldKey(null)}
+                              />
+                            ) : (
+                              <button
+                                onClick={() => setEditingFieldKey(def.key)}
+                                className="px-2 inline-flex items-center text-[var(--ink)] hover:bg-[#FAFAF7] transition-colors">
+                                {display}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => removeFilter(def.key)}
+                              aria-label="移除筛选"
+                              className="px-1.5 inline-flex items-center text-[var(--ink-3)] hover:text-[var(--ink)] hover:bg-[#FAFAF7] border-l border-[var(--hairline)] transition-colors">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        );
+                      })}
+                      <button
+                        onClick={() => setFilterMenuOpen((v) => !v)}
+                        className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[13px] text-[var(--ink-3)] hover:text-[var(--ink)] hover:bg-[#F5F4EE] transition-colors">
+                        <Plus className="h-3.5 w-3.5" />
+                        添加筛选
+                      </button>
+                    </div>
+                  )}
+
+                  {filterMenuOpen && (
+                    <div className="absolute left-0 top-full mt-2 z-20 w-[260px] rounded-md border border-[var(--hairline)] bg-white shadow-lg overflow-hidden">
+                      <div className="px-3 py-2 text-[11px] tracking-wider uppercase text-[var(--ink-3)] border-b border-[var(--hairline)]">
+                        筛选字段
+                      </div>
+                      {FILTER_FIELDS.map((def) => {
+                        const used = filters.some((f) => f.fieldKey === def.key);
+                        return (
+                          <button
+                            key={def.key}
+                            disabled={used}
+                            onClick={() => {
+                              setFilterMenuOpen(false);
+                              setEditingFieldKey(def.key);
+                              if (!used) upsertFilter(def.key, def.type === "select" ? (def.options?.[0]?.value ?? "") : "");
+                            }}
+                            className={cn(
+                              "w-full px-3 py-2 flex items-center gap-2.5 text-left text-[13px] transition-colors",
+                              used
+                                ? "opacity-40 cursor-not-allowed"
+                                : "hover:bg-[#FAFAF7] text-[var(--ink)]",
+                            )}>
+                            <def.icon className="h-3.5 w-3.5 text-[var(--ink-2)]" />
+                            <span className="flex-1">{def.label}</span>
+                            <span className="text-[11px] text-[var(--ink-3)]">{def.desc}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 分隔线 */}
+              <div className="-mx-5 mt-2 border-t border-[var(--hairline)]" />
+
+              {/* 底部控件区：左 toggle · 右 清空 + 提交 */}
+              <div className="flex items-center justify-between pt-2">
+                {/* 左：模式 toggle —— Notion-like segmented 控件 */}
+                <div
+                  role="tablist"
+                  aria-label="检索模式"
+                  className="relative inline-flex items-center p-[3px] rounded-full bg-[#EFEEE8] border border-[var(--hairline)]">
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "absolute top-[3px] bottom-[3px] w-[50%] rounded-full bg-white shadow-[0_1px_2px_rgba(20,20,20,0.06)] ring-1 ring-black/[0.04] transition-transform duration-300 ease-out",
+                      searchMode === "free" ? "translate-x-0" : "translate-x-[calc(100%-2px)]",
+                    )}
+                  />
+                  <button
+                    role="tab"
+                    aria-selected={searchMode === "free"}
+                    onClick={() => setSearchMode("free")}
+                    className={cn(
+                      "relative z-10 px-3.5 h-7 rounded-full text-[12.5px] inline-flex items-center gap-1.5 transition-colors duration-200",
+                      searchMode === "free"
+                        ? "text-[var(--ink)] font-medium"
+                        : "text-[var(--ink-3)] hover:text-[var(--ink-2)]",
+                    )}>
+                    <Sparkles className="h-3 w-3" strokeWidth={1.8} />
+                    自由检索
+                  </button>
+                  <button
+                    role="tab"
+                    aria-selected={searchMode === "filter"}
+                    onClick={() => setSearchMode("filter")}
+                    className={cn(
+                      "relative z-10 px-3.5 h-7 rounded-full text-[12.5px] inline-flex items-center gap-1.5 transition-colors duration-200",
+                      searchMode === "filter"
+                        ? "text-[var(--ink)] font-medium"
+                        : "text-[var(--ink-3)] hover:text-[var(--ink-2)]",
+                    )}>
+                    <SlidersHorizontal className="h-3 w-3" strokeWidth={1.8} />
+                    条件筛选
+                  </button>
+                </div>
+
+                {/* 右：清空 + 提交 */}
                 <div className="flex items-center gap-1.5">
-                  {query && (
+                  {(searchMode === "free" ? !!query : filters.length > 0) && (
                     <button
                       onClick={clear}
                       aria-label="清空"
-                      className="h-9 w-9 inline-flex items-center justify-center rounded-full text-[var(--ink-3)] hover:bg-[#f1f0eb] hover:text-[var(--ink)] transition-colors">
-                      <X className="h-4 w-4" />
+                      className="h-9 px-3 inline-flex items-center justify-center rounded-full text-[13px] text-[var(--ink-3)] hover:bg-[#f1f0eb] hover:text-[var(--ink)] transition-colors">
+                      清空
                     </button>
                   )}
                   <div className="relative">
-                    {/* v9: 提交瞬间的粒子扩散反馈，通过 burstId 重启动画 */}
                     {burstId > 0 && <BurstFx key={burstId} />}
                     <button
-                      onClick={() => submit()}
+                      onClick={() => (searchMode === "free" ? submit() : submitFilters())}
                       disabled={!canSubmit}
                       aria-label="发送"
                       className={cn(
