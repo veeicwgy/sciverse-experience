@@ -739,8 +739,113 @@ function DataScaleGrid({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ─────────── 条件筛选字段配置 ───────────
+// ─────────── 条件筛选字段配置（基于 Agentic Search 元信息过滤设计方案） ───────────
 type FilterValue = { fieldKey: string; value: string };
+
+// 面板分组定义
+type FilterOption = { value: string; label: string; count?: string };
+type FilterGroup = {
+  key: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  type: "chip" | "chip-multi" | "range" | "text";
+  options?: FilterOption[];
+  placeholder?: string;
+  tooltip?: string;
+};
+
+const FILTER_GROUPS: FilterGroup[] = [
+  {
+    key: "domain",
+    label: "学科领域",
+    icon: Atom,
+    type: "chip",
+    tooltip: "基于 OpenAlex Domain 分类体系",
+    options: [
+      { value: "", label: "全部" },
+      { value: "Physical Sciences", label: "物理科学" },
+      { value: "Life Sciences", label: "生命科学" },
+      { value: "Social Sciences", label: "社会科学" },
+      { value: "Health Sciences", label: "健康科学" },
+    ],
+  },
+  {
+    key: "metadata_type",
+    label: "文献类型",
+    icon: Database,
+    type: "chip-multi",
+    tooltip: "按文献来源类型过滤",
+    options: [
+      { value: "paper", label: "期刊论文", count: "3.6亿" },
+      { value: "ebook", label: "图书", count: "1.06亿" },
+      { value: "preprint", label: "预印本", count: "2,800万" },
+      { value: "conference", label: "会议论文", count: "1,200万" },
+      { value: "patent", label: "专利", count: "4,100万" },
+      { value: "dissertation", label: "学位论文", count: "580万" },
+    ],
+  },
+  {
+    key: "year",
+    label: "发表时间",
+    icon: Calendar,
+    type: "chip",
+    tooltip: "按发表年份范围筛选",
+    options: [
+      { value: "", label: "不限" },
+      { value: "1y", label: "近 1 年" },
+      { value: "3y", label: "近 3 年" },
+      { value: "5y", label: "近 5 年" },
+      { value: "10y", label: "近 10 年" },
+      { value: "custom", label: "自定义..." },
+    ],
+  },
+  {
+    key: "language",
+    label: "语言",
+    icon: Languages,
+    type: "chip-multi",
+    tooltip: "按文献语言过滤，可多选",
+    options: [
+      { value: "en", label: "English", count: "2.8亿" },
+      { value: "zh", label: "中文", count: "8,600万" },
+      { value: "de", label: "Deutsch", count: "1,200万" },
+      { value: "fr", label: "Français", count: "980万" },
+      { value: "ja", label: "日本語", count: "760万" },
+      { value: "ko", label: "한국어", count: "420万" },
+      { value: "es", label: "Español", count: "380万" },
+      { value: "pt", label: "Português", count: "310万" },
+    ],
+  },
+  {
+    key: "citation_level",
+    label: "引用水平",
+    icon: TrendingUp,
+    type: "chip",
+    tooltip: "基于被引百分位或绝对引用数筛选",
+    options: [
+      { value: "", label: "不限" },
+      { value: "top1", label: "Top 1%" },
+      { value: "top10", label: "Top 10%" },
+      { value: "gte100", label: "≥ 100 次" },
+      { value: "gte10", label: "≥ 10 次" },
+    ],
+  },
+  {
+    key: "sort",
+    label: "排序方式",
+    icon: ArrowUpDown,
+    type: "chip",
+    tooltip: "控制结果排列顺序",
+    options: [
+      { value: "relevance", label: "相关性优先" },
+      { value: "date_desc", label: "最新发表" },
+      { value: "citations_desc", label: "引用量最高" },
+      { value: "fwci_desc", label: "影响力最高" },
+    ],
+  },
+];
+
+// 向后兼容 pill 模式的旧类型
 type FilterFieldType = "range" | "text" | "number" | "select";
 type FilterField = {
   key: string;
@@ -751,28 +856,15 @@ type FilterField = {
   placeholder?: string;
   options?: { value: string; label: string }[];
 };
-const FILTER_FIELDS: FilterField[] = [
-  { key: "year", label: "年份", desc: "发表年份范围", icon: Calendar, type: "range", placeholder: "如 2024-2026" },
-  { key: "journal", label: "期刊", desc: "限定发表期刊", icon: BookOpen, type: "text", placeholder: "如 Nature Biotechnology" },
-  { key: "citations", label: "引用", desc: "最低引用数阈值", icon: TrendingUp, type: "number", placeholder: "如 50" },
-  { key: "source", label: "来源", desc: "文献来源类型", icon: Database, type: "select", options: [
-    { value: "journal", label: "期刊论文" },
-    { value: "preprint", label: "预印本" },
-    { value: "conference", label: "会议论文" },
-    { value: "patent", label: "专利" },
-  ] },
-  { key: "language", label: "语言", desc: "文献语言", icon: Languages, type: "select", options: [
-    { value: "en", label: "英文" },
-    { value: "zh", label: "中文" },
-    { value: "ja", label: "日文" },
-    { value: "de", label: "德文" },
-  ] },
-  { key: "sort", label: "排序", desc: "结果排序方式", icon: ArrowUpDown, type: "select", options: [
-    { value: "relevance", label: "相关度" },
-    { value: "date_desc", label: "最新发表" },
-    { value: "citations_desc", label: "高被引" },
-  ] },
-];
+const FILTER_FIELDS: FilterField[] = FILTER_GROUPS.filter(g => g.options).map(g => ({
+  key: g.key,
+  label: g.label,
+  desc: g.tooltip ?? "",
+  icon: g.icon,
+  type: g.type === "chip" || g.type === "chip-multi" ? "select" as const : g.type as FilterFieldType,
+  placeholder: g.placeholder,
+  options: g.options?.filter(o => o.value).map(o => ({ value: o.value, label: o.label })),
+}));
 
 // ─────────── 筛选 pill 内联编辑器 ───────────
 function FilterValueEditor({
@@ -1086,8 +1178,15 @@ export default function Experience() {
     return filters
       .filter((f) => f.value.trim())
       .map((f) => {
-        const def = FILTER_FIELDS.find((x) => x.key === f.fieldKey);
-        return `${def?.label ?? f.fieldKey}:${f.value}`;
+        const group = FILTER_GROUPS.find((g) => g.key === f.fieldKey);
+        const label = group?.label ?? f.fieldKey;
+        // 对于多选值，展示对应的 label
+        if (group && (group.type === "chip" || group.type === "chip-multi") && group.options) {
+          const vals = f.value.split(",");
+          const labels = vals.map((v) => group.options!.find((o) => o.value === v)?.label ?? v).join(",");
+          return `${label}:${labels}`;
+        }
+        return `${label}:${f.value}`;
       })
       .join(" ");
   };
@@ -1138,97 +1237,73 @@ export default function Experience() {
                   className="w-full bg-transparent outline-none text-[15.5px] leading-[1.7] placeholder:text-[var(--ink-3)] disabled:opacity-60 resize-none min-h-[88px] max-h-[220px]"
                 />
               ) : (
-                <div ref={filterAreaRef} className="relative min-h-[88px] py-1">
-                  {filters.length === 0 && !filterMenuOpen ? (
-                    <button
-                      onClick={() => setFilterMenuOpen(true)}
-                      className="text-[14px] text-[var(--ink-3)] hover:text-[var(--ink)] transition-colors inline-flex items-center gap-1.5">
-                      <Plus className="h-3.5 w-3.5" />
-                      添加筛选条件——例如年份、期刊、最低引用数
-                    </button>
-                  ) : (
-                    <div className="flex flex-wrap items-center gap-2">
-                      {filters.map((f) => {
-                        const def = FILTER_FIELDS.find((x) => x.key === f.fieldKey);
-                        if (!def) return null;
-                        const display =
-                          def.type === "select"
-                            ? def.options?.find((o) => o.value === f.value)?.label ?? f.value
-                            : f.value;
-                        const editing = editingFieldKey === f.fieldKey;
-                        return (
-                          <span
-                            key={f.fieldKey}
-                            className="inline-flex items-stretch h-7 rounded-md border border-[var(--hairline)] bg-white text-[13px] overflow-hidden">
-                            <span className="px-2 inline-flex items-center gap-1 bg-[#F5F4EE] text-[var(--ink-2)]">
-                              <def.icon className="h-3.5 w-3.5" />
-                              {def.label}
-                            </span>
-                            {editing ? (
-                              <FilterValueEditor
-                                field={def}
-                                value={f.value}
-                                onCommit={(v) => {
-                                  upsertFilter(def.key, v);
-                                  setEditingFieldKey(null);
-                                }}
-                                onCancel={() => setEditingFieldKey(null)}
-                              />
-                            ) : (
+                /* ─── 条件筛选面板：分组 chip 布局（参考截图样式） ─── */
+                <div ref={filterAreaRef} className="py-1 space-y-4 max-h-[420px] overflow-y-auto">
+                  {FILTER_GROUPS.map((group) => {
+                    const current = filters.find((f) => f.fieldKey === group.key);
+                    const selectedValues = current?.value ? current.value.split(",") : [];
+                    return (
+                      <div key={group.key}>
+                        {/* 组标题 */}
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <group.icon className="h-3.5 w-3.5 text-[var(--ink-2)]" />
+                          <span className="text-[13px] font-medium text-[var(--ink)]">{group.label}</span>
+                          {group.tooltip && (
+                            <span className="text-[11px] text-[var(--ink-3)] ml-1">({group.tooltip})</span>
+                          )}
+                        </div>
+                        {/* chip 行 */}
+                        <div className="flex flex-wrap gap-2">
+                          {group.options?.map((opt) => {
+                            const isSelected = group.type === "chip-multi"
+                              ? selectedValues.includes(opt.value)
+                              : (current?.value ?? "") === opt.value;
+                            return (
                               <button
-                                onClick={() => setEditingFieldKey(def.key)}
-                                className="px-2 inline-flex items-center text-[var(--ink)] hover:bg-[#FAFAF7] transition-colors">
-                                {display}
+                                key={opt.value}
+                                onClick={() => {
+                                  if (group.type === "chip-multi") {
+                                    // 多选逻辑
+                                    let next: string[];
+                                    if (isSelected) {
+                                      next = selectedValues.filter((v) => v !== opt.value);
+                                    } else {
+                                      next = [...selectedValues, opt.value];
+                                    }
+                                    if (next.length === 0) {
+                                      removeFilter(group.key);
+                                    } else {
+                                      upsertFilter(group.key, next.join(","));
+                                    }
+                                  } else {
+                                    // 单选逻辑
+                                    if (opt.value === "" || (current?.value === opt.value)) {
+                                      removeFilter(group.key);
+                                    } else {
+                                      upsertFilter(group.key, opt.value);
+                                    }
+                                  }
+                                }}
+                                className={cn(
+                                  "inline-flex flex-col items-center px-3 py-1.5 rounded-lg text-[12.5px] border transition-all duration-150",
+                                  isSelected
+                                    ? "border-[var(--brand)] bg-[var(--brand)]/[0.06] text-[var(--brand)] font-medium shadow-sm"
+                                    : "border-[var(--hairline)] bg-white text-[var(--ink-2)] hover:border-[var(--ink-3)] hover:text-[var(--ink)]",
+                                )}>
+                                <span>{opt.label}</span>
+                                {opt.count && (
+                                  <span className={cn(
+                                    "text-[10.5px] mt-0.5",
+                                    isSelected ? "text-[var(--brand)]/70" : "text-[var(--ink-3)]",
+                                  )}>{opt.count}</span>
+                                )}
                               </button>
-                            )}
-                            <button
-                              onClick={() => removeFilter(def.key)}
-                              aria-label="移除筛选"
-                              className="px-1.5 inline-flex items-center text-[var(--ink-3)] hover:text-[var(--ink)] hover:bg-[#FAFAF7] border-l border-[var(--hairline)] transition-colors">
-                              <X className="h-3 w-3" />
-                            </button>
-                          </span>
-                        );
-                      })}
-                      <button
-                        onClick={() => setFilterMenuOpen((v) => !v)}
-                        className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[13px] text-[var(--ink-3)] hover:text-[var(--ink)] hover:bg-[#F5F4EE] transition-colors">
-                        <Plus className="h-3.5 w-3.5" />
-                        添加筛选
-                      </button>
-                    </div>
-                  )}
-
-                  {filterMenuOpen && (
-                    <div className="absolute left-0 top-full mt-2 z-20 w-[260px] rounded-md border border-[var(--hairline)] bg-white shadow-lg overflow-hidden">
-                      <div className="px-3 py-2 text-[11px] tracking-wider uppercase text-[var(--ink-3)] border-b border-[var(--hairline)]">
-                        筛选字段
+                            );
+                          })}
+                        </div>
                       </div>
-                      {FILTER_FIELDS.map((def) => {
-                        const used = filters.some((f) => f.fieldKey === def.key);
-                        return (
-                          <button
-                            key={def.key}
-                            disabled={used}
-                            onClick={() => {
-                              setFilterMenuOpen(false);
-                              setEditingFieldKey(def.key);
-                              if (!used) upsertFilter(def.key, def.type === "select" ? (def.options?.[0]?.value ?? "") : "");
-                            }}
-                            className={cn(
-                              "w-full px-3 py-2 flex items-center gap-2.5 text-left text-[13px] transition-colors",
-                              used
-                                ? "opacity-40 cursor-not-allowed"
-                                : "hover:bg-[#FAFAF7] text-[var(--ink)]",
-                            )}>
-                            <def.icon className="h-3.5 w-3.5 text-[var(--ink-2)]" />
-                            <span className="flex-1">{def.label}</span>
-                            <span className="text-[11px] text-[var(--ink-3)]">{def.desc}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
               )}
 
