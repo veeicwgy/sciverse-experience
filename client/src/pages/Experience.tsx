@@ -29,6 +29,10 @@ import {
   Database,
   Languages,
   ArrowUpDown,
+  Download,
+  BarChart3,
+  List,
+  LayoutGrid,
 } from "lucide-react";
 import { toast } from "sonner";
 import Sidebar from "@/components/layout/Sidebar";
@@ -132,6 +136,93 @@ type Result = {
   doc_id?: string;
   /** v18: 估算字数（仅展示提示） */
   approxLength?: number;
+};
+
+// ─── Meta-Search 结果类型（条件筛选模式专用，仅元数据） ───
+type MetaSearchResult = {
+  id: string;
+  title: string;
+  authors: string; // "Author A, Author B et al."
+  year: number;
+  venue: string;
+  type: string; // paper, preprint, patent...
+  citations: number;
+  doi?: string;
+  language?: string;
+};
+
+type FacetItem = { label: string; value: number };
+type MetaFacets = {
+  byYear: FacetItem[];
+  byType: FacetItem[];
+  byLanguage: FacetItem[];
+};
+
+// 模拟 meta-search 大量命中的结果
+const PRESET_META_LARGE: { total: number; facets: MetaFacets; results: MetaSearchResult[] } = {
+  total: 128432,
+  facets: {
+    byYear: [
+      { label: "2026", value: 8420 },
+      { label: "2025", value: 31200 },
+      { label: "2024", value: 28900 },
+      { label: "2023", value: 22100 },
+      { label: "2022", value: 16800 },
+      { label: "2021", value: 12400 },
+      { label: "≤2020", value: 8612 },
+    ],
+    byType: [
+      { label: "期刊论文", value: 72400 },
+      { label: "预印本", value: 28600 },
+      { label: "会议论文", value: 15200 },
+      { label: "专利", value: 8100 },
+      { label: "学位论文", value: 4132 },
+    ],
+    byLanguage: [
+      { label: "English", value: 89200 },
+      { label: "中文", value: 24600 },
+      { label: "Deutsch", value: 6800 },
+      { label: "Français", value: 4200 },
+      { label: "其他", value: 3632 },
+    ],
+  },
+  results: [
+    { id: "m1", title: "CRISPR-Cas9 Delivery via Lipid Nanoparticles for In Vivo Genome Editing", authors: "Zhang L, Chen W et al.", year: 2025, venue: "Nature Biotechnology", type: "paper", citations: 342, doi: "10.1038/s41587-025-02431-1", language: "en" },
+    { id: "m2", title: "Base Editing Efficiency in Human Hematopoietic Stem Cells", authors: "Liu D, Wang X et al.", year: 2025, venue: "Cell Stem Cell", type: "paper", citations: 218, doi: "10.1016/j.stem.2025.01.003", language: "en" },
+    { id: "m3", title: "Prime Editing 3.0: Improved Pegylated Guide RNA Architecture", authors: "Anzalone AV, Koblan LW et al.", year: 2024, venue: "Science", type: "paper", citations: 567, doi: "10.1126/science.adp1234", language: "en" },
+    { id: "m4", title: "CRISPR 基因编辑在遗传性血液病中的临床试验进展", authors: "赵明, 李华 等", year: 2024, venue: "中华医学杂志", type: "paper", citations: 89, doi: "10.3760/cma.j.cn112137-20240315", language: "zh" },
+    { id: "m5", title: "Epigenome Editing with dCas9-KRAB Fusion Proteins", authors: "Thakore PI, Black JB et al.", year: 2024, venue: "Nature Methods", type: "paper", citations: 412, doi: "10.1038/s41592-024-02198-4", language: "en" },
+    { id: "m6", title: "Anti-CRISPR Proteins as Regulators of Gene Drive Systems", authors: "Marino ND, Pinilla-Redondo R et al.", year: 2024, venue: "Cell", type: "paper", citations: 156, doi: "10.1016/j.cell.2024.03.018", language: "en" },
+    { id: "m7", title: "RNA-guided Transposases for Programmable Large-scale Insertions", authors: "Strecker J, Ladber A et al.", year: 2025, venue: "Nature", type: "paper", citations: 289, doi: "10.1038/s41586-025-08123-5", language: "en" },
+    { id: "m8", title: "Method for Multiplex Base Editing in Plant Genomes", authors: "Monsanto Biotech Inc.", year: 2024, venue: "US Patent", type: "patent", citations: 12, doi: "US20240123456A1", language: "en" },
+    { id: "m9", title: "CRISPR Screening Identifies Novel Tumor Suppressor Genes in Pancreatic Cancer", authors: "Hart T, Moffat J et al.", year: 2025, venue: "Cancer Discovery", type: "paper", citations: 178, doi: "10.1158/2159-8290.CD-25-0042", language: "en" },
+    { id: "m10", title: "In Utero CRISPR Therapy Corrects Metabolic Disease in Fetal Mice", authors: "Rossidis AC, Stratigis JD et al.", year: 2024, venue: "Science Translational Medicine", type: "paper", citations: 234, doi: "10.1126/scitranslmed.adn5678", language: "en" },
+    { id: "m11", title: "Compact Cas12f Variants for AAV-Deliverable Genome Editing", authors: "Kim DY, Lee JM et al.", year: 2025, venue: "Molecular Cell", type: "paper", citations: 145, doi: "10.1016/j.molcel.2025.02.009", language: "en" },
+    { id: "m12", title: "CRISPR-based Diagnostics for Rapid Pathogen Detection", authors: "Gootenberg JS, Abudayyeh OO et al.", year: 2024, venue: "Nature Biomedical Engineering", type: "paper", citations: 398, doi: "10.1038/s41551-024-01234-5", language: "en" },
+    { id: "m13", title: "Mitochondrial Base Editing via DdCBE in Human Cells", authors: "Mok BY, de Moraes MH et al.", year: 2024, venue: "Cell", type: "paper", citations: 267, doi: "10.1016/j.cell.2024.06.041", language: "en" },
+    { id: "m14", title: "基于 CRISPR 的新型抗病毒策略研究进展", authors: "王强, 张丽 等", year: 2025, venue: "生物工程学报", type: "paper", citations: 34, language: "zh" },
+    { id: "m15", title: "Genome-wide Off-target Analysis of High-fidelity Cas9 Variants", authors: "Tsai SQ, Zheng Z et al.", year: 2025, venue: "Nature Communications", type: "paper", citations: 123, doi: "10.1038/s41467-025-56789-0", language: "en" },
+    { id: "m16", title: "CRISPR Activation Screens Reveal Enhancers of Neuronal Differentiation", authors: "Kampmann M, Horlbeck MA et al.", year: 2024, venue: "Neuron", type: "paper", citations: 201, doi: "10.1016/j.neuron.2024.04.012", language: "en" },
+    { id: "m17", title: "Engineered Cas13 for Transcriptome Editing in Mammalian Cells", authors: "Cox DBT, Gootenberg JS et al.", year: 2025, venue: "Nature Biotechnology", type: "paper", citations: 312, doi: "10.1038/s41587-025-02567-8", language: "en" },
+    { id: "m18", title: "Split-intein Mediated Dual-AAV Delivery of Large Cas9 Variants", authors: "Villiger L, Grisch-Chan HM et al.", year: 2024, venue: "Nature Medicine", type: "paper", citations: 189, doi: "10.1038/s41591-024-03012-4", language: "en" },
+    { id: "m19", title: "CRISPR Interference Reveals Essential Genes in Mycobacterium tuberculosis", authors: "Rock JM, Hopkins FF et al.", year: 2024, venue: "PNAS", type: "paper", citations: 156, doi: "10.1073/pnas.2401234121", language: "en" },
+    { id: "m20", title: "Precision Gene Correction for Sickle Cell Disease Using Adenine Base Editors", authors: "Newby GA, Yen JS et al.", year: 2025, venue: "Nature", type: "paper", citations: 445, doi: "10.1038/s41586-025-08456-2", language: "en" },
+  ],
+};
+
+// 模拟精准命中（少量结果）
+const PRESET_META_SMALL: { total: number; facets: MetaFacets; results: MetaSearchResult[] } = {
+  total: 3,
+  facets: {
+    byYear: [{ label: "2025", value: 2 }, { label: "2024", value: 1 }],
+    byType: [{ label: "期刊论文", value: 2 }, { label: "预印本", value: 1 }],
+    byLanguage: [{ label: "English", value: 3 }],
+  },
+  results: [
+    { id: "ms1", title: "Prime Editing 3.0: Improved Pegylated Guide RNA Architecture", authors: "Anzalone AV, Koblan LW et al.", year: 2024, venue: "Science", type: "paper", citations: 567, doi: "10.1126/science.adp1234", language: "en" },
+    { id: "ms2", title: "Precision Gene Correction for Sickle Cell Disease Using Adenine Base Editors", authors: "Newby GA, Yen JS et al.", year: 2025, venue: "Nature", type: "paper", citations: 445, doi: "10.1038/s41586-025-08456-2", language: "en" },
+    { id: "ms3", title: "Compact Cas12f Variants for AAV-Deliverable Genome Editing", authors: "Kim DY, Lee JM et al.", year: 2025, venue: "Molecular Cell", type: "preprint", citations: 145, doi: "10.1016/j.molcel.2025.02.009", language: "en" },
+  ],
 };
 
 const SAMPLES = [
@@ -938,6 +1029,11 @@ export default function Experience() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Result[] | null>(null);
   const [meta, setMeta] = useState<{ count: number; ms: number } | null>(null);
+  // meta-search 结果（条件筛选模式专用）
+  const [metaResults, setMetaResults] = useState<MetaSearchResult[] | null>(null);
+  const [metaFacets, setMetaFacets] = useState<MetaFacets | null>(null);
+  const [metaTotal, setMetaTotal] = useState<number>(0);
+  const [metaViewMode, setMetaViewMode] = useState<"table" | "card">("table");
   const [page, setPage] = useState(1);
   const [focused, setFocused] = useState(false);
   const [burstId, setBurstId] = useState(0); // 递增 key 触发重新 mount 以重启粒子动画
@@ -1030,7 +1126,19 @@ export default function Experience() {
   }, []);
 
   // ─────────── 双态搜索：自由检索 / 条件筛选 ───────────
-  const [searchMode, setSearchMode] = useState<"free" | "filter">("free");
+  const [searchMode, setSearchModeRaw] = useState<"free" | "filter">("free");
+  const setSearchMode = (mode: "free" | "filter") => {
+    setSearchModeRaw(mode);
+    // 切换模式时清空另一模式的结果
+    if (mode === "free") {
+      setMetaResults(null);
+      setMetaFacets(null);
+      setMetaTotal(0);
+    } else {
+      setResults(null);
+      setMeta(null);
+    }
+  };
   const [filters, setFilters] = useState<FilterValue[]>([]);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
   const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
@@ -1195,7 +1303,42 @@ export default function Experience() {
     const q = buildFilterQuery();
     if (!q) return;
     setQuery(q);
-    await submit(q);
+    setCommitted(q);
+    setLoading(true);
+    setBurstId((n) => n + 1);
+    setPage(1);
+    setErrorKind(null);
+    // 清空自由检索结果
+    setResults(null);
+    setMeta(null);
+    // 模拟 meta-search 接口调用
+    await new Promise((r) => setTimeout(r, 400 + Math.random() * 200));
+    // 根据筛选条件复杂度模拟大/小结果集
+    const isNarrow = filters.some((f) => f.fieldKey === "citation_level" && f.value.includes("top1"));
+    const preset = isNarrow ? PRESET_META_SMALL : PRESET_META_LARGE;
+    setMetaResults(preset.results);
+    setMetaFacets(preset.facets);
+    setMetaTotal(preset.total);
+    setLoading(false);
+    // 写入会话历史
+    let nextSessionId = currentSessionId;
+    let nextVersionId: string | null = null;
+    if (currentSessionId && appendMode) {
+      const r = appendVersion(currentSessionId, q);
+      nextSessionId = r.sessionId;
+      nextVersionId = r.versionId;
+    } else {
+      const r = createSession(q);
+      nextSessionId = r.sessionId;
+      nextVersionId = r.versionId;
+    }
+    setCurrentSessionId(nextSessionId);
+    setCurrentVersionId(nextVersionId);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("q");
+    url.searchParams.set("s", nextSessionId!);
+    url.searchParams.set("v", nextVersionId!);
+    window.history.pushState({}, "", url.toString());
   };
 
   return (
@@ -1479,8 +1622,240 @@ export default function Experience() {
             />
           )}
 
-          {/* STATUS + RESULTS */}
-          {meta && committed && (
+          {/* META-SEARCH RESULTS — 条件筛选模式结果 */}
+          {metaFacets && metaResults && committed && searchMode === "filter" && (
+            <section className="mt-6 ed-in">
+              {/* 统计摘要头 */}
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-baseline gap-3">
+                  <span className="font-display text-[28px] text-[var(--ink)]">
+                    {metaTotal.toLocaleString()}
+                  </span>
+                  <span className="text-[13px] text-[var(--ink-2)]">篇文献命中</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => toast.success("导出功能即将上线")}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border hairline text-[12px] text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
+                    <Download className="h-3.5 w-3.5" />
+                    导出
+                  </button>
+                </div>
+              </div>
+
+              {/* 分面统计卡片 */}
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                {/* 年份分布 */}
+                <div className="card-paper p-4">
+                  <div className="flex items-center gap-1.5 text-[12px] text-[var(--ink-2)] mb-3">
+                    <Calendar className="h-3.5 w-3.5" />
+                    <span>年份分布</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {metaFacets.byYear.map((f) => {
+                      const maxVal = Math.max(...metaFacets.byYear.map((x) => x.value));
+                      const pct = maxVal > 0 ? (f.value / maxVal) * 100 : 0;
+                      return (
+                        <div key={f.label} className="flex items-center gap-2 text-[12px]">
+                          <span className="w-10 text-right font-mono text-[var(--ink-2)]">{f.label}</span>
+                          <div className="flex-1 h-4 bg-[var(--hairline)]/50 rounded-sm overflow-hidden">
+                            <div
+                              className="h-full bg-[var(--brand)]/20 rounded-sm transition-all"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="w-14 text-right font-mono text-[11px] text-[var(--ink-3)]">
+                            {f.value >= 10000 ? `${(f.value / 1000).toFixed(1)}k` : f.value.toLocaleString()}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                {/* 文献类型分布 */}
+                <div className="card-paper p-4">
+                  <div className="flex items-center gap-1.5 text-[12px] text-[var(--ink-2)] mb-3">
+                    <Database className="h-3.5 w-3.5" />
+                    <span>文献类型</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {metaFacets.byType.map((f) => {
+                      const maxVal = Math.max(...metaFacets.byType.map((x) => x.value));
+                      const pct = maxVal > 0 ? (f.value / maxVal) * 100 : 0;
+                      return (
+                        <div key={f.label} className="flex items-center gap-2 text-[12px]">
+                          <span className="w-14 text-right text-[var(--ink-2)]">{f.label}</span>
+                          <div className="flex-1 h-4 bg-[var(--hairline)]/50 rounded-sm overflow-hidden">
+                            <div
+                              className="h-full bg-[#E8B86D]/30 rounded-sm transition-all"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="w-14 text-right font-mono text-[11px] text-[var(--ink-3)]">
+                            {f.value >= 10000 ? `${(f.value / 1000).toFixed(1)}k` : f.value.toLocaleString()}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                {/* 语言分布 */}
+                <div className="card-paper p-4">
+                  <div className="flex items-center gap-1.5 text-[12px] text-[var(--ink-2)] mb-3">
+                    <Languages className="h-3.5 w-3.5" />
+                    <span>语言分布</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {metaFacets.byLanguage.map((f) => {
+                      const maxVal = Math.max(...metaFacets.byLanguage.map((x) => x.value));
+                      const pct = maxVal > 0 ? (f.value / maxVal) * 100 : 0;
+                      return (
+                        <div key={f.label} className="flex items-center gap-2 text-[12px]">
+                          <span className="w-14 text-right text-[var(--ink-2)]">{f.label}</span>
+                          <div className="flex-1 h-4 bg-[var(--hairline)]/50 rounded-sm overflow-hidden">
+                            <div
+                              className="h-full bg-[#7BC8A4]/30 rounded-sm transition-all"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="w-14 text-right font-mono text-[11px] text-[var(--ink-3)]">
+                            {f.value >= 10000 ? `${(f.value / 1000).toFixed(1)}k` : f.value.toLocaleString()}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* 分隔线 + 视图切换 */}
+              <div className="mt-5 pt-4 border-t hairline flex items-center justify-between">
+                <span className="text-[12px] text-[var(--ink-3)]">
+                  显示前 {Math.min(metaResults.length, PAGE_SIZE)} 条（共 {metaTotal.toLocaleString()} 条）
+                </span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[11px] text-[var(--ink-3)] mr-1">视图</span>
+                  <button
+                    onClick={() => setMetaViewMode("table")}
+                    className={cn(
+                      "h-7 w-7 inline-flex items-center justify-center rounded transition-colors",
+                      metaViewMode === "table" ? "bg-[var(--brand)]/10 text-[var(--brand)]" : "text-[var(--ink-3)] hover:text-[var(--ink)]",
+                    )}>
+                    <List className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setMetaViewMode("card")}
+                    className={cn(
+                      "h-7 w-7 inline-flex items-center justify-center rounded transition-colors",
+                      metaViewMode === "card" ? "bg-[var(--brand)]/10 text-[var(--brand)]" : "text-[var(--ink-3)] hover:text-[var(--ink)]",
+                    )}>
+                    <LayoutGrid className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* 表格视图 */}
+              {metaViewMode === "table" && (
+                <div className="mt-3 overflow-x-auto rounded-md border hairline">
+                  <table className="w-full text-[12.5px]">
+                    <thead>
+                      <tr className="border-b hairline bg-[var(--paper)]">
+                        <th className="text-left px-3 py-2.5 font-medium text-[var(--ink-2)]">标题</th>
+                        <th className="text-left px-3 py-2.5 font-medium text-[var(--ink-2)] w-[120px]">作者</th>
+                        <th className="text-center px-3 py-2.5 font-medium text-[var(--ink-2)] w-[50px]">年份</th>
+                        <th className="text-left px-3 py-2.5 font-medium text-[var(--ink-2)] w-[140px]">期刊/来源</th>
+                        <th className="text-center px-3 py-2.5 font-medium text-[var(--ink-2)] w-[60px]">引用</th>
+                        <th className="text-center px-3 py-2.5 font-medium text-[var(--ink-2)] w-[60px]">DOI</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {metaResults.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((r) => (
+                        <tr key={r.id} className="border-b hairline last:border-0 hover:bg-[#f9f9f5] transition-colors">
+                          <td className="px-3 py-2.5">
+                            <span className="text-[var(--ink)] line-clamp-1">{r.title}</span>
+                          </td>
+                          <td className="px-3 py-2.5 text-[var(--ink-2)] line-clamp-1">{r.authors.split(",")[0]}</td>
+                          <td className="px-3 py-2.5 text-center font-mono text-[var(--ink-2)]">{r.year}</td>
+                          <td className="px-3 py-2.5 text-[var(--ink-2)] line-clamp-1 italic">{r.venue}</td>
+                          <td className="px-3 py-2.5 text-center font-mono text-[var(--ink)]">{r.citations}</td>
+                          <td className="px-3 py-2.5 text-center">
+                            {r.doi ? (
+                              <a href={`https://doi.org/${r.doi}`} target="_blank" rel="noreferrer" className="text-[var(--brand)] hover:underline">
+                                <ExternalLink className="h-3.5 w-3.5 inline" />
+                              </a>
+                            ) : (
+                              <span className="text-[var(--ink-3)]">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* 卡片视图 */}
+              {metaViewMode === "card" && (
+                <div className="mt-3 space-y-3">
+                  {metaResults.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((r) => (
+                    <article key={r.id} className="card-paper p-4 ed-in">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="method-badge method-post text-[10px]">{r.type}</span>
+                        <span className="font-mono text-[11px] text-[var(--ink-3)]">{r.year}</span>
+                        <span className="text-[var(--hairline-strong)]">·</span>
+                        <span className="text-[12px] italic text-[var(--ink-2)]">{r.venue}</span>
+                      </div>
+                      <h4 className="text-[15px] leading-[1.4] text-[var(--ink)] font-medium">{r.title}</h4>
+                      <div className="mt-2 flex items-center gap-3 text-[12px] text-[var(--ink-2)]">
+                        <span>{r.authors}</span>
+                        <span className="ml-auto inline-flex items-center gap-1 font-mono">
+                          <TrendingUp className="h-3 w-3" />
+                          {r.citations}
+                        </span>
+                        {r.doi && (
+                          <a href={`https://doi.org/${r.doi}`} target="_blank" rel="noreferrer" className="text-[var(--brand)] hover:underline inline-flex items-center gap-0.5">
+                            <ExternalLink className="h-3 w-3" />
+                            DOI
+                          </a>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+
+              {/* 分页 */}
+              {metaResults.length > PAGE_SIZE && (
+                <div className="mt-4 pt-3 border-t hairline flex items-center justify-between">
+                  <div className="font-mono text-[11px] tracking-[0.16em] uppercase text-[var(--ink-3)]">
+                    第 {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, metaResults.length)} 条 · 共 {metaResults.length} 条
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="h-8 w-8 inline-flex items-center justify-center rounded-full text-[var(--ink-2)] hover:bg-[#f1f0eb] hover:text-[var(--ink)] disabled:opacity-40 transition-colors"
+                      aria-label="上一页">
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <span className="px-3 font-mono text-[12.5px] text-[var(--ink)]">
+                      {page} <span className="text-[var(--ink-3)]">/ {Math.ceil(metaResults.length / PAGE_SIZE)}</span>
+                    </span>
+                    <button
+                      onClick={() => setPage((p) => Math.min(Math.ceil(metaResults.length / PAGE_SIZE), p + 1))}
+                      disabled={page >= Math.ceil(metaResults.length / PAGE_SIZE)}
+                      className="h-8 w-8 inline-flex items-center justify-center rounded-full text-[var(--ink-2)] hover:bg-[#f1f0eb] hover:text-[var(--ink)] disabled:opacity-40 transition-colors"
+                      aria-label="下一页">
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* STATUS + RESULTS — 自由检索模式 */}
+          {meta && results && committed && searchMode === "free" && (
             <section className="mt-6">
               <IntegrationBubble />
               <div className="mt-5 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[12.5px] text-[var(--ink-2)]">
