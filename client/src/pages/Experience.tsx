@@ -33,6 +33,8 @@ import {
   BarChart3,
   List,
   LayoutGrid,
+  ChevronDown,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import Sidebar from "@/components/layout/Sidebar";
@@ -207,6 +209,86 @@ const PRESET_META_LARGE: { total: number; facets: MetaFacets; results: MetaSearc
     { id: "m18", title: "Split-intein Mediated Dual-AAV Delivery of Large Cas9 Variants", authors: "Villiger L, Grisch-Chan HM et al.", year: 2024, venue: "Nature Medicine", type: "paper", citations: 189, doi: "10.1038/s41591-024-03012-4", language: "en" },
     { id: "m19", title: "CRISPR Interference Reveals Essential Genes in Mycobacterium tuberculosis", authors: "Rock JM, Hopkins FF et al.", year: 2024, venue: "PNAS", type: "paper", citations: 156, doi: "10.1073/pnas.2401234121", language: "en" },
     { id: "m20", title: "Precision Gene Correction for Sickle Cell Disease Using Adenine Base Editors", authors: "Newby GA, Yen JS et al.", year: 2025, venue: "Nature", type: "paper", citations: 445, doi: "10.1038/s41586-025-08456-2", language: "en" },
+    { id: "m21", title: "Programmable RNA Editing with ADAR-recruiting Guide RNAs", authors: "Qu L, Yi Z et al.", year: 2025, venue: "Nature Biotechnology", type: "paper", citations: 198, doi: "10.1038/s41587-025-02601-3", language: "en" },
+    { id: "m22", title: "High-throughput CRISPR Screens in Primary Human T Cells", authors: "Shifrut E, Carnevale J et al.", year: 2024, venue: "Cell", type: "paper", citations: 276, doi: "10.1016/j.cell.2024.07.032", language: "en" },
+    { id: "m23", title: "Retron-mediated Genome Editing without Double-strand Breaks", authors: "Sharon E, Chen SAA et al.", year: 2025, venue: "Science", type: "paper", citations: 134, doi: "10.1126/science.ado4321", language: "en" },
+    { id: "m24", title: "CRISPR-Cas12a 在植物基因组多位点编辑中的应用", authors: "陈磊, 吴刚 等", year: 2024, venue: "植物学报", type: "paper", citations: 67, doi: "10.11983/CBB24010", language: "zh" },
+    { id: "m25", title: "Evolved Cas9 Variants with Broadened PAM Compatibility", authors: "Walton RT, Christie KA et al.", year: 2024, venue: "Nature Biotechnology", type: "paper", citations: 389, doi: "10.1038/s41587-024-02199-0", language: "en" },
+    { id: "m26", title: "Spatiotemporal Control of CRISPR with Optogenetic Systems", authors: "Nihongaki Y, Kawano F et al.", year: 2025, venue: "Nature Methods", type: "paper", citations: 167, doi: "10.1038/s41592-025-02345-6", language: "en" },
+    { id: "m27", title: "Nanoparticle Delivery of Ribonucleoprotein for Liver Gene Editing", authors: "Wei T, Cheng Q et al.", year: 2024, venue: "ACS Nano", type: "paper", citations: 203, doi: "10.1021/acsnano.4c01234", language: "en" },
+    { id: "m28", title: "CRISPR-based Gene Drives for Malaria Vector Control", authors: "Hammond A, Galizi R et al.", year: 2024, venue: "Nature", type: "paper", citations: 312, doi: "10.1038/s41586-024-07890-3", language: "en" },
+    { id: "m29", title: "Allele-specific CRISPR Therapy for Dominant Genetic Disorders", authors: "Christie KA, Courtney DG et al.", year: 2025, venue: "Nature Medicine", type: "paper", citations: 178, doi: "10.1038/s41591-025-03456-7", language: "en" },
+    { id: "m30", title: "Multiplexed Perturbation Sequencing with CRISPR-Cas13", authors: "Replogle JM, Saunders RA et al.", year: 2024, venue: "Cell", type: "paper", citations: 234, doi: "10.1016/j.cell.2024.01.045", language: "en" },
+    { id: "m31", title: "Chromatin Remodeling via CRISPR-mediated Histone Modifications", authors: "Hilton IB, D'Ippolito AM et al.", year: 2025, venue: "Nature Genetics", type: "paper", citations: 156, doi: "10.1038/s41588-025-01789-4", language: "en" },
+    { id: "m32", title: "Verfahren zur CRISPR-basierten Gentherapie bei Mukoviszidose", authors: "Schwank G, Koo BK et al.", year: 2024, venue: "Deutsches Ärzteblatt", type: "paper", citations: 45, language: "de" },
+    { id: "m33", title: "Single-cell CRISPR Screens Reveal Programs of T Cell Exhaustion", authors: "Dong MB, Wang G et al.", year: 2025, venue: "Nature Immunology", type: "paper", citations: 289, doi: "10.1038/s41590-025-01890-2", language: "en" },
+    { id: "m34", title: "Transposon-encoded CRISPR-Cas Systems for DNA Integration", authors: "Klompe SE, Vo PLH et al.", year: 2024, venue: "Nature", type: "paper", citations: 345, doi: "10.1038/s41586-024-07234-5", language: "en" },
+    { id: "m35", title: "CRISPR 技术在水稻抗病育种中的最新进展", authors: "李明, 赵伟 等", year: 2025, venue: "中国农业科学", type: "paper", citations: 56, doi: "10.3864/j.issn.0578-1752.2025.03", language: "zh" },
+    { id: "m36", title: "Genome Editing of Regulatory Elements Reveals Enhancer Redundancy", authors: "Osterwalder M, Barozzi I et al.", year: 2024, venue: "Nature", type: "paper", citations: 198, doi: "10.1038/s41586-024-08012-6", language: "en" },
+    { id: "m37", title: "CRISPR-Cas9 Ribonucleoprotein Delivery via Cell-penetrating Peptides", authors: "Ramakrishna S, Kwaku Dad AB et al.", year: 2025, venue: "Genome Research", type: "paper", citations: 134, doi: "10.1101/gr.279012.124", language: "en" },
+    { id: "m38", title: "Therapeutic In Vivo Base Editing for Progeria", authors: "Koblan LW, Erdos MR et al.", year: 2024, venue: "Nature", type: "paper", citations: 456, doi: "10.1038/s41586-024-07567-8", language: "en" },
+    { id: "m39", title: "CRISPR-mediated Epigenetic Memory in Mammalian Cells", authors: "Nuñez JK, Chen J et al.", year: 2025, venue: "Cell", type: "paper", citations: 267, doi: "10.1016/j.cell.2025.02.018", language: "en" },
+    { id: "m40", title: "Miniature CRISPR-Cas Systems from Uncultivated Microbes", authors: "Xu X, Chemparathy A et al.", year: 2024, venue: "Molecular Cell", type: "paper", citations: 189, doi: "10.1016/j.molcel.2024.05.023", language: "en" },
+    { id: "m41", title: "CRISPR Screens Identify Metabolic Vulnerabilities in AML", authors: "Tzelepis K, Koike-Yusa H et al.", year: 2025, venue: "Nature Medicine", type: "paper", citations: 212, doi: "10.1038/s41591-025-03567-8", language: "en" },
+    { id: "m42", title: "Precision Deletion of Genomic Segments via Dual-guide CRISPR", authors: "Canver MC, Smith EC et al.", year: 2024, venue: "Nature Methods", type: "paper", citations: 145, doi: "10.1038/s41592-024-02345-7", language: "en" },
+    { id: "m43", title: "基因编辑猪器官异种移植的免疫学挑战", authors: "杨光, 刘阳 等", year: 2025, venue: "中华器官移植杂志", type: "paper", citations: 78, language: "zh" },
+    { id: "m44", title: "CRISPR-Cas9 Knockout Library Screens in Cancer Cell Lines", authors: "Behan FM, Iorio F et al.", year: 2024, venue: "Nature", type: "paper", citations: 567, doi: "10.1038/s41586-024-07890-1", language: "en" },
+    { id: "m45", title: "RNA-targeting CRISPR Effectors for Transcriptome Engineering", authors: "Abudayyeh OO, Gootenberg JS et al.", year: 2025, venue: "Science", type: "paper", citations: 345, doi: "10.1126/science.adq5678", language: "en" },
+    { id: "m46", title: "Engineered Zinc-finger Nucleases vs CRISPR: A Comparative Study", authors: "Urnov FD, Rebar EJ et al.", year: 2024, venue: "Nature Reviews Genetics", type: "paper", citations: 234, doi: "10.1038/s41576-024-00712-3", language: "en" },
+    { id: "m47", title: "CRISPR-mediated Correction of Duchenne Muscular Dystrophy", authors: "Amoasii L, Hildyard JCW et al.", year: 2025, venue: "Science", type: "paper", citations: 289, doi: "10.1126/science.adr1234", language: "en" },
+    { id: "m48", title: "Phage-assisted Continuous Evolution of Cas9 Variants", authors: "Miller SM, Wang T et al.", year: 2024, venue: "Nature Biotechnology", type: "paper", citations: 178, doi: "10.1038/s41587-024-02345-6", language: "en" },
+    { id: "m49", title: "CRISPR-based Recording of Cellular Events in Mammalian Tissues", authors: "Kalhor R, Mali P et al.", year: 2025, venue: "Cell", type: "paper", citations: 156, doi: "10.1016/j.cell.2025.04.032", language: "en" },
+    { id: "m50", title: "Efficient Mitochondrial Genome Editing with mitoTALENs", authors: "Gammage PA, Moraes CT et al.", year: 2024, venue: "Nature Medicine", type: "paper", citations: 234, doi: "10.1038/s41591-024-03234-5", language: "en" },
+    { id: "m51", title: "Harnessing Type III CRISPR for Large DNA Insertions", authors: "Vo PLH, Ronda C et al.", year: 2025, venue: "Nature", type: "paper", citations: 167, doi: "10.1038/s41586-025-08567-3", language: "en" },
+    { id: "m52", title: "CRISPR-Cas12b Enables Efficient Plant Genome Engineering", authors: "Ming M, Ren Q et al.", year: 2024, venue: "Nature Plants", type: "paper", citations: 123, doi: "10.1038/s41477-024-01678-9", language: "en" },
+    { id: "m53", title: "Édition génomique par CRISPR dans les cellules souches humaines", authors: "Charlesworth CT, Deshpande PS et al.", year: 2024, venue: "Médecine/Sciences", type: "paper", citations: 34, language: "fr" },
+    { id: "m54", title: "CRISPR-based Synthetic Gene Circuits for Cell Therapy", authors: "Gao XJ, Chong LS et al.", year: 2025, venue: "Nature Biotechnology", type: "paper", citations: 198, doi: "10.1038/s41587-025-02678-9", language: "en" },
+    { id: "m55", title: "Deep Learning Predicts CRISPR Off-target Effects", authors: "Lin J, Wong KC et al.", year: 2024, venue: "Nature Machine Intelligence", type: "paper", citations: 267, doi: "10.1038/s42256-024-00812-4", language: "en" },
+    { id: "m56", title: "CRISPR Interference Dissects Transcriptional Regulation in Bacteria", authors: "Peters JM, Colavin A et al.", year: 2025, venue: "PNAS", type: "paper", citations: 89, doi: "10.1073/pnas.2501234122", language: "en" },
+    { id: "m57", title: "Lipid Nanoparticle Formulations for mRNA-encoded Cas9 Delivery", authors: "Qiu M, Glass Z et al.", year: 2024, venue: "Advanced Materials", type: "paper", citations: 178, doi: "10.1002/adma.202401234", language: "en" },
+    { id: "m58", title: "CRISPR 基因编辑伦理与监管框架国际比较", authors: "张晓华, 陈伟 等", year: 2025, venue: "科学通报", type: "paper", citations: 45, doi: "10.1360/TB-2025-0123", language: "zh" },
+    { id: "m59", title: "Genome-wide Association of CRISPR Essentiality Scores", authors: "Dempster JM, Rossen J et al.", year: 2024, venue: "Nature Genetics", type: "paper", citations: 234, doi: "10.1038/s41588-024-01789-5", language: "en" },
+    { id: "m60", title: "Cas9-triggered Strand Invasion for Homology-directed Repair", authors: "Richardson CD, Ray GJ et al.", year: 2025, venue: "Nature Biotechnology", type: "paper", citations: 156, doi: "10.1038/s41587-025-02789-0", language: "en" },
+    { id: "m61", title: "CRISPR-Cas13d for Efficient RNA Knockdown in Neurons", authors: "Konermann S, Lotfy P et al.", year: 2024, venue: "Cell", type: "paper", citations: 289, doi: "10.1016/j.cell.2024.08.045", language: "en" },
+    { id: "m62", title: "Base Editing Corrects Alpha-1 Antitrypsin Deficiency in Mice", authors: "Villiger L, Rothgangl T et al.", year: 2025, venue: "Nature Medicine", type: "paper", citations: 198, doi: "10.1038/s41591-025-03678-9", language: "en" },
+    { id: "m63", title: "Directed Evolution of CRISPR-Cas12a for Enhanced Activity", authors: "Kleinstiver BP, Sousa AA et al.", year: 2024, venue: "Nature Biotechnology", type: "paper", citations: 312, doi: "10.1038/s41587-024-02456-7", language: "en" },
+    { id: "m64", title: "CRISPR Screens Identify Drug Resistance Mechanisms in Melanoma", authors: "Shalem O, Sanjana NE et al.", year: 2025, venue: "Science", type: "paper", citations: 234, doi: "10.1126/science.ads5678", language: "en" },
+    { id: "m65", title: "Tissue-specific Promoters for Targeted In Vivo Gene Editing", authors: "Yao X, Wang X et al.", year: 2024, venue: "Nature Biomedical Engineering", type: "paper", citations: 145, doi: "10.1038/s41551-024-02345-6", language: "en" },
+    { id: "m66", title: "CRISPRi 在人类诱导多能干细胞分化中的应用", authors: "周磊, 王芳 等", year: 2025, venue: "细胞研究", type: "paper", citations: 67, language: "zh" },
+    { id: "m67", title: "Programmable C-to-G Base Editing in Genomic DNA", authors: "Kurt IC, Zhou R et al.", year: 2024, venue: "Nature", type: "paper", citations: 345, doi: "10.1038/s41586-024-08123-7", language: "en" },
+    { id: "m68", title: "CRISPR-mediated Gene Tagging for Live-cell Imaging", authors: "Neguembor MV, Sebastian-Perez R et al.", year: 2025, venue: "Nature Methods", type: "paper", citations: 89, doi: "10.1038/s41592-025-02456-7", language: "en" },
+    { id: "m69", title: "Extracellular Vesicle Delivery of CRISPR Components", authors: "Gee P, Lung MSY et al.", year: 2024, venue: "Nature Cell Biology", type: "paper", citations: 178, doi: "10.1038/s41556-024-01456-8", language: "en" },
+    { id: "m70", title: "CRISPR-Cas9 Gene Therapy for Hereditary Transthyretin Amyloidosis", authors: "Gillmore JD, Gane E et al.", year: 2025, venue: "NEJM", type: "paper", citations: 567, doi: "10.1056/NEJMoa2501234", language: "en" },
+    { id: "m71", title: "Structural Basis of PAM Recognition by Cas9 Orthologs", authors: "Nishimasu H, Shi X et al.", year: 2024, venue: "Cell", type: "paper", citations: 234, doi: "10.1016/j.cell.2024.09.056", language: "en" },
+    { id: "m72", title: "CRISPR-based Biosensors for Environmental Monitoring", authors: "Broughton JP, Deng X et al.", year: 2025, venue: "Nature Biotechnology", type: "paper", citations: 145, doi: "10.1038/s41587-025-02890-1", language: "en" },
+    { id: "m73", title: "Genome Editing in Non-human Primates for Disease Modeling", authors: "Niu Y, Shen B et al.", year: 2024, venue: "Cell", type: "paper", citations: 198, doi: "10.1016/j.cell.2024.10.067", language: "en" },
+    { id: "m74", title: "CRISPR-Cas9 による日本脳炎ウイルス耐性マウスの作出", authors: "Tanaka K, Yamamoto S et al.", year: 2025, venue: "日本ウイルス学雑誌", type: "paper", citations: 23, language: "ja" },
+    { id: "m75", title: "Precision Oncology via CRISPR-edited CAR-T Cells", authors: "Stadtmauer EA, Fraietta JA et al.", year: 2024, venue: "Science", type: "paper", citations: 456, doi: "10.1126/science.adt5678", language: "en" },
+    { id: "m76", title: "CRISPR Activation of Endogenous Genes for Regenerative Medicine", authors: "Black JB, Adler AF et al.", year: 2025, venue: "Cell Stem Cell", type: "paper", citations: 167, doi: "10.1016/j.stem.2025.03.012", language: "en" },
+    { id: "m77", title: "Efficient Prime Editing in Post-mitotic Neurons", authors: "Böck D, Rothgangl T et al.", year: 2024, venue: "Nature Neuroscience", type: "paper", citations: 134, doi: "10.1038/s41593-024-01678-9", language: "en" },
+    { id: "m78", title: "CRISPR-mediated Multiplexed Pathway Engineering in Yeast", authors: "Lian J, HamediRad M et al.", year: 2025, venue: "Nature Communications", type: "paper", citations: 89, doi: "10.1038/s41467-025-67890-1", language: "en" },
+    { id: "m79", title: "Anti-CRISPR Discovery via Metagenomic Mining", authors: "Pawluk A, Davidson AR et al.", year: 2024, venue: "Nature Microbiology", type: "paper", citations: 178, doi: "10.1038/s41564-024-01678-9", language: "en" },
+    { id: "m80", title: "CRISPR-based Epigenetic Editing for Chronic Pain Treatment", authors: "Moreno AM, Alemán F et al.", year: 2025, venue: "Science Translational Medicine", type: "paper", citations: 123, doi: "10.1126/scitranslmed.adu1234", language: "en" },
+    { id: "m81", title: "Whole-genome CRISPR Screening in Human Organoids", authors: "Ringel T, Frey N et al.", year: 2024, venue: "Nature Cell Biology", type: "paper", citations: 234, doi: "10.1038/s41556-024-01567-9", language: "en" },
+    { id: "m82", title: "Cas9-nickase Paired with Reverse Transcriptase for Safe Editing", authors: "Anzalone AV, Randolph PB et al.", year: 2025, venue: "Nature", type: "paper", citations: 345, doi: "10.1038/s41586-025-08678-4", language: "en" },
+    { id: "m83", title: "CRISPR Gene Editing in Coral for Climate Resilience", authors: "Cleves PA, Strader ME et al.", year: 2024, venue: "PNAS", type: "paper", citations: 67, doi: "10.1073/pnas.2401567121", language: "en" },
+    { id: "m84", title: "Delivery of CRISPR via Engineered Virus-like Particles", authors: "Banskota S, Raguram A et al.", year: 2025, venue: "Cell", type: "paper", citations: 289, doi: "10.1016/j.cell.2025.05.043", language: "en" },
+    { id: "m85", title: "CRISPR 技术在大豆品质改良中的研究进展", authors: "孙涛, 马晓明 等", year: 2024, venue: "作物学报", type: "paper", citations: 34, language: "zh" },
+    { id: "m86", title: "Twin Prime Editing for Large Genomic Insertions", authors: "Anzalone AV, Gao XD et al.", year: 2025, venue: "Nature Biotechnology", type: "paper", citations: 234, doi: "10.1038/s41587-025-02901-2", language: "en" },
+    { id: "m87", title: "CRISPR-Cas9 for Functional Genomics in Zebrafish Development", authors: "Varshney GK, Pei W et al.", year: 2024, venue: "Genome Research", type: "paper", citations: 112, doi: "10.1101/gr.279234.124", language: "en" },
+    { id: "m88", title: "Engineered tRNA-based Suppressors for Nonsense Mutation Correction", authors: "Wang J, Zhang Y et al.", year: 2025, venue: "Nature", type: "paper", citations: 178, doi: "10.1038/s41586-025-08789-5", language: "en" },
+    { id: "m89", title: "CRISPR-mediated Chromosomal Rearrangements in Human Cells", authors: "Maddalo D, Manchado E et al.", year: 2024, venue: "Nature", type: "paper", citations: 156, doi: "10.1038/s41586-024-08234-8", language: "en" },
+    { id: "m90", title: "Efficient Adenine Base Editing in Mitochondrial DNA", authors: "Cho SI, Lee S et al.", year: 2025, venue: "Cell", type: "paper", citations: 198, doi: "10.1016/j.cell.2025.06.054", language: "en" },
+    { id: "m91", title: "CRISPR-Cas System Classification and Evolution", authors: "Makarova KS, Wolf YI et al.", year: 2024, venue: "Nature Reviews Microbiology", type: "paper", citations: 567, doi: "10.1038/s41579-024-01045-6", language: "en" },
+    { id: "m92", title: "Genome Editing for Inherited Retinal Dystrophies", authors: "Maeder ML, Stefanidakis M et al.", year: 2025, venue: "Nature Medicine", type: "paper", citations: 234, doi: "10.1038/s41591-025-03789-0", language: "en" },
+    { id: "m93", title: "CRISPR-based Allele-specific Silencing of Huntingtin", authors: "Monteys AM, Ebanks SA et al.", year: 2024, venue: "Science", type: "paper", citations: 289, doi: "10.1126/science.adv6789", language: "en" },
+    { id: "m94", title: "Multiplexed Prime Editing for Complex Trait Engineering", authors: "Yarnall MTN, Ioannidi EI et al.", year: 2025, venue: "Nature Biotechnology", type: "paper", citations: 167, doi: "10.1038/s41587-025-03012-3", language: "en" },
+    { id: "m95", title: "CRISPR-Cas9 を用いたイネの耐塩性向上", authors: "Suzuki T, Nakamura H et al.", year: 2024, venue: "育種学研究", type: "paper", citations: 45, language: "ja" },
+    { id: "m96", title: "In Vivo Prime Editing of the CFTR Locus in Airway Cells", authors: "Geurts MH, de Poel E et al.", year: 2025, venue: "Nature", type: "paper", citations: 312, doi: "10.1038/s41586-025-08890-6", language: "en" },
+    { id: "m97", title: "CRISPR Screens Uncover Synthetic Lethal Interactions in BRCA-mutant Cancers", authors: "Zimmermann M, Murina O et al.", year: 2024, venue: "Nature", type: "paper", citations: 234, doi: "10.1038/s41586-024-08345-9", language: "en" },
+    { id: "m98", title: "Programmable DNA Methylation Editing with CRISPR-dCas9-DNMT3A", authors: "Liu XS, Wu H et al.", year: 2025, venue: "Cell", type: "paper", citations: 178, doi: "10.1016/j.cell.2025.07.065", language: "en" },
+    { id: "m99", title: "CRISPR-Cas12a Diagnostics with Attomolar Sensitivity", authors: "Chen JS, Ma E et al.", year: 2024, venue: "Science", type: "paper", citations: 456, doi: "10.1126/science.adw1234", language: "en" },
+    { id: "m100", title: "Genome Editing Safety: Long-term Follow-up of Edited Human Cells", authors: "Leibowitz ML, Papathanasiou S et al.", year: 2025, venue: "Nature Medicine", type: "paper", citations: 289, doi: "10.1038/s41591-025-03890-1", language: "en" },
   ],
 };
 
@@ -1034,6 +1116,7 @@ export default function Experience() {
   const [metaFacets, setMetaFacets] = useState<MetaFacets | null>(null);
   const [metaTotal, setMetaTotal] = useState<number>(0);
   const [metaViewMode, setMetaViewMode] = useState<"table" | "card">("table");
+  const [showFacets, setShowFacets] = useState(false);
   const [page, setPage] = useState(1);
   const [focused, setFocused] = useState(false);
   const [burstId, setBurstId] = useState(0); // 递增 key 触发重新 mount 以重启粒子动画
@@ -1043,7 +1126,7 @@ export default function Experience() {
   // v19: 强制失败演示场景—下一次 runSearch 必中，用于 「失败示例」 chip 与 ?demo=fail&kind= 一键复现
   const forceFailRef = useRef<SearchErrorKind | null>(null);
   const autoRetriedRef = useRef(false);
-  const PAGE_SIZE = 8;
+  const PAGE_SIZE = 20;
   const composing = useRef(false);
 
   // v17: 会话+版本历史模型 — 当前会话 id / 当前版本 id
@@ -1632,47 +1715,36 @@ export default function Experience() {
                     {metaTotal.toLocaleString()}
                   </span>
                   <span className="text-[13px] text-[var(--ink-2)]">篇文献命中</span>
+                  <span className="text-[12px] text-[var(--ink-3)] ml-1">耗时 0.84s，无正文，doc_id 可调用 content 获取正文</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => toast.success("导出功能即将上线")}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border hairline text-[12px] text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
-                    <Download className="h-3.5 w-3.5" />
-                    导出
-                  </button>
+                  <div className="relative group">
+                    <button
+                      onClick={() => toast.info("导出样例数据（前 100 条）与分布统计概览，非全量数据")}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border hairline text-[12px] text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
+                      <Download className="h-3.5 w-3.5" />
+                      导出样例
+                    </button>
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-[var(--ink)] text-white text-[11px] rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                      导出前 100 条样例与分布统计概览，非全量数据
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[var(--ink)]" />
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* 分面统计卡片 */}
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-                {/* 年份分布 */}
-                <div className="card-paper p-4">
-                  <div className="flex items-center gap-1.5 text-[12px] text-[var(--ink-2)] mb-3">
-                    <Calendar className="h-3.5 w-3.5" />
-                    <span>年份分布</span>
-                  </div>
-                  <div className="space-y-1.5">
-                    {metaFacets.byYear.map((f) => {
-                      const maxVal = Math.max(...metaFacets.byYear.map((x) => x.value));
-                      const pct = maxVal > 0 ? (f.value / maxVal) * 100 : 0;
-                      return (
-                        <div key={f.label} className="flex items-center gap-2 text-[12px]">
-                          <span className="w-10 text-right font-mono text-[var(--ink-2)]">{f.label}</span>
-                          <div className="flex-1 h-4 bg-[var(--hairline)]/50 rounded-sm overflow-hidden">
-                            <div
-                              className="h-full bg-[var(--brand)]/20 rounded-sm transition-all"
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                          <span className="w-14 text-right font-mono text-[11px] text-[var(--ink-3)]">
-                            {f.value >= 10000 ? `${(f.value / 1000).toFixed(1)}k` : f.value.toLocaleString()}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                {/* 文献类型分布 */}
+              {/* 分布统计折叠区 */}
+              <button
+                onClick={() => setShowFacets(!showFacets)}
+                className="mt-3 inline-flex items-center gap-1.5 text-[12px] text-[var(--ink-2)] hover:text-[var(--ink)] transition-colors">
+                <BarChart3 className="h-3.5 w-3.5" />
+                <span>分布统计</span>
+                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showFacets && "rotate-180")} />
+              </button>
+
+              {showFacets && (
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* 文献类型分布（多选字段） */}
                 <div className="card-paper p-4">
                   <div className="flex items-center gap-1.5 text-[12px] text-[var(--ink-2)] mb-3">
                     <Database className="h-3.5 w-3.5" />
@@ -1699,7 +1771,7 @@ export default function Experience() {
                     })}
                   </div>
                 </div>
-                {/* 语言分布 */}
+                {/* 语言分布（多选字段） */}
                 <div className="card-paper p-4">
                   <div className="flex items-center gap-1.5 text-[12px] text-[var(--ink-2)] mb-3">
                     <Languages className="h-3.5 w-3.5" />
@@ -1727,11 +1799,12 @@ export default function Experience() {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* 分隔线 + 视图切换 */}
               <div className="mt-5 pt-4 border-t hairline flex items-center justify-between">
                 <span className="text-[12px] text-[var(--ink-3)]">
-                  显示前 {Math.min(metaResults.length, PAGE_SIZE)} 条（共 {metaTotal.toLocaleString()} 条）
+                  样例 {Math.min(metaResults.length, 100)} 条（命中共 {metaTotal.toLocaleString()} 条，最多展示 100 条样例）
                 </span>
                 <div className="flex items-center gap-1">
                   <span className="text-[11px] text-[var(--ink-3)] mr-1">视图</span>
