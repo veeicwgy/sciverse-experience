@@ -15,6 +15,7 @@ import {
   KeyRound,
   BarChart3,
   Layers3,
+  BookMarked,
   LogIn,
   LogOut,
   HelpCircle,
@@ -35,9 +36,9 @@ import { cn } from "@/lib/utils";
 import { useSessionHistory, type Session } from "@/hooks/useSessionHistory";
 import { ChevronRight, Trash2 } from "lucide-react";
 
-type NavKey = "experience" | "history" | "docs" | "tokens" | "stats" | "depth";
+type NavKey = "experience" | "history" | "docs" | "tokens" | "stats" | "depth" | "cookbook";
 
-// v6: 菜单名简化（更接近常见命名）；文档调到最后
+// v7: 菜单结构调整——接入指南提前，新增 Cookbook
 const NAV: {
   key: NavKey;
   label: string;
@@ -47,10 +48,11 @@ const NAV: {
 }[] = [
   { key: "experience", label: "新对话", icon: PenSquare, href: "/", hint: "清空搜索 · 开始一次新查询" },
   { key: "history", label: "历史", icon: History, hint: "近期搜索按时间分组" },
+  { key: "docs", label: "接入指南", icon: BookOpen, href: "/docs", hint: "API · MCP · CLI/SDK 三种接入方式" },
   { key: "tokens", label: "密钥", icon: KeyRound, href: "/tokens" },
   { key: "stats", label: "用量", icon: BarChart3, href: "/stats" },
+  { key: "cookbook", label: "Cookbook", icon: BookMarked, href: "/cookbook", hint: "15 个场景案例 · 可复制代码" },
   { key: "depth", label: "数据深度", icon: Layers3, href: "/depth", hint: "全学科 · 顶刊 · AI 专题 · 语言覆盖" },
-  { key: "docs", label: "接入指南", icon: BookOpen, href: "/docs", hint: "API · CLI/SDK · Skills 三种接入方式" },
 ];
 
 // v6: 二维码图片 URL 常量化 + 通过 new Image() 预加载（提前发起请求，避免点击 popover 才开始下载）
@@ -202,6 +204,7 @@ export default function Sidebar({ active }: { active?: NavKey }) {
     if (location.startsWith("/tokens")) return "tokens";
     if (location.startsWith("/stats")) return "stats";
     if (location.startsWith("/depth")) return "depth";
+    if (location.startsWith("/cookbook")) return "cookbook";
     return "experience";
   }, [active, location]);
 
@@ -290,6 +293,10 @@ export default function Sidebar({ active }: { active?: NavKey }) {
                 title="在新窗口打开">
                 {item}
               </a>
+            ) : n.key === "cookbook" ? (
+              <Link key={n.key} href={n.href!}>
+                {item}
+              </Link>
             ) : n.key === "experience" ? (
               <a key={n.key} href={n.href} onClick={goNewChat}>
                 {item}
