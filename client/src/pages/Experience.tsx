@@ -1473,6 +1473,76 @@ export default function Experience() {
     window.history.pushState({}, "", url.toString());
   };
 
+  // ─── 分布卡片点击联动筛选 ───
+  // facet label → filter value 映射表
+  const FACET_TYPE_MAP: Record<string, string> = {
+    "期刊论文": "paper", "预印本": "preprint", "会议论文": "conference",
+    "专利": "patent", "学位论文": "dissertation", "图书": "ebook",
+  };
+  const FACET_LANG_MAP: Record<string, string> = {
+    "English": "en", "中文": "zh", "Deutsch": "de", "Français": "fr",
+    "日本語": "ja", "한국어": "ko", "Español": "es", "Português": "pt",
+  };
+  const FACET_CITATION_MAP: Record<string, string> = {
+    "≥ 1,000 次": "gte100", "≥ 500 次": "gte100", "≥ 100 次": "gte100",
+    "≥ 50 次": "gte10", "≥ 10 次": "gte10",
+  };
+  const handleFacetClick = (facetKey: string, label: string) => {
+    // 映射 facet 维度到 FILTER_GROUPS 中对应的 fieldKey 和 value
+    let fieldKey: string | null = null;
+    let filterValue: string | null = null;
+    let isMulti = false;
+    if (facetKey === "byYear") {
+      // 年份：如 "2025" → year=1y, "2024" → year=3y, 精确年份暂用 custom
+      fieldKey = "year";
+      const y = parseInt(label);
+      const currentYear = new Date().getFullYear();
+      if (!isNaN(y)) {
+        const diff = currentYear - y;
+        if (diff <= 1) filterValue = "1y";
+        else if (diff <= 3) filterValue = "3y";
+        else if (diff <= 5) filterValue = "5y";
+        else filterValue = "10y";
+      } else {
+        filterValue = "10y"; // "≤2020" fallback
+      }
+    } else if (facetKey === "byType") {
+      fieldKey = "metadata_type";
+      filterValue = FACET_TYPE_MAP[label] ?? null;
+      isMulti = true;
+    } else if (facetKey === "byLanguage") {
+      if (label === "其他") return; // 无法映射
+      fieldKey = "language";
+      filterValue = FACET_LANG_MAP[label] ?? null;
+      isMulti = true;
+    } else if (facetKey === "byCitation") {
+      fieldKey = "citation_level";
+      filterValue = FACET_CITATION_MAP[label] ?? null;
+    } else if (facetKey === "byAccess" || facetKey === "byVenue") {
+      // 开放获取和期刊/会议暂无对应 FILTER_GROUPS 字段，仅 toast 提示
+      toast.info(`已记录筛选意图：${label}，该维度将在后续版本支持精确筛选`);
+      return;
+    }
+    if (!fieldKey || !filterValue) return;
+    // 更新 filters 状态
+    if (isMulti) {
+      const current = filters.find((f) => f.fieldKey === fieldKey);
+      const existing = current?.value ? current.value.split(",") : [];
+      if (!existing.includes(filterValue)) {
+        upsertFilter(fieldKey, [...existing, filterValue].join(","));
+      }
+    } else {
+      upsertFilter(fieldKey, filterValue);
+    }
+    // 显示 toast 反馈
+    const group = FILTER_GROUPS.find((g) => g.key === fieldKey);
+    toast.success(`已添加筛选：${group?.label ?? fieldKey} → ${label}，正在重新查询...`);
+    // 延迟自动重新提交
+    setTimeout(() => {
+      submitFilters();
+    }, 100);
+  };
+
   return (
     <div className="min-h-screen flex">
       <Sidebar active="experience" />
@@ -1791,6 +1861,7 @@ export default function Experience() {
                   <BarChart3 className="h-4 w-4 text-[var(--brand)]" />
                   {showFacets ? "收起分布统计" : "查看分布统计"}
                   <span className="text-[var(--ink-3)] text-[12px]">6 个维度</span>
+                  {showFacets && <span className="text-[var(--brand)]/70 text-[11px] ml-1">点击条目可追加筛选</span>}
                 </span>
                 <ChevronDown className={cn("h-4 w-4 text-[var(--ink-2)] transition-transform", showFacets && "rotate-180")} />
               </button>
@@ -1809,7 +1880,7 @@ export default function Experience() {
                         const maxVal = Math.max(...metaFacets.byYear.map((x) => x.value));
                         const pct = maxVal > 0 ? (f.value / maxVal) * 100 : 0;
                         return (
-                          <div key={f.label} className="flex items-center gap-2 text-[12px]">
+                          <div key={f.label} onClick={() => handleFacetClick("byYear", f.label)} className="flex items-center gap-2 text-[12px] cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-[var(--brand)]/[0.06] transition-colors" title={`点击筛选：${f.label}`}>
                             <span className="w-12 text-[var(--ink-2)] font-mono text-[11px]">{f.label}</span>
                             <div className="flex-1 h-[6px] bg-[var(--hairline)]/60 rounded-full overflow-hidden">
                               <div className="h-full bg-[var(--brand)]/40 rounded-full" style={{ width: `${pct}%` }} />
@@ -1833,7 +1904,7 @@ export default function Experience() {
                         const maxVal = Math.max(...metaFacets.byType.map((x) => x.value));
                         const pct = maxVal > 0 ? (f.value / maxVal) * 100 : 0;
                         return (
-                          <div key={f.label} className="flex items-center gap-2 text-[12px]">
+                          <div key={f.label} onClick={() => handleFacetClick("byType", f.label)} className="flex items-center gap-2 text-[12px] cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-[var(--brand)]/[0.06] transition-colors" title={`点击筛选：${f.label}`}>
                             <span className="w-14 text-[var(--ink-2)]">{f.label}</span>
                             <div className="flex-1 h-[6px] bg-[var(--hairline)]/60 rounded-full overflow-hidden">
                               <div className="h-full bg-[var(--brand)]/40 rounded-full" style={{ width: `${pct}%` }} />
@@ -1857,7 +1928,7 @@ export default function Experience() {
                         const maxVal = Math.max(...metaFacets.byLanguage.map((x) => x.value));
                         const pct = maxVal > 0 ? (f.value / maxVal) * 100 : 0;
                         return (
-                          <div key={f.label} className="flex items-center gap-2 text-[12px]">
+                          <div key={f.label} onClick={() => handleFacetClick("byLanguage", f.label)} className="flex items-center gap-2 text-[12px] cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-[var(--brand)]/[0.06] transition-colors" title={`点击筛选：${f.label}`}>
                             <span className="w-16 text-[var(--ink-2)]">{f.label}</span>
                             <div className="flex-1 h-[6px] bg-[var(--hairline)]/60 rounded-full overflow-hidden">
                               <div className="h-full bg-[var(--brand)]/40 rounded-full" style={{ width: `${pct}%` }} />
@@ -1881,7 +1952,7 @@ export default function Experience() {
                         const maxVal = Math.max(...metaFacets.byAccess.map((x) => x.value));
                         const pct = maxVal > 0 ? (f.value / maxVal) * 100 : 0;
                         return (
-                          <div key={f.label} className="flex items-center gap-2 text-[12px]">
+                          <div key={f.label} onClick={() => handleFacetClick("byAccess", f.label)} className="flex items-center gap-2 text-[12px] cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-[#4caf50]/[0.06] transition-colors" title={`点击筛选：${f.label}`}>
                             <span className="w-16 text-[var(--ink-2)]">{f.label}</span>
                             <div className="flex-1 h-[6px] bg-[var(--hairline)]/60 rounded-full overflow-hidden">
                               <div className="h-full bg-[#4caf50]/40 rounded-full" style={{ width: `${pct}%` }} />
@@ -1905,7 +1976,7 @@ export default function Experience() {
                         const maxVal = Math.max(...metaFacets.byVenue.map((x) => x.value));
                         const pct = maxVal > 0 ? (f.value / maxVal) * 100 : 0;
                         return (
-                          <div key={f.label} className="flex items-center gap-2 text-[12px]">
+                          <div key={f.label} onClick={() => handleFacetClick("byVenue", f.label)} className="flex items-center gap-2 text-[12px] cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-[var(--brand)]/[0.06] transition-colors" title={`点击筛选：${f.label}`}>
                             <span className="w-20 text-[var(--ink-2)] truncate">{f.label}</span>
                             <div className="flex-1 h-[6px] bg-[var(--hairline)]/60 rounded-full overflow-hidden">
                               <div className="h-full bg-[var(--brand)]/40 rounded-full" style={{ width: `${pct}%` }} />
@@ -1929,7 +2000,7 @@ export default function Experience() {
                         const maxVal = Math.max(...metaFacets.byCitation.map((x) => x.value));
                         const pct = maxVal > 0 ? (f.value / maxVal) * 100 : 0;
                         return (
-                          <div key={f.label} className="flex items-center gap-2 text-[12px]">
+                          <div key={f.label} onClick={() => handleFacetClick("byCitation", f.label)} className="flex items-center gap-2 text-[12px] cursor-pointer rounded px-1 -mx-1 py-0.5 hover:bg-[#f44336]/[0.06] transition-colors" title={`点击筛选：${f.label}`}>
                             <span className="w-20 text-[var(--ink-2)]">{f.label}</span>
                             <div className="flex-1 h-[6px] bg-[var(--hairline)]/60 rounded-full overflow-hidden">
                               <div className="h-full bg-[#f44336]/30 rounded-full" style={{ width: `${pct}%` }} />
