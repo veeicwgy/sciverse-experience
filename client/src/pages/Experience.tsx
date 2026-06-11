@@ -743,9 +743,6 @@ function ScienceBackdrop({ active = false }: { active?: boolean }) {
 function HeroHeader() {
   return (
     <header className="relative pt-16 pb-10">
-      <p className="text-[12px] font-mono tracking-[0.2em] uppercase text-[var(--ink-3)] mb-3">
-        Scientific Data API for AI Agents
-      </p>
       <h1 className="font-display text-[clamp(36px,4.6vw,52px)] leading-[1.06] tracking-[-0.02em] text-[var(--ink)] max-w-[840px]">
         让 Agent 真正读懂 <span className="text-[var(--brand)]">科学世界</span>
       </h1>
@@ -2162,138 +2159,13 @@ export default function Experience() {
           {/* ═══ HOW IT WORKS — 3 步上手 (Lovable 风格左右布局自动轮播) ═══ */}
           <HowItWorksSection inputRef={inputRef} />
 
-          {/* ═══ API CAPABILITIES — 核心接口能力 ═══ */}
-          <section className="mt-20">
-            <div className="flex items-center gap-3 mb-8">
-              <span className="inline-block h-px w-8 bg-[var(--brand)]/50" />
-              <h2 className="font-display text-[22px] text-[var(--ink)]">核心接口</h2>
-              <span className="text-[12px] text-[var(--ink-3)] ml-2">点击"试一试"即可在上方体验</span>
-            </div>
-            <div className="grid md:grid-cols-2 gap-5">
-              {/* agentic-search */}
-              <div className="group p-6 rounded-2xl border hairline bg-white hover:border-[var(--brand)]/30 hover:shadow-[0_4px_20px_rgba(91,91,247,0.06)] transition-all duration-300">
-                <div className="flex items-center gap-2">
-                  <span className="h-8 w-8 rounded-lg grid place-items-center bg-[var(--brand-soft)] text-[var(--brand)]">
-                    <Sparkles className="h-4 w-4" strokeWidth={1.7} />
-                  </span>
-                  <span className="font-mono text-[13px] font-medium text-[var(--ink)]">agentic-search</span>
-                </div>
-                <p className="mt-3 text-[13.5px] leading-relaxed text-[var(--ink-2)]">
-                  自然语言语义检索，返回可引用 chunk（含 doc_id、标题、摘要、相关度分数），覆盖 2800 万篇全文。
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="px-2 py-0.5 rounded text-[10.5px] font-mono bg-[#f4f3ee] text-[var(--ink-3)]">2800万全文</span>
-                  <span className="px-2 py-0.5 rounded text-[10.5px] font-mono bg-[#f4f3ee] text-[var(--ink-3)]">语义匹配</span>
-                  <span className="px-2 py-0.5 rounded text-[10.5px] font-mono bg-[#f4f3ee] text-[var(--ink-3)]">返回 chunk</span>
-                </div>
-                <button
-                  onClick={() => {
-                    setSearchMode("free");
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                    setTimeout(() => inputRef.current?.focus(), 400);
-                  }}
-                  className="mt-5 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[12.5px] font-medium border border-[var(--brand)] text-[var(--brand)] hover:bg-[var(--brand)] hover:text-white transition-all duration-200">
-                  <Sparkles className="h-3 w-3" /> 试一试
-                </button>
-              </div>
-              {/* meta-search */}
-              <div className="group p-6 rounded-2xl border hairline bg-white hover:border-[var(--brand)]/30 hover:shadow-[0_4px_20px_rgba(91,91,247,0.06)] transition-all duration-300">
-                <div className="flex items-center gap-2">
-                  <span className="h-8 w-8 rounded-lg grid place-items-center bg-[var(--brand-soft)] text-[var(--brand)]">
-                    <SlidersHorizontal className="h-4 w-4" strokeWidth={1.7} />
-                  </span>
-                  <span className="font-mono text-[13px] font-medium text-[var(--ink)]">meta-search</span>
-                </div>
-                <p className="mt-3 text-[13.5px] leading-relaxed text-[var(--ink-2)]">
-                  结构化元数据检索，支持按作者、年份、期刊、学科、引用量筛选与排序，覆盖 4.7 亿条记录。
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="px-2 py-0.5 rounded text-[10.5px] font-mono bg-[#f4f3ee] text-[var(--ink-3)]">4.7亿元数据</span>
-                  <span className="px-2 py-0.5 rounded text-[10.5px] font-mono bg-[#f4f3ee] text-[var(--ink-3)]">字段级筛选</span>
-                  <span className="px-2 py-0.5 rounded text-[10.5px] font-mono bg-[#f4f3ee] text-[var(--ink-3)]">分面统计</span>
-                </div>
-                <button
-                  onClick={() => {
-                    setSearchMode("filter");
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="mt-5 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[12.5px] font-medium border border-[var(--brand)] text-[var(--brand)] hover:bg-[var(--brand)] hover:text-white transition-all duration-200">
-                  <SlidersHorizontal className="h-3 w-3" /> 试一试
-                </button>
-              </div>
-            </div>
-          </section>
-
-          {/* ═══ WORKFLOW SCENARIOS — 场景工作流 ═══ */}
-          <section className="mt-20">
-            <div className="flex items-center gap-3 mb-8">
-              <span className="inline-block h-px w-8 bg-[var(--brand)]/50" />
-              <h2 className="font-display text-[22px] text-[var(--ink)]">场景工作流</h2>
-              <span className="text-[12px] text-[var(--ink-3)] ml-2">多接口组合 · 可复制代码 · 一键接入</span>
-            </div>
-            <div className="grid md:grid-cols-3 gap-5">
-              {[
-                {
-                  title: "文献综述 Agent",
-                  desc: "agentic-search 检索 → content 获取全文 → LLM 生成综述摘要",
-                  apis: ["agentic-search", "content"],
-                  code: `import requests\n\n# Step 1: 语义检索\nhits = requests.post(\n  "https://api.sciverse.space/agentic-search",\n  json={"query": "CRISPR 基因编辑最新进展", "top_k": 10}\n).json()["hits"]\n\n# Step 2: 获取全文\nfor h in hits[:3]:\n  content = requests.get(\n    f"https://api.sciverse.space/content/{h['doc_id']}"\n  ).json()\n  print(content["title"], len(content["text"]))`,
-                },
-                {
-                  title: "学科趋势分析",
-                  desc: "meta-search 按年份+学科筛选 → 统计分布 → 可视化趋势",
-                  apis: ["meta-search"],
-                  code: `import requests\n\n# 按年份筛选生命科学领域\nresult = requests.post(\n  "https://api.sciverse.space/meta-search",\n  json={\n    "filters": {"domain": "生命科学", "year_range": "2020-2026"},\n    "facets": ["year", "type"],\n    "limit": 0  # 只要统计\n  }\n).json()\nprint(f"命中 {result['total']} 篇")\nprint(result["facets"])`,
-                },
-                {
-                  title: "智能引文推荐",
-                  desc: "agentic-search 找相关论文 → meta-search 验证引用量 → 排序推荐",
-                  apis: ["agentic-search", "meta-search"],
-                  code: `import requests\n\n# Step 1: 找语义相关论文\nhits = requests.post(\n  "https://api.sciverse.space/agentic-search",\n  json={"query": "蛋白质折叠预测方法", "top_k": 20}\n).json()["hits"]\n\n# Step 2: 用 meta-search 获取引用量\ndoc_ids = [h["doc_id"] for h in hits]\nmeta = requests.post(\n  "https://api.sciverse.space/meta-search",\n  json={"doc_ids": doc_ids, "sort": "citations_desc"}\n).json()\nprint(meta["results"][:5])`,
-                },
-              ].map((wf) => (
-                <div
-                  key={wf.title}
-                  className="group flex flex-col p-5 rounded-2xl border hairline bg-white hover:border-[var(--brand)]/30 hover:shadow-[0_4px_20px_rgba(91,91,247,0.06)] transition-all duration-300">
-                  <h3 className="text-[15px] font-medium text-[var(--ink)]">{wf.title}</h3>
-                  <p className="mt-1.5 text-[12.5px] leading-relaxed text-[var(--ink-2)] flex-1">{wf.desc}</p>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {wf.apis.map((api) => (
-                      <span key={api} className="px-2 py-0.5 rounded text-[10px] font-mono bg-[var(--brand-soft)] text-[var(--brand)]">
-                        {api}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="mt-4 relative">
-                    <pre className="p-3 rounded-lg bg-[#1e1e2e] text-[11px] leading-[1.6] text-[#cdd6f4] font-mono overflow-x-auto max-h-[180px]">
-                      <code>{wf.code}</code>
-                    </pre>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(wf.code);
-                        toast.success("代码已复制");
-                      }}
-                      className="absolute top-2 right-2 h-7 w-7 rounded-md grid place-items-center bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-colors"
-                      aria-label="复制代码">
-                      <Copy className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                  <a
-                    href="/docs#api"
-                    className="mt-4 inline-flex items-center gap-1 text-[12px] text-[var(--brand)] hover:underline">
-                    查看完整接入文档 →
-                  </a>
-                </div>
-              ))}
-            </div>
-          </section>
-
           {/* COOKBOOK SHOWCASE */}
           <section className="mt-16">
             <div className="flex items-end justify-between gap-4 flex-wrap">
-              <h2 className="font-display text-[26px] text-[var(--ink)]">
-                场景案例<span className="italic"> Cookbook</span>
-              </h2>
+              <div className="flex items-center gap-3">
+                <span className="inline-block h-px w-8 bg-[var(--brand)]/50" />
+                <h2 className="font-display text-[22px] text-[var(--ink)]">场景案例</h2>
+              </div>
               <a
                 href="/docs#cookbook"
                 className="text-[12px] text-[var(--ink-3)] hover:text-[var(--brand)] transition-colors duration-300 flex items-center gap-2">
@@ -2313,9 +2185,10 @@ export default function Experience() {
           {/* DATA SCALE */}
           <section className="mt-16">
             <div className="flex items-end justify-between gap-4 flex-wrap">
-              <h2 className="font-display text-[26px] text-[var(--ink)]">
-                Sciverse 数据能力<span className="italic"> 全景</span>
-              </h2>
+              <div className="flex items-center gap-3">
+                <span className="inline-block h-px w-8 bg-[var(--brand)]/50" />
+                <h2 className="font-display text-[22px] text-[var(--ink)]">数据能力</h2>
+              </div>
               <div className="text-[12px] text-[var(--ink-3)] flex items-center gap-2">
                 <span className="inline-block h-px w-8 bg-[var(--ink-3)]/40" />
                 更新于 2026 年 5 月
@@ -2368,9 +2241,10 @@ export default function Experience() {
             </DataScaleGrid>
 
             <div className="mt-5 grid md:grid-cols-3 gap-px bg-[var(--brand)]/10 rounded-xl overflow-hidden border hairline">
-              {[                { k: "原生", en: "Agent First", metric: "Agent", unit: "优先", v: "原生支持 Manus / Claude / Cursor", Icon: Zap },
-                { k: "最新", en: "Freshest", metric: "T+1", unit: "同步", v: "每日新增百万级文献与专利入库", Icon: Activity },
-                { k: "最全", en: "Broadest", metric: "516M+", unit: "知识记录", v: "814 种语言 · 1.3M+ 期刊与会议覆盖", Icon: Globe2 },
+              {[
+                { k: "原生", metric: "Agent", unit: "优先", v: "原生支持 Manus / Claude / Cursor", Icon: Zap },
+                { k: "最新", metric: "T+1", unit: "同步", v: "每日新增百万级文献与专利入库", Icon: Activity },
+                { k: "最全", metric: "516M+", unit: "知识记录", v: "814 种语言 · 1.3M+ 期刊与会议覆盖", Icon: Globe2 },
               ].map((it) => (
                 <div key={it.k} className="bg-[var(--paper)] p-5 group transition-colors duration-300 hover:bg-[var(--brand-soft)]/40">
                   <div className="flex items-center justify-between">
@@ -2378,11 +2252,8 @@ export default function Experience() {
                       <span className="h-7 w-7 rounded-full border hairline grid place-items-center text-[var(--ink-2)] group-hover:text-[var(--brand)] group-hover:border-[var(--brand)] transition-all duration-500 ease-out group-hover:rotate-[8deg] group-hover:scale-[1.06]">
                         <it.Icon className="h-3.5 w-3.5 transition-[stroke-width] duration-500 ease-out group-hover:[stroke-width:2]" strokeWidth={1.6} />
                       </span>
-                      <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-[var(--ink-3)]">
-                        {it.en}
-                      </span>
                     </div>
-                    <span className="font-display italic text-[12px] text-[var(--ink-3)]">{it.k}</span>
+                    <span className="text-[12px] font-medium text-[var(--ink-2)]">{it.k}</span>
                   </div>
                   <div className="mt-4 flex items-baseline gap-1 transition-transform duration-500 ease-out group-hover:-translate-y-[2px]">
                     <span className="font-display text-[30px] font-semibold leading-none tracking-[-0.02em] text-[var(--ink)] transition-colors duration-300 group-hover:text-[var(--brand)]">
