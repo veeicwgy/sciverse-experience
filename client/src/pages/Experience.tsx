@@ -43,6 +43,7 @@ import SearchErrorState, {
   type SearchErrorKind,
 } from "@/components/experience/SearchErrorState";
 import ContentSnippet from "@/components/experience/ContentSnippet";
+import HowItWorksSection from "@/components/experience/HowItWorksSection";
 import { cn } from "@/lib/utils";
 import { COOKBOOKS } from "@/data/cookbooks";
 import { useSessionHistory, findSession, findVersion } from "@/hooks/useSessionHistory";
@@ -2158,63 +2159,8 @@ export default function Experience() {
             </section>
           )}
 
-          {/* ═══ HOW IT WORKS — 3 步上手 ═══ */}
-          <section className="mt-20">
-            <div className="flex items-center gap-3 mb-8">
-              <span className="inline-block h-px w-8 bg-[var(--brand)]/50" />
-              <h2 className="font-display text-[22px] text-[var(--ink)]">5 分钟上手</h2>
-            </div>
-            <div className="grid md:grid-cols-3 gap-6">
-              {[
-                {
-                  step: "01",
-                  title: "体验检索",
-                  desc: "在上方输入框输入问题或设置筛选条件，即时获得结果预览。",
-                  action: "↑ 立即试试",
-                },
-                {
-                  step: "02",
-                  title: "获取 API Key",
-                  desc: "注册后在「密钥」页一键生成 Token，每日 2000 次免费调用。",
-                  action: "前往密钥 →",
-                  href: "/tokens",
-                },
-                {
-                  step: "03",
-                  title: "接入工作流",
-                  desc: "通过 API / CLI / MCP Skills 接入 Cursor、Claude、Codex 等 Agent。",
-                  action: "查看接入指南 →",
-                  href: "/docs",
-                },
-              ].map((s) => (
-                <div
-                  key={s.step}
-                  className="group relative p-6 rounded-2xl border hairline bg-white hover:border-[var(--brand)]/30 hover:shadow-[0_4px_20px_rgba(91,91,247,0.06)] transition-all duration-300">
-                  <span className="font-mono text-[11px] tracking-[0.2em] text-[var(--brand)] font-semibold">
-                    STEP {s.step}
-                  </span>
-                  <h3 className="mt-3 text-[16px] font-medium text-[var(--ink)]">{s.title}</h3>
-                  <p className="mt-2 text-[13px] leading-relaxed text-[var(--ink-2)]">{s.desc}</p>
-                  {s.href ? (
-                    <a
-                      href={s.href}
-                      className="mt-4 inline-flex items-center text-[12.5px] text-[var(--brand)] hover:underline">
-                      {s.action}
-                    </a>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                        setTimeout(() => inputRef.current?.focus(), 400);
-                      }}
-                      className="mt-4 inline-flex items-center text-[12.5px] text-[var(--brand)] hover:underline">
-                      {s.action}
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
+          {/* ═══ HOW IT WORKS — 3 步上手 (Lovable 风格左右布局自动轮播) ═══ */}
+          <HowItWorksSection inputRef={inputRef} />
 
           {/* ═══ API CAPABILITIES — 核心接口能力 ═══ */}
           <section className="mt-20">
