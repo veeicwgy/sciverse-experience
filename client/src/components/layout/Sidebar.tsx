@@ -89,6 +89,29 @@ function relativeTime(ts: number) {
   return `${Math.floor(diff / 86400_000)} 天前`;
 }
 
+function WorldCupBall({ size = 16 }: { size?: number }) {
+  return (
+    <span className="inline-block relative" style={{ width: size, height: size }}>
+      <svg
+        viewBox="0 0 32 32"
+        width={size}
+        height={size}
+        className="animate-[wc-spin_3s_linear_infinite]"
+        aria-hidden="true">
+        <circle cx="16" cy="16" r="15" fill="white" stroke="#333" strokeWidth="1.2" />
+        <path d="M16 1 L16 6 L20 9 L26 7 L24 2 Z" fill="#333" />
+        <path d="M26 7 L30 12 L28 18 L22 16 L20 9 Z" fill="#333" />
+        <path d="M28 18 L30 24 L25 28 L20 24 L22 16 Z" fill="#333" />
+        <path d="M25 28 L19 31 L13 28 L14 22 L20 24 Z" fill="#333" />
+        <path d="M13 28 L7 31 L3 26 L6 20 L14 22 Z" fill="#333" />
+        <path d="M3 26 L1 20 L4 14 L10 16 L6 20 Z" fill="#333" />
+        <path d="M4 14 L2 8 L8 4 L12 9 L10 16 Z" fill="#333" />
+        <path d="M8 4 L16 1 L20 9 L12 9 Z" fill="#333" opacity="0.7" />
+      </svg>
+    </span>
+  );
+}
+
 function Logo({ collapsed }: { collapsed: boolean }) {
   // v10: 点击 logo+名称始终返回新对话主页，若已在 / 则清除 ?q 并刷新为初始态
   const goHome = (e: React.MouseEvent) => {
@@ -96,7 +119,6 @@ function Logo({ collapsed }: { collapsed: boolean }) {
     const onHome = window.location.pathname === "/";
     if (onHome) {
       e.preventDefault();
-      // 清除 ?q 并重载主页 — 让 Experience 重新进入初始态
       window.location.href = "/";
     }
   };
@@ -107,15 +129,20 @@ function Logo({ collapsed }: { collapsed: boolean }) {
       className="flex items-center gap-2.5 px-1 group cursor-pointer rounded-md hover:bg-[#f1f0eb]/60 transition-colors py-1"
       aria-label="返回新对话主页"
       title="返回新对话主页">
-      <img
-        src="/manus-storage/sciverse-logo_532e83dd.svg"
-        alt="Sciverse"
-        className={cn(
-          "select-none transition-transform group-hover:scale-[1.04]",
-          collapsed ? "h-7 w-7" : "h-8 w-8",
-        )}
-        draggable={false}
-      />
+      <span className="relative inline-flex items-center justify-center">
+        <img
+          src="/manus-storage/sciverse-logo_532e83dd.svg"
+          alt="Sciverse"
+          className={cn(
+            "select-none transition-transform group-hover:scale-[1.04]",
+            collapsed ? "h-7 w-7" : "h-8 w-8",
+          )}
+          draggable={false}
+        />
+        <span className={cn("absolute", collapsed ? "-top-1 -right-1" : "-top-1.5 -right-1.5")}>
+          <WorldCupBall size={collapsed ? 11 : 13} />
+        </span>
+      </span>
       {!collapsed && (
         <span className="font-display text-[18px] font-semibold text-[var(--ink)] tracking-tight group-hover:text-[var(--brand)] transition-colors">
           Sciverse

@@ -621,3 +621,9 @@
   50% { transform: scale(1.2); }
   100% { transform: scale(1); opacity: 1; }
 }
+
+/* World Cup 2026 — 足球旋转动画 */
+@keyframes wc-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
