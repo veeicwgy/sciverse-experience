@@ -744,11 +744,10 @@ function HeroHeader() {
   return (
     <header className="relative pt-16 pb-10">
       <h1 className="font-display text-[clamp(36px,4.6vw,52px)] leading-[1.06] tracking-[-0.02em] text-[var(--ink)] max-w-[840px]">
-        让 Agent 真正读懂 <span className="text-[var(--brand)]">科学世界</span>
+        科学文献 API：让你的 AI 应用具备<span className="text-[var(--brand)]">学术检索能力</span>
       </h1>
       <p className="mt-4 text-[15px] leading-relaxed text-[var(--ink-2)] max-w-[640px]">
-        5 个 RESTful API，覆盖语义检索、结构化筛选、全文获取、资源发现与元数据目录。
-        可直接接入 Cursor、Claude、Codex、MCP 等 Agent 工作流。
+        一行代码接入 4.7 亿篇学术文献，支持语义搜索、结构化筛选和全文获取。可直接接入 Cursor、Claude、Codex 等 Agent 工作流。
       </p>
       {/* 3 个关键数字 */}
       <div className="mt-8 grid grid-cols-3 gap-4 max-w-[560px]">
@@ -1728,64 +1727,29 @@ export default function Experience() {
               </div>
             </div>
 
-            {/* 任务入口按钮 */}
+            {/* 任务入口按钮 — 首屏核心引导 */}
             {!meta && !committed && !errorKind && (
-              <div className="mt-4 flex items-center gap-2.5">
-                <span className="font-mono text-[11px] tracking-[0.16em] uppercase text-[var(--ink-3)] mr-1">
-                  试试
-                </span>
+              <div className="mt-5 flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => toast.info("功能即将上线")}
-                  className="inline-flex items-center gap-1.5 text-[12.5px] px-3.5 py-1.5 rounded-full border border-[var(--brand)]/30 bg-[var(--brand-soft)]/40 text-[var(--brand)] hover:bg-[var(--brand-soft)] hover:border-[var(--brand)]/50 transition-colors">
-                  <Sparkles className="h-3.5 w-3.5" strokeWidth={1.7} />
+                  className="inline-flex items-center gap-2 text-[13.5px] font-medium px-5 py-2.5 rounded-full border border-[var(--brand)]/40 bg-[var(--brand-soft)]/50 text-[var(--brand)] hover:bg-[var(--brand)] hover:text-white hover:border-[var(--brand)] transition-all duration-200 shadow-sm">
+                  <Sparkles className="h-4 w-4" strokeWidth={1.7} />
                   生成研究综述
                 </button>
                 <button
                   type="button"
                   onClick={() => toast.info("功能即将上线")}
-                  className="inline-flex items-center gap-1.5 text-[12.5px] px-3.5 py-1.5 rounded-full border border-[var(--brand)]/30 bg-[var(--brand-soft)]/40 text-[var(--brand)] hover:bg-[var(--brand-soft)] hover:border-[var(--brand)]/50 transition-colors">
-                  <FileText className="h-3.5 w-3.5" strokeWidth={1.7} />
+                  className="inline-flex items-center gap-2 text-[13.5px] font-medium px-5 py-2.5 rounded-full border border-[var(--brand)]/40 bg-[var(--brand-soft)]/50 text-[var(--brand)] hover:bg-[var(--brand)] hover:text-white hover:border-[var(--brand)] transition-all duration-200 shadow-sm">
+                  <FileText className="h-4 w-4" strokeWidth={1.7} />
                   筛选论文清单
                 </button>
                 <button
                   type="button"
                   onClick={() => toast.info("功能即将上线")}
-                  className="inline-flex items-center gap-1.5 text-[12.5px] px-3.5 py-1.5 rounded-full border border-[var(--brand)]/30 bg-[var(--brand-soft)]/40 text-[var(--brand)] hover:bg-[var(--brand-soft)] hover:border-[var(--brand)]/50 transition-colors">
-                  <TrendingUp className="h-3.5 w-3.5" strokeWidth={1.7} />
+                  className="inline-flex items-center gap-2 text-[13.5px] font-medium px-5 py-2.5 rounded-full border border-[var(--brand)]/40 bg-[var(--brand-soft)]/50 text-[var(--brand)] hover:bg-[var(--brand)] hover:text-white hover:border-[var(--brand)] transition-all duration-200 shadow-sm">
+                  <TrendingUp className="h-4 w-4" strokeWidth={1.7} />
                   跟踪研究方向
-                </button>
-              </div>
-            )}
-
-            {/* sample tags — 仅在未提交检索时呈现 */}
-            {!meta && !committed && !errorKind && (
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                {SAMPLES.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => {
-                      setQuery(s);
-                      submit(s);
-                    }}
-                    className="text-[12.5px] px-3 py-1.5 rounded-full border hairline bg-white text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
-                    {s}
-                  </button>
-                ))}
-                {/* v20: 失败示例 chip — 单击直接走通用失败兜底页 */}
-                <span className="mx-1 h-3 w-px bg-[var(--hairline-strong)]" aria-hidden />
-                <button
-                  type="button"
-                  onClick={() => {
-                    forceFailRef.current = "unknown";
-                    autoRetriedRef.current = false;
-                    const sample = query.trim() || "马德里 Sciverse 检索示例";
-                    setQuery(sample);
-                    submit(sample);
-                  }}
-                  className="inline-flex items-center gap-1 text-[12.5px] px-3 py-1.5 rounded-full border border-dashed border-[#D2BFB7] text-[#9F4A33] bg-[#FBF4F1] hover:bg-[#F8E9E2] transition-colors">
-                  <AlertOctagon className="h-3.5 w-3.5" strokeWidth={1.8} />
-                  失败示例
                 </button>
               </div>
             )}
