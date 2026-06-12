@@ -119,13 +119,14 @@ function Logo({ collapsed }: { collapsed: boolean }) {
           <span className="font-display text-[18px] font-semibold text-[var(--ink)] tracking-tight group-hover:text-[var(--brand)] transition-colors">
             Sciverse
           </span>
-          {/* World Cup 2026 足球 */}
+          {/* World Cup 2026 金色足球 */}
           <span className="wc-ball group-hover:animate-[wc-bounce_0.5s_ease_infinite]">
-            <svg viewBox="0 0 36 36" width="14" height="14" aria-hidden="true">
-              <circle cx="18" cy="18" r="17" fill="#fff" stroke="#444" strokeWidth="1" />
-              <path d="M18 2.5l2.8 5.2 5.5-1.5-1 5.6 5.2 2.2-3.8 4.2 3.2 4.7-5.5.8-.3 5.6-5-2.6-4.1 3.9-3.3-4.5-5.4 1.5.5-5.6-5.4-1.6 2.9-4.8-3.8-4 5.2-2 .7-5.6 5.2 2z" fill="none" stroke="#444" strokeWidth="0.6" strokeLinejoin="round" />
-              <circle cx="18" cy="18" r="5" fill="#444" opacity="0.15" />
-            </svg>
+            <img
+              src="/manus-storage/wc-football3_2b74f3ce.png"
+              alt="World Cup 2026"
+              className="h-[18px] w-auto select-none"
+              draggable={false}
+            />
           </span>
         </>
       )}
