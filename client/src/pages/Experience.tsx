@@ -1728,12 +1728,39 @@ export default function Experience() {
               </div>
             </div>
 
-            {/* sample tags — v20: 仅在未提交检索时呈现，避免与结果页资讯重复 */}
+            {/* 任务入口按钮 */}
             {!meta && !committed && !errorKind && (
-              <div className="mt-4 flex flex-wrap items-center gap-2">
+              <div className="mt-4 flex items-center gap-2.5">
                 <span className="font-mono text-[11px] tracking-[0.16em] uppercase text-[var(--ink-3)] mr-1">
                   试试
                 </span>
+                <button
+                  type="button"
+                  onClick={() => toast.info("功能即将上线")}
+                  className="inline-flex items-center gap-1.5 text-[12.5px] px-3.5 py-1.5 rounded-full border border-[var(--brand)]/30 bg-[var(--brand-soft)]/40 text-[var(--brand)] hover:bg-[var(--brand-soft)] hover:border-[var(--brand)]/50 transition-colors">
+                  <Sparkles className="h-3.5 w-3.5" strokeWidth={1.7} />
+                  生成研究综述
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toast.info("功能即将上线")}
+                  className="inline-flex items-center gap-1.5 text-[12.5px] px-3.5 py-1.5 rounded-full border border-[var(--brand)]/30 bg-[var(--brand-soft)]/40 text-[var(--brand)] hover:bg-[var(--brand-soft)] hover:border-[var(--brand)]/50 transition-colors">
+                  <FileText className="h-3.5 w-3.5" strokeWidth={1.7} />
+                  筛选论文清单
+                </button>
+                <button
+                  type="button"
+                  onClick={() => toast.info("功能即将上线")}
+                  className="inline-flex items-center gap-1.5 text-[12.5px] px-3.5 py-1.5 rounded-full border border-[var(--brand)]/30 bg-[var(--brand-soft)]/40 text-[var(--brand)] hover:bg-[var(--brand-soft)] hover:border-[var(--brand)]/50 transition-colors">
+                  <TrendingUp className="h-3.5 w-3.5" strokeWidth={1.7} />
+                  跟踪研究方向
+                </button>
+              </div>
+            )}
+
+            {/* sample tags — 仅在未提交检索时呈现 */}
+            {!meta && !committed && !errorKind && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 {SAMPLES.map((s) => (
                   <button
                     key={s}
