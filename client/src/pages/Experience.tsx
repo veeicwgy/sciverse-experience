@@ -752,9 +752,9 @@ function HeroHeader() {
       {/* 3 个关键数字 */}
       <div className="mt-8 grid grid-cols-3 gap-4 max-w-[560px]">
         {[
-          { num: "4.7亿", label: "学术文献元数据", sub: "meta-search" },
-          { num: "2800万", label: "全文语义 Chunk", sub: "agentic-search" },
-          { num: "5", label: "RESTful API", sub: "即刻可调" },
+          { num: "4.66亿", label: "知识记录总量", sub: "文献 + 图书 + 专利" },
+           { num: "2,826万", label: "AI-Ready 全文", sub: "支持 RAG 与 Agent" },
+           { num: "5", label: "RESTful API", sub: "即刻可调" },
         ].map((d) => (
           <div key={d.label} className="group text-center py-4 px-3 rounded-xl border hairline bg-white/60 hover:bg-[var(--brand-soft)]/30 hover:border-[var(--brand)]/20 transition-all duration-300">
             <div className="font-display text-[24px] font-semibold tracking-tight text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors">
@@ -951,8 +951,8 @@ function DataScaleGrid({ children }: { children: React.ReactNode }) {
     return () => io.disconnect();
   }, []);
   return (
-    <div ref={ref} className="mt-6 border-y hairline">
-      <div className="grid grid-cols-2 lg:grid-cols-4">
+    <div ref={ref} className="mt-6 border hairline rounded-xl overflow-hidden">
+      <div className="grid grid-cols-2 lg:grid-cols-3">
         {children}
       </div>
     </div>
@@ -998,7 +998,7 @@ const FILTER_GROUPS: FilterGroup[] = [
     options: [
       { value: "paper", label: "期刊论文", count: "3.6亿" },
       { value: "ebook", label: "图书", count: "1.06亿" },
-      { value: "preprint", label: "预印本", count: "2,800万" },
+      { value: "preprint", label: "预印本", count: "2,826万" },
       { value: "conference", label: "会议论文", count: "1,200万" },
       { value: "patent", label: "专利", count: "4,100万" },
       { value: "dissertation", label: "学位论文", count: "580万" },
@@ -2182,15 +2182,17 @@ export default function Experience() {
               </div>
               <div className="text-[12px] text-[var(--ink-3)] flex items-center gap-2">
                 <span className="inline-block h-px w-8 bg-[var(--ink-3)]/40" />
-                更新于 2026 年 5 月
+                更新于 2026 年 6 月
               </div>
             </div>
             <DataScaleGrid>
               {[
-                  { num: "341M+", unit: "篇", label: "学术文献", note: "1400 — 2026 · 跨越六个世纪", pct: 96, Icon: FileText },
-                  { num: "105M+", unit: "册", label: "图书", note: "含古籍与手稿", pct: 78, Icon: Layers },
-                  { num: "70M+", unit: "件", label: "全球专利", note: "与文献交叉引用", pct: 70, Icon: Atom },
-                  { num: "102M+", unit: "篇", label: "AI-Ready 全文", note: "Agent 可直接消费", pct: 88, Icon: Boxes },
+                  { num: "4.66", unit: "亿", label: "知识记录总量", note: "覆盖文献、图书、专利等多类型资产", pct: 100, Icon: FileText },
+                  { num: "3.6", unit: "亿", label: "文献记录数", note: "跨学科、跨语种、多来源聚合", pct: 77, Icon: Layers },
+                  { num: "1.06", unit: "亿", label: "图书记录数", note: "覆盖现代图书、古籍与手稿类知识资产", pct: 23, Icon: Atom },
+                  { num: "7000", unit: "万", label: "专利记录数", note: "支撑查新、技术情报与产业研究", pct: 15, Icon: Boxes },
+                  { num: "2,826", unit: "万", label: "AI-Ready OA 全文数", note: "适用于 RAG、训练与 Agent 调用", pct: 6, Icon: Zap },
+                  { num: "194", unit: "万", label: "期刊/会议/Venue 覆盖", note: "支持来源与学科过滤", pct: 4, Icon: Globe2 },
                 ].map((d, i) => (
                   <div
                     key={d.label}
@@ -2198,8 +2200,7 @@ export default function Experience() {
                     data-scale-idx={i}
                     className={cn(
                       "group relative px-5 py-7 min-w-0 transition-colors hover:bg-[#f7f6f1]",
-                      i !== 0 && "lg:border-l hairline",
-                      (i === 1 || i === 3) && "border-l hairline lg:border-l",
+                      i % 3 !== 0 && "border-l hairline",
                     )}>
                     <div className="flex items-center">
                       <d.Icon
@@ -2208,53 +2209,67 @@ export default function Experience() {
                       />
                     </div>
                     <div className="mt-3 flex items-baseline gap-1.5 min-w-0">
-                      <span className="font-display font-semibold leading-none tracking-[-0.025em] text-[var(--ink)] text-[clamp(30px,3.2vw,44px)] truncate transition-colors duration-300 group-hover:text-[var(--brand)]">
+                      <span className="font-display font-semibold leading-none tracking-[-0.025em] text-[var(--ink)] text-[clamp(26px,2.8vw,38px)] truncate transition-colors duration-300 group-hover:text-[var(--brand)]">
                         <CountUp value={d.num} delay={i * 120} />
                       </span>
-                      <span className="text-[12px] text-[var(--ink-2)] shrink-0">{d.unit}</span>
+                      <span className="text-[13px] text-[var(--ink-2)] shrink-0 font-medium">{d.unit}</span>
                     </div>
-                    <div className="mt-3 text-[13px] text-[var(--ink)]">{d.label}</div>
-                    <div className="mt-1 font-mono text-[10.5px] tracking-[0.02em] text-[var(--ink-3)] truncate">
+                    <div className="mt-3 text-[13px] text-[var(--ink)] font-medium">{d.label}</div>
+                    <div className="mt-1 text-[11px] text-[var(--ink-3)] leading-relaxed">
                       {d.note}
-                    </div>
-                    <div className="mt-4 h-[2px] w-full bg-[var(--brand)]/12 overflow-hidden rounded-full">
-                      <div
-                        className="h-full rounded-full transition-[width] duration-700 ease-out"
-                        style={{
-                          width: `${d.pct}%`,
-                          background:
-                            "linear-gradient(90deg, rgba(91,91,247,0.85) 0%, rgba(91,91,247,0.55) 100%)",
-                        }}
-                      />
                     </div>
                   </div>
                 ))}
             </DataScaleGrid>
 
-            <div className="mt-5 grid md:grid-cols-3 gap-px bg-[var(--brand)]/10 rounded-xl overflow-hidden border hairline">
-              {[
-                { k: "原生", metric: "Agent", unit: "优先", v: "原生支持 Manus / Claude / Cursor", Icon: Zap },
-                { k: "最新", metric: "T+1", unit: "同步", v: "每日新增百万级文献与专利入库", Icon: Activity },
-                { k: "最全", metric: "516M+", unit: "知识记录", v: "814 种语言 · 1.3M+ 期刊与会议覆盖", Icon: Globe2 },
-              ].map((it) => (
-                <div key={it.k} className="bg-[var(--paper)] p-5 group transition-colors duration-300 hover:bg-[var(--brand-soft)]/40">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="h-7 w-7 rounded-full border hairline grid place-items-center text-[var(--ink-2)] group-hover:text-[var(--brand)] group-hover:border-[var(--brand)] transition-all duration-500 ease-out group-hover:rotate-[8deg] group-hover:scale-[1.06]">
-                        <it.Icon className="h-3.5 w-3.5 transition-[stroke-width] duration-500 ease-out group-hover:[stroke-width:2]" strokeWidth={1.6} />
-                      </span>
+            <div className="mt-5 grid md:grid-cols-2 gap-4">
+              {/* 语言分布 Top 5 */}
+              <div className="border hairline rounded-xl p-5 bg-[var(--paper)]">
+                <h3 className="font-display text-[15px] font-semibold text-[var(--ink)] mb-4">语言分布 Top 5</h3>
+                <div className="space-y-3">
+                  {[
+                    { lang: "英文 en", count: "3.01 亿", pct: 100 },
+                    { lang: "中文 zh", count: "5,062 万", pct: 16.8 },
+                    { lang: "德语 de", count: "2,221 万", pct: 7.4 },
+                    { lang: "法语 fr", count: "1,278 万", pct: 4.2 },
+                    { lang: "西语 es", count: "880 万", pct: 2.9 },
+                  ].map((item) => (
+                    <div key={item.lang} className="flex items-center gap-3">
+                      <span className="text-[12px] text-[var(--ink-2)] w-[56px] shrink-0">{item.lang}</span>
+                      <div className="flex-1 h-[6px] bg-[var(--brand)]/8 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-[#8b2020]"
+                          style={{ width: `${item.pct}%` }}
+                        />
+                      </div>
+                      <span className="text-[12px] font-medium text-[var(--ink)] w-[64px] text-right shrink-0">{item.count}</span>
                     </div>
-                    <span className="text-[12px] font-medium text-[var(--ink-2)]">{it.k}</span>
-                  </div>
-                  <div className="mt-4 flex items-baseline gap-1 transition-transform duration-500 ease-out group-hover:-translate-y-[2px]">
-                    <span className="font-display text-[30px] font-semibold leading-none tracking-[-0.02em] text-[var(--ink)] transition-colors duration-300 group-hover:text-[var(--brand)]">
-                      {it.metric}
-                    </span>
-                    <span className="text-[12px] text-[var(--ink-2)] transition-colors duration-300 group-hover:text-[var(--brand)]/70">{it.unit}</span>
-                  </div>
-                  <div className="mt-2 text-[12.5px] text-[var(--ink-2)] leading-relaxed">{it.v}</div>
+                  ))}
                 </div>
-              ))}
+              </div>
+              {/* 四大学科域 */}
+              <div className="border hairline rounded-xl p-5 bg-[var(--paper)]">
+                <h3 className="font-display text-[15px] font-semibold text-[var(--ink)] mb-4">四大学科域</h3>
+                <div className="space-y-3">
+                  {[
+                    { domain: "物理科学", count: "8,405 万", pct: 100 },
+                    { domain: "社会科学", count: "6,006 万", pct: 71.5 },
+                    { domain: "健康科学", count: "4,186 万", pct: 49.8 },
+                    { domain: "生命科学", count: "3,412 万", pct: 40.6 },
+                  ].map((item) => (
+                    <div key={item.domain} className="flex items-center gap-3">
+                      <span className="text-[12px] text-[var(--ink-2)] w-[56px] shrink-0">{item.domain}</span>
+                      <div className="flex-1 h-[6px] bg-[var(--brand)]/8 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-[#8b2020]"
+                          style={{ width: `${item.pct}%` }}
+                        />
+                      </div>
+                      <span className="text-[12px] font-medium text-[var(--ink)] w-[64px] text-right shrink-0">{item.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </section>
 
