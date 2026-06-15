@@ -752,9 +752,9 @@ function HeroHeader() {
       {/* 3 个关键数字 */}
       <div className="mt-8 grid grid-cols-3 gap-4 max-w-[560px]">
         {[
-          { num: "341M+", label: "学术文献", sub: "跨越六个世纪" },
-           { num: "105M+", label: "图书", sub: "含古籍与手稿" },
-           { num: "70M+", label: "全球专利", sub: "与文献交叉引用" },
+          { num: "4.66亿", label: "知识记录总量", sub: "文献 + 图书 + 专利" },
+           { num: "2,826万", label: "AI-Ready 全文", sub: "支持 RAG 与 Agent" },
+           { num: "5", label: "RESTful API", sub: "即刻可调" },
         ].map((d) => (
           <div key={d.label} className="group text-center py-4 px-3 rounded-xl border hairline bg-white/60 hover:bg-[var(--brand-soft)]/30 hover:border-[var(--brand)]/20 transition-all duration-300">
             <div className="font-display text-[24px] font-semibold tracking-tight text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors">
