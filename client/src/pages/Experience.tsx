@@ -743,18 +743,18 @@ function ScienceBackdrop({ active = false }: { active?: boolean }) {
 function HeroHeader() {
   return (
     <header className="relative pt-16 pb-10">
-      <h1 className="font-display text-[clamp(36px,4.6vw,52px)] leading-[1.06] tracking-[-0.02em] text-[var(--ink)] max-w-[840px]">
-        科学文献 API：让你的 AI 应用具备<span className="text-[var(--brand)]">学术检索能力</span>
-      </h1>
-      <p className="mt-4 text-[15px] leading-relaxed text-[var(--ink-2)] max-w-[640px]">
-        一行代码接入 4.7 亿篇学术文献，支持语义搜索、结构化筛选和全文获取。可直接接入 Cursor、Claude、Codex 等 Agent 工作流。
-      </p>
+        <h1 className="font-display text-[clamp(36px,4.6vw,52px)] leading-[1.06] tracking-[-0.02em] text-[var(--ink)] max-w-[840px]">
+          让 Agent 真正<span className="text-[var(--brand)]">读懂科学世界</span>
+        </h1>
+        <p className="mt-4 text-[15px] leading-relaxed text-[var(--ink-2)] max-w-[640px]">
+          在下方输入你的研究问题，即刻检索 4.66 亿篇学术文献。
+        </p>
       {/* 3 个关键数字 */}
       <div className="mt-8 grid grid-cols-3 gap-4 max-w-[560px]">
         {[
-          { num: "4.66亿", label: "知识记录总量", sub: "文献 + 图书 + 专利" },
-           { num: "2,826万", label: "AI-Ready 全文", sub: "支持 RAG 与 Agent" },
-           { num: "5", label: "RESTful API", sub: "即刻可调" },
+          { num: "341M+", label: "学术文献", sub: "跨越六个世纪" },
+           { num: "105M+", label: "图书", sub: "含古籍与手稿" },
+           { num: "70M+", label: "全球专利", sub: "与文献交叉引用" },
         ].map((d) => (
           <div key={d.label} className="group text-center py-4 px-3 rounded-xl border hairline bg-white/60 hover:bg-[var(--brand-soft)]/30 hover:border-[var(--brand)]/20 transition-all duration-300">
             <div className="font-display text-[24px] font-semibold tracking-tight text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors">
@@ -2164,7 +2164,7 @@ export default function Experience() {
                 查看全部 {COOKBOOKS.length} 个案例 →
               </a>
             </div>
-            <CookbookGrid items={COOKBOOKS.map((c) => ({
+            <CookbookGrid items={COOKBOOKS.slice(0, 3).map((c) => ({
                   slug: c.slug,
                   cover: c.coverImage || "",
                   title: c.title,
