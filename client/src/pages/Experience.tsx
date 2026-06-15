@@ -111,9 +111,10 @@ function CountUp({ value, duration = 1400, delay = 0 }: { value: string; duratio
 
   // 格式化：整数保留原始小数位（最多 1 位）
   const formatted = useMemo(() => {
-    if (parsed.target >= 100) return Math.round(display).toString();
     if (Number.isInteger(parsed.target)) return Math.round(display).toString();
-    return display.toFixed(1);
+    // 非整数：按目标值的小数位数显示（如 28.26 -> 2 位）
+    const decimals = (String(parsed.target).split(".")[1] || "").length;
+    return display.toFixed(Math.min(decimals, 2));
   }, [display, parsed.target]);
 
   return (
@@ -2190,7 +2191,7 @@ export default function Experience() {
                   { num: "360M+", unit: "篇", label: "学术文献", note: "1400 — 2026 · 跨越六个世纪", pct: 96, Icon: FileText },
                   { num: "106M+", unit: "册", label: "图书", note: "含古籍与手稿", pct: 78, Icon: Layers },
                   { num: "70M+", unit: "件", label: "全球专利", note: "与文献交叉引用", pct: 70, Icon: Atom },
-                  { num: "28M+", unit: "篇", label: "AI-Ready 全文", note: "Agent 可直接消费", pct: 88, Icon: Boxes },
+                  { num: "28.26M+", unit: "篇", label: "AI-Ready 全文", note: "Agent 可直接消费", pct: 88, Icon: Boxes },
                 ].map((d, i) => (
                   <div
                     key={d.label}
@@ -2208,7 +2209,12 @@ export default function Experience() {
                       />
                     </div>
                     <div className="mt-3 flex items-baseline gap-1.5 min-w-0">
-                      <span className="font-display font-semibold leading-none tracking-[-0.025em] text-[var(--ink)] text-[clamp(30px,3.2vw,44px)] truncate transition-colors duration-300 group-hover:text-[var(--brand)]">
+                      <span className={cn(
+                        "font-display font-semibold leading-none tracking-[-0.025em] text-[var(--ink)] truncate transition-colors duration-300 group-hover:text-[var(--brand)]",
+                        d.num.length > 6
+                          ? "text-[clamp(24px,2.6vw,34px)]"
+                          : "text-[clamp(30px,3.2vw,44px)]",
+                      )}>
                         <CountUp value={d.num} delay={i * 120} />
                       </span>
                       <span className="text-[12px] text-[var(--ink-2)] shrink-0">{d.unit}</span>
