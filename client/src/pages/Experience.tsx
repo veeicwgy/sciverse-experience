@@ -750,19 +750,19 @@ function HeroHeader() {
         <p className="mt-4 text-[15px] leading-relaxed text-[var(--ink-2)] max-w-[640px]">
           在下方输入你的研究问题，即刻检索 4.66 亿篇学术文献。
         </p>
-      {/* 3 个关键数字 */}
-      <div className="mt-8 grid grid-cols-3 gap-4 max-w-[560px]">
+      {/* 关键数字 · 轻量内联指标条，弱化以突出检索 */}
+      <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[var(--ink-3)]">
         {[
-          { num: "4.66亿", label: "知识记录总量", sub: "文献 + 图书 + 专利" },
-           { num: "2,826万", label: "AI-Ready 全文", sub: "支持 RAG 与 Agent" },
-           { num: "5", label: "RESTful API", sub: "即刻可调" },
-        ].map((d) => (
-          <div key={d.label} className="group text-center py-4 px-3 rounded-xl border hairline bg-white/60 hover:bg-[var(--brand-soft)]/30 hover:border-[var(--brand)]/20 transition-all duration-300">
-            <div className="font-display text-[24px] font-semibold tracking-tight text-[var(--ink)] group-hover:text-[var(--brand)] transition-colors">
-              {d.num}
-            </div>
-            <div className="mt-1 text-[12px] text-[var(--ink-2)]">{d.label}</div>
-            <div className="mt-0.5 font-mono text-[10px] text-[var(--ink-3)]">{d.sub}</div>
+          { num: "4.66亿", label: "知识记录" },
+          { num: "2,826万", label: "AI-Ready 全文" },
+          { num: "5", label: "RESTful API" },
+        ].map((d, i) => (
+          <div key={d.label} className="flex items-center gap-x-5">
+            {i !== 0 && <span className="h-3 w-px bg-[var(--ink)]/12" />}
+            <span className="inline-flex items-baseline gap-1.5">
+              <span className="font-display text-[15px] font-semibold tracking-tight text-[var(--ink-2)]">{d.num}</span>
+              <span className="text-[12.5px] text-[var(--ink-3)]">{d.label}</span>
+            </span>
           </div>
         ))}
       </div>
