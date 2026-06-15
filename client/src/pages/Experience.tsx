@@ -748,24 +748,31 @@ function HeroHeader() {
           让 Agent 真正<span className="text-[var(--brand)]">读懂科学世界</span>
         </h1>
         <p className="mt-4 text-[15px] leading-relaxed text-[var(--ink-2)] max-w-[640px]">
-          在下方输入你的研究问题，即刻检索 4.66 亿篇学术文献。
+          一个面向 Agent 与开发者的科学知识检索入口，输入问题即可获得带引用的可信结果。
         </p>
-      {/* 关键数字 · 轻量内联指标条，弱化以突出检索 */}
-      <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[var(--ink-3)]">
+      {/* 关键数字 · 轻量内联指标条，可点击跳转数据能力区 */}
+      <a
+        href="#data-scale"
+        onClick={(e) => {
+          e.preventDefault();
+          document.getElementById("data-scale")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+        className="group mt-5 inline-flex flex-wrap items-center gap-x-5 gap-y-2 text-[var(--ink-3)] cursor-pointer">
         {[
           { num: "4.66亿", label: "知识记录" },
           { num: "2,826万", label: "AI-Ready 全文" },
           { num: "5", label: "RESTful API" },
         ].map((d, i) => (
-          <div key={d.label} className="flex items-center gap-x-5">
+          <span key={d.label} className="flex items-center gap-x-5">
             {i !== 0 && <span className="h-3 w-px bg-[var(--ink)]/12" />}
             <span className="inline-flex items-baseline gap-1.5">
-              <span className="font-display text-[15px] font-semibold tracking-tight text-[var(--ink-2)]">{d.num}</span>
+              <span className="font-display text-[15px] font-semibold tracking-tight text-[var(--ink-2)] transition-colors group-hover:text-[var(--brand)]">{d.num}</span>
               <span className="text-[12.5px] text-[var(--ink-3)]">{d.label}</span>
             </span>
-          </div>
+          </span>
         ))}
-      </div>
+        <span className="text-[11px] text-[var(--ink-3)]/70 opacity-0 -translate-x-1 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0">查看数据能力 ↓</span>
+      </a>
     </header>
   );
 }
@@ -2175,7 +2182,7 @@ export default function Experience() {
           </section>
 
           {/* DATA SCALE */}
-          <section className="mt-16">
+          <section id="data-scale" className="mt-16 scroll-mt-20">
             <div className="flex items-end justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-3">
                 <span className="inline-block h-px w-8 bg-[var(--brand)]/50" />
