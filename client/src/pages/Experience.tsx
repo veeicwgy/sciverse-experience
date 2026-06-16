@@ -36,6 +36,7 @@ import {
   ChevronDown,
   Info,
   Copy,
+  Unlock,
   BookOpenCheck,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -568,6 +569,85 @@ function ResultCard({ r, q }: { r: Result; q: string }) {
       {r.doc_id && (
         <ContentSnippet docId={r.doc_id} approxLength={r.approxLength} query={q} />
       )}
+    </article>
+  );
+}
+
+// 文献类型中文标签
+const META_TYPE_LABEL: Record<string, string> = {
+  paper: "期刊论文",
+  preprint: "预印本",
+  conference: "会议论文",
+  patent: "专利",
+  dissertation: "学位论文",
+  ebook: "图书",
+  book: "图书",
+};
+const META_LANG_LABEL: Record<string, string> = {
+  en: "EN", zh: "中文", de: "DE", fr: "FR", ja: "日本語",
+};
+
+// 条件筛选卡片：与 ResultCard 共用 card-paper 白卡骨架，字段为元数据预览（无原文片段）
+function MetaCard({ r, q }: { r: MetaSearchResult; q: string }) {
+  const isOa = r.availability === "oa";
+  return (
+    <article className="card-paper p-5 ed-in" data-doc-id={r.doc_id}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="method-badge method-get">{META_TYPE_LABEL[r.type] ?? "文献"}</span>
+          {r.language && (
+            <span className="text-[12px] text-[var(--ink-3)]">{META_LANG_LABEL[r.language] ?? r.language}</span>
+          )}
+        </div>
+        {/* 右上：可用性，与自由检索的 RelevanceDots 占位对齐 */}
+        {isOa ? (
+          <span className="inline-flex items-center gap-1 px-2 py-[3px] rounded-full bg-[#e8f5e9] font-mono text-[10.5px] tracking-[0.04em] font-medium text-[#2e7d32] shrink-0">
+            <Unlock className="h-3 w-3" /> OA 可读
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 px-2 py-[3px] rounded-full bg-[#f3f2ec] font-mono text-[10.5px] tracking-[0.04em] text-[var(--ink-2)] shrink-0">
+            <Database className="h-3 w-3" /> 调 content
+          </span>
+        )}
+      </div>
+
+      <h3 className="mt-3 font-display text-[20px] leading-[1.32] text-[var(--ink)]">
+        {highlightKeywords(r.title, q)}
+      </h3>
+
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-[var(--ink-2)]">
+        <span className="truncate max-w-[260px]">{r.authors}</span>
+        <span className="text-[var(--hairline-strong)]">·</span>
+        <span className="font-mono text-[12px]">{r.year}</span>
+        <span className="text-[var(--hairline-strong)]">·</span>
+        <span className="italic">{r.venue}</span>
+        {r.doi && (
+          <>
+            <span className="text-[var(--hairline-strong)]">·</span>
+            <a className="link-edit" href={`https://doi.org/${r.doi}`} target="_blank" rel="noreferrer">
+              doi:{r.doi}
+            </a>
+          </>
+        )}
+      </div>
+
+      {/* 元数据 chip 行：与自由检索证据卡同款灰底等宽 chip */}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <MetaChip>{r.doc_id}</MetaChip>
+        <MetaChip>cited {r.citations}</MetaChip>
+      </div>
+
+      {/* 底部操作行：复制 doc_id（与自由检索底部操作对齐） */}
+      <div className="mt-4 pt-3 border-t hairline flex items-center justify-between">
+        <span className="text-[12px] text-[var(--ink-3)]">
+          {isOa ? "开放获取，可直接读取全文" : "需调用 content 接口拉取正文"}
+        </span>
+        <button
+          onClick={() => { navigator.clipboard.writeText(r.doc_id); toast.success(`已复制 ${r.doc_id}`); }}
+          className="inline-flex items-center gap-1.5 text-[12.5px] text-[var(--ink-3)] hover:text-[var(--brand)] transition-colors">
+          <Copy className="h-3.5 w-3.5" /> 复制 doc_id
+        </button>
+      </div>
     </article>
   );
 }
@@ -1451,7 +1531,7 @@ export default function Experience() {
   // v19: 强制失败演示场景—下一次 runSearch 必中，用于 「失败示例」 chip 与 ?demo=fail&kind= 一键复现
   const forceFailRef = useRef<SearchErrorKind | null>(null);
   const autoRetriedRef = useRef(false);
-  const PAGE_SIZE = 20;
+  const PAGE_SIZE = 8;
   const composing = useRef(false);
 
   // v17: 会话+版本历史模型 — 当前会话 id / 当前版本 id
@@ -2277,7 +2357,7 @@ export default function Experience() {
               <div className="mt-7 flex items-baseline justify-between gap-3 flex-wrap">
                 <div className="flex items-baseline gap-3">
                   <h3 className="font-mono text-[13px] tracking-[0.14em] uppercase text-[var(--ink)]">Metadata Sample</h3>
-                  <span className="text-[12px] text-[var(--ink-3)]">共 {Math.min(metaResults.length, 100)} 条 · 每页 {PAGE_SIZE} 条</span>
+                  <span className="text-[12px] text-[var(--ink-3)]">预览 {Math.min(metaResults.length, 100)} 条元数据 · 每页 {PAGE_SIZE} 条</span>
                 </div>
                 <button
                   onClick={() => toast.info("导出前 100 条样例与分布统计概览，非全量数据")}
@@ -2287,48 +2367,10 @@ export default function Experience() {
                 </button>
               </div>
 
-              {/* 表格（对齐设计师稿：标题 | 引用 | 可用性 | doc_id） */}
-              <div className="mt-3">
-                {/* 表头 */}
-                <div className="flex items-center px-4 py-2.5 text-[12px] font-medium text-[var(--ink-2)] border-b hairline">
-                  <span className="flex-1">标题</span>
-                  <span className="w-[64px] text-right">引用</span>
-                  <span className="w-[84px] text-center">可用性</span>
-                  <span className="w-[60px] text-center">doc_id</span>
-                </div>
-                {/* 行 */}
+              {/* 卡片流（与自由检索 Evidence Hits 共用 MetaCard 白卡骨架） */}
+              <div className="mt-4 space-y-4">
                 {metaResults.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((r) => (
-                  <div key={r.id} className="flex items-center px-4 py-3 border-b hairline last:border-0 hover:bg-[#fafaf7] transition-colors">
-                    {/* 标题列 */}
-                    <div className="flex-1 min-w-0 pr-4">
-                      <p className="text-[13px] font-medium text-[var(--ink)] leading-snug line-clamp-1">{r.title}</p>
-                      <p className="mt-0.5 text-[11px] text-[var(--ink-3)] line-clamp-1">
-                        {r.authors} · {r.year} · {r.venue}{r.doi ? ` · doi:${r.doi}` : ""}
-                      </p>
-                    </div>
-                    {/* 引用列 */}
-                    <span className="w-[64px] text-right font-mono text-[13px] tabular-nums text-[var(--ink)]">{r.citations}</span>
-                    {/* 可用性列 */}
-                    <span className="w-[84px] flex justify-center">
-                      {r.availability === "oa" ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#e8f5e9] font-mono text-[10.5px] tracking-[0.04em] font-medium text-[#2e7d32]">OA</span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#f5f5f5] font-mono text-[10.5px] tracking-[0.04em] text-[var(--ink-2)]">
-                          <Database className="h-3 w-3" />
-                          content
-                        </span>
-                      )}
-                    </span>
-                    {/* doc_id 复制列 */}
-                    <span className="w-[60px] flex justify-center">
-                      <button
-                        onClick={() => { navigator.clipboard.writeText(r.doc_id); toast.success(`已复制 ${r.doc_id}`); }}
-                        className="h-7 w-7 inline-flex items-center justify-center rounded border hairline text-[var(--ink-3)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors"
-                        title={r.doc_id}>
-                        <Copy className="h-3.5 w-3.5" />
-                      </button>
-                    </span>
-                  </div>
+                  <MetaCard key={r.id} r={r} q={committed ?? ""} />
                 ))}
               </div>
 
