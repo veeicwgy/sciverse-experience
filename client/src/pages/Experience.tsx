@@ -7,6 +7,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   X,
   ArrowUp,
+  ArrowUpRight,
+  ArrowRight,
   ChevronUp,
   Loader2,
   AlertOctagon,
@@ -38,7 +40,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import Sidebar from "@/components/layout/Sidebar";
-import IntegrationBubble from "@/components/experience/IntegrationBubble";
 import SearchErrorState, {
   type SearchErrorKind,
 } from "@/components/experience/SearchErrorState";
@@ -133,6 +134,8 @@ type Result = {
   year: number;
   venue: string;
   page?: number;
+  /** 统一稿：原文偏移量（用于 content 分段读取定位） */
+  offset?: number;
   score: number; // 0-1
   abstract: string;
   doi?: string;
@@ -359,7 +362,8 @@ const PRESET_RESULTS: Record<string, Result[]> = {
       abstract:
         "在 12 个月随访时，23% 患者的 DLCO 较健康对照下降，提示病毒感染后存在持续性肺损伤。研究在 24 个月仍观察到弥散功能未完全恢复的亚群，且与急性期严重程度独立相关。",
       doi: "10.1038/s41591-024-02873-2",
-      doc_id: "nat-med-2024-02873-2",
+      doc_id: "doc_r1",
+      offset: 1536,
       approxLength: 4280,
     },
     {
@@ -375,7 +379,8 @@ const PRESET_RESULTS: Record<string, Result[]> = {
       abstract:
         "通过引入界面残基的注意力先验，AlphaFold-Multimer 在 GPCR-G 蛋白复合物上的中位 DockQ 提升 0.21；对未公开测试集的盲评显示该方法在跨膜受体上的稳健性显著优于早期版本。",
       doi: "10.1016/j.cell.2023.08.022",
-      doc_id: "cell-2023-08-022",
+      doc_id: "doc_r2",
+      offset: 1601,
       approxLength: 5120,
     },
     {
@@ -389,7 +394,8 @@ const PRESET_RESULTS: Record<string, Result[]> = {
       score: 0.81,
       abstract:
         "提出一种结合 SMILES 模板与 reaction-aware 重排序的逆合成模型，在 USPTO-50K 上 top-10 命中率达到 92.4%；并在 1976-2024 专利反应中验证了对长链复杂分子的可扩展性。",
-      doc_id: "jacs-au-2024-retro-tpl",
+      doc_id: "doc_r3",
+      offset: 884,
       approxLength: 3640,
     },
     {
@@ -404,7 +410,8 @@ const PRESET_RESULTS: Record<string, Result[]> = {
       score: 0.74,
       abstract:
         "针对磷酸化 Tau 设计的 PROTAC 双功能降解剂在 P301S 模型中显著降低 pS396 水平，并在 8 周给药后恢复海马 LTP；剂量-效应曲线提示存在治疗窗口的可调性。",
-      doc_id: "stm-2025-tau-protac",
+      doc_id: "doc_r4",
+      offset: 2204,
       approxLength: 4760,
     },
   ],
@@ -438,15 +445,35 @@ function highlightKeywords(text: string, q: string) {
 
 function RelevanceDots({ score }: { score: number }) {
   const filled = Math.round(score * 5);
+  // 色彩梯度：高分品牌色 / 中分中性 / 低分偏灰，增强信息层级
+  const tone =
+    score >= 0.85
+      ? { on: "var(--brand)", text: "var(--brand)" }
+      : score >= 0.78
+        ? { on: "#3f7d5e", text: "#3f7d5e" }
+        : { on: "var(--ink-3)", text: "var(--ink-3)" };
   return (
-    <div className="inline-flex items-center gap-1">
+    <div className="inline-flex items-center gap-1" title={`similarity ${score.toFixed(2)}`}>
       {Array.from({ length: 5 }).map((_, i) => (
-        <span key={i} className={cn("dot", i < filled && "on")} />
+        <span
+          key={i}
+          className="h-[5px] w-[5px] rounded-full transition-colors"
+          style={{ background: i < filled ? tone.on : "var(--hairline-strong)" }}
+        />
       ))}
-      <span className="ml-1 font-mono text-[11px] text-[var(--ink-3)]">
+      <span className="ml-1 font-mono text-[11px]" style={{ color: tone.text }}>
         {score.toFixed(2)}
       </span>
     </div>
+  );
+}
+
+// 统一稿：证据元数据 chip（doc_id / page / offset / similarity）——等宽灰底
+function MetaChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center px-2 py-[3px] rounded-[5px] bg-[#f3f2ec] font-mono text-[11px] tracking-[0.02em] text-[var(--ink-3)]">
+      {children}
+    </span>
   );
 }
 
@@ -457,7 +484,10 @@ function ResultCard({ r, q }: { r: Result; q: string }) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="method-badge method-post">{r.source_type}</span>
-          <span className="code-chip">{r.domain}</span>
+          <span className="inline-flex items-center px-2 py-[3px] rounded-[6px] bg-[var(--brand-soft)] text-[11.5px] text-[var(--brand)] font-medium">
+            可引用证据片段
+          </span>
+          <span className="text-[12px] text-[var(--ink-3)]">{r.domain}</span>
         </div>
         <RelevanceDots score={r.score} />
       </div>
@@ -484,6 +514,14 @@ function ResultCard({ r, q }: { r: Result; q: string }) {
             </a>
           </>
         )}
+      </div>
+
+      {/* 统一稿：证据定位元数据 chip 行 */}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {r.doc_id && <MetaChip>{r.doc_id}</MetaChip>}
+        {r.page && <MetaChip>page {r.page}</MetaChip>}
+        {typeof r.offset === "number" && <MetaChip>offset {r.offset}</MetaChip>}
+        <MetaChip>similarity {r.score.toFixed(2)}</MetaChip>
       </div>
 
       {/* v20: 摘要 grid-rows 平滑过渡 + 可访问按钮（Tab 聚焦 / Enter・Space 触发 / 可见焦点环） */}
@@ -531,6 +569,237 @@ function ResultCard({ r, q }: { r: Result; q: string }) {
         <ContentSnippet docId={r.doc_id} approxLength={r.approxLength} query={q} />
       )}
     </article>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+ * 统一结果区组件（自由检索 agentic-search / 条件筛选 meta-search 共用）
+ * 三件套：ResultStatHeader（统计头）· IntegrationStrip（接入条）· WorkflowDrawer（接入工作流抽屉）
+ * ════════════════════════════════════════════════════════════════ */
+
+// 统计头：左侧大数字 + 单位 + endpoint chip + 副说明行；右侧主/次按钮
+function ResultStatHeader({
+  figure,
+  unit,
+  endpoint,
+  caption,
+  onPrimary,
+  primaryLabel,
+  secondaryLabel,
+  secondaryActive,
+  onSecondary,
+}: {
+  figure: string;
+  unit: string;
+  endpoint: string;
+  caption: React.ReactNode;
+  onPrimary: () => void;
+  primaryLabel: string;
+  secondaryLabel: string;
+  secondaryActive?: boolean;
+  onSecondary: () => void;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="min-w-0">
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="font-display text-[34px] leading-none tracking-tight text-[var(--ink)] tabular-nums">
+            {figure}
+          </span>
+          <span className="text-[14px] text-[var(--ink-2)] self-end pb-1">{unit}</span>
+          <span className="self-end mb-1 inline-flex items-center px-2 py-[3px] rounded-[6px] bg-[#f3f2ec] font-mono text-[11.5px] text-[var(--ink-3)]">
+            {endpoint}
+          </span>
+        </div>
+        <p className="mt-2 text-[12.5px] leading-relaxed text-[var(--ink-3)]">{caption}</p>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <button onClick={onPrimary} className="btn-ink !py-2 !px-4 text-[13px]">
+          <ArrowUpRight className="h-3.5 w-3.5" />
+          {primaryLabel}
+        </button>
+        <button
+          onClick={onSecondary}
+          className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full border hairline bg-white text-[13px] text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--brand)]/40 transition-colors">
+          <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", secondaryActive && "rotate-180")} />
+          {secondaryLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// 接入条：图标 + 标题 + endpoint 链路（POST → GET → 客户端）
+function IntegrationStrip({
+  title,
+  steps,
+}: {
+  title: string;
+  steps: { kind: "post" | "get" | "plain"; label: string }[];
+}) {
+  return (
+    <div className="mt-4 rounded-xl border hairline bg-white px-4 py-3 flex items-center gap-3 flex-wrap">
+      <span className="inline-flex items-center gap-2 text-[13px] text-[var(--ink)] font-medium shrink-0">
+        <Boxes className="h-4 w-4 text-[var(--brand)]" strokeWidth={1.7} />
+        {title}
+      </span>
+      <div className="flex items-center gap-2 flex-wrap text-[12px]">
+        {steps.map((s, i) => (
+          <span key={i} className="inline-flex items-center gap-2">
+            {i > 0 && <ArrowRight className="h-3.5 w-3.5 text-[var(--ink-3)]" strokeWidth={1.6} />}
+            {s.kind === "plain" ? (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-md border hairline bg-[#FAFAF7] font-mono text-[11.5px] text-[var(--ink-2)]">
+                <span className="text-[var(--brand)] mr-1">{`{ }`}</span>
+                {s.label}
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-md border hairline bg-[#FAFAF7] font-mono text-[11.5px]">
+                <span className={cn("mr-1.5 font-semibold", s.kind === "post" ? "text-[var(--forest)]" : "text-[var(--brand)]")}>
+                  {s.kind.toUpperCase()}
+                </span>
+                <span className="text-[var(--ink-2)]">{s.label}</span>
+              </span>
+            )}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// 接入工作流抽屉：三步（语义检索 → 读取全文 → 完善综述），带 curl/prompt 示例
+function WorkflowDrawer({
+  open,
+  onClose,
+  query,
+  mode,
+}: {
+  open: boolean;
+  onClose: () => void;
+  query: string;
+  mode: "free" | "filter";
+}) {
+  const endpoint = mode === "free" ? "agentic-search" : "meta-search";
+  const body =
+    mode === "free"
+      ? `'{"query":"${query || "llm"}","top_k":7,"source_types":["pdf","web"],"mode":"balanced"}'`
+      : `'{"query":"${query || "llm"}","filters":{"source_type":["paper"],"year":"2023-2026"},"limit":100}'`;
+  const steps = [
+    {
+      no: "01",
+      title: "语义检索",
+      desc: mode === "free" ? "用当前综述主题召回可引用的证据片段。" : "按筛选条件召回命中文献的元数据列表。",
+      method: "POST" as const,
+      path: endpoint,
+      chips: ["doc_id", "chunk", "page / position", "title", "score"],
+      code: `curl -X POST https://api.sciverse.space/${endpoint} \\
+  -H "Authorization: Bearer $SCIVERSE_API_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d ${body}`,
+    },
+    {
+      no: "02",
+      title: "读取全文",
+      desc: "从检索结果选取 doc_id，拉取原文段落。",
+      method: "GET" as const,
+      path: "content",
+      chips: [],
+      code: `curl "https://api.sciverse.space/content?doc_id=doc_r1&offset=0&limit=1600" \\
+  -H "Authorization: Bearer $SCIVERSE_API_TOKEN"`,
+    },
+    {
+      no: "03",
+      title: "完善综述",
+      desc: "复制提示词，要求仅依据 Sciverse 证据作答。",
+      method: null,
+      path: "",
+      chips: [],
+      code: `请基于 Sciverse 返回的 evidence chunks 继续完善这篇「${query || "llm"}」综述。
+
+要求：
+1. 按"研究背景、关键路线、代表论文、证据不足、下一步验证"组织。
+2. 每个结论后用 [doc_id] 标注来源，不得引用未提供的内容。`,
+    },
+  ];
+  const copy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("已复制到剪贴板");
+  };
+  return (
+    <>
+      {/* 遮罩 */}
+      <div
+        className={cn(
+          "fixed inset-0 z-40 bg-[var(--ink)]/20 backdrop-blur-[1px] transition-opacity duration-300",
+          open ? "opacity-100" : "opacity-0 pointer-events-none",
+        )}
+        onClick={onClose}
+      />
+      {/* 抽屉 */}
+      <aside
+        className={cn(
+          "fixed top-0 right-0 z-50 h-full w-full max-w-[480px] bg-[#FAFAF7] border-l hairline shadow-2xl transition-transform duration-300 ease-out flex flex-col",
+          open ? "translate-x-0" : "translate-x-full",
+        )}
+        role="dialog"
+        aria-modal="true"
+        aria-label="接入工作流">
+        <header className="px-6 pt-6 pb-4 border-b hairline flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-display text-[22px] text-[var(--ink)]">接入工作流</h3>
+            <p className="mt-1 text-[12.5px] text-[var(--ink-2)]">复制接口示例，继续读取全文，或交给智能体处理</p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="关闭"
+            className="h-8 w-8 shrink-0 rounded-full grid place-items-center text-[var(--ink-3)] hover:text-[var(--ink)] hover:bg-[#f1f0eb] transition-colors">
+            <X className="h-4 w-4" />
+          </button>
+        </header>
+        <div className="flex-1 overflow-y-auto result-scroll px-6 py-5 space-y-4">
+          {steps.map((s) => (
+            <div key={s.no} className="rounded-2xl border hairline bg-white p-5">
+              <div className="flex items-start gap-3">
+                <span className="font-mono text-[13px] text-[var(--brand)] mt-0.5">{s.no}</span>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-[15px] font-medium text-[var(--ink)]">{s.title}</h4>
+                  <p className="mt-0.5 text-[12.5px] text-[var(--ink-2)] leading-relaxed">{s.desc}</p>
+                  {s.method && (
+                    <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md border hairline bg-[#FAFAF7] font-mono text-[11.5px]">
+                        <span className={cn("mr-1.5 font-semibold", s.method === "POST" ? "text-[var(--forest)]" : "text-[var(--brand)]")}>
+                          {s.method}
+                        </span>
+                        <span className="text-[var(--ink-2)]">{s.path}</span>
+                      </span>
+                      {s.method === "POST" && (
+                        <span className="font-mono text-[11px] text-[var(--ink-3)]">Bearer $SCIVERSE_API_TOKEN</span>
+                      )}
+                    </div>
+                  )}
+                  {s.chips.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {s.chips.map((c) => (
+                        <span key={c} className="inline-flex items-center px-2 py-[2px] rounded-[5px] bg-[#f3f2ec] font-mono text-[10.5px] text-[var(--ink-3)]">
+                          {c}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <pre className="code-block mt-3 text-[11px] leading-[1.7] whitespace-pre-wrap">{s.code}</pre>
+              <button
+                onClick={() => copy(s.code)}
+                className="mt-2.5 inline-flex items-center gap-1.5 text-[12px] text-[var(--ink-2)] hover:text-[var(--brand)] transition-colors">
+                <Copy className="h-3.5 w-3.5" />
+                {s.no === "03" ? "复制提示词" : "复制接口"}
+              </button>
+            </div>
+          ))}
+        </div>
+      </aside>
+    </>
   );
 }
 
@@ -1171,6 +1440,8 @@ export default function Experience() {
   const [metaFacets, setMetaFacets] = useState<MetaFacets | null>(null);
   const [metaTotal, setMetaTotal] = useState<number>(0);
   const [showFacets, setShowFacets] = useState(false);
+  // 接入工作流抽屉开关（两种模式共用）
+  const [workflowOpen, setWorkflowOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [focused, setFocused] = useState(false);
   const [burstId, setBurstId] = useState(0); // 递增 key 触发重新 mount 以重启粒子动画
@@ -1821,51 +2092,40 @@ export default function Experience() {
             />
           )}
 
-          {/* META-SEARCH RESULTS — 条件筛选模式结果 */}
+          {/* META-SEARCH RESULTS — 条件筛选模式结果（统一稿：meta-search 元数据区） */}
           {metaFacets && metaResults && committed && searchMode === "filter" && (
             <section className="mt-6 ed-in">
-              {/* 统计摘要头 */}
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-baseline gap-2 flex-wrap">
-                  <span className="font-display text-[32px] font-bold text-[var(--ink)] tracking-tight">
-                    {metaTotal.toLocaleString()}
-                  </span>
-                  <span className="text-[14px] text-[var(--ink-2)]">命中文献</span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded bg-[#e8f5e9] text-[11px] font-mono text-[#2e7d32] ml-1">meta-search</span>
-                </div>
-                <div className="relative group">
-                  <button
-                    onClick={() => toast.info("导出前 100 条样例与分布统计概览，非全量数据")}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border hairline text-[12px] text-[var(--ink-2)] hover:text-[var(--ink)] hover:border-[var(--ink)] transition-colors">
-                    <Download className="h-3.5 w-3.5" />
-                    导出样例
-                  </button>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-[var(--ink)] text-white text-[11px] rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                    导出前 100 条样例与分布统计概览，非全量数据
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[var(--ink)]" />
-                  </div>
-                </div>
-              </div>
-              <p className="mt-1 text-[12px] text-[var(--ink-3)]">
-                耗时 0.84s，预览 100 条元数据不含原文；doc_id 调用 content 获取正文
-              </p>
+              {/* 统计头（与自由检索区共用组件） */}
+              <ResultStatHeader
+                figure={metaTotal.toLocaleString()}
+                unit="命中文献"
+                endpoint="meta-search"
+                caption={
+                  <>
+                    预览 100 条元数据不含原文；以{" "}
+                    <span className="font-mono text-[var(--ink-2)]">doc_id</span> 调用{" "}
+                    <span className="font-mono text-[var(--ink-2)]">content</span> 获取正文。
+                  </>
+                }
+                onPrimary={() => setWorkflowOpen(true)}
+                primaryLabel="接入工作流"
+                secondaryLabel={showFacets ? "收起分布统计" : "查看分布统计"}
+                secondaryActive={showFacets}
+                onSecondary={() => setShowFacets(!showFacets)}
+              />
+              {/* 接入条 */}
+              <IntegrationStrip
+                title="筛选结果可接入 Agent"
+                steps={[
+                  { kind: "post", label: "/meta-search" },
+                  { kind: "get", label: "/content" },
+                  { kind: "plain", label: "Cursor / Claude / Codex" },
+                ]}
+              />
 
-              {/* 分布统计折叠触发器 */}
-              <button
-                onClick={() => setShowFacets(!showFacets)}
-                className="mt-4 w-full flex items-center justify-between px-4 py-2.5 rounded-lg bg-[#f7f7f4] hover:bg-[#f1f0eb] transition-colors">
-                <span className="inline-flex items-center gap-2 text-[13px] text-[var(--ink)]">
-                  <BarChart3 className="h-4 w-4 text-[var(--brand)]" />
-                  {showFacets ? "收起分布统计" : "查看分布统计"}
-                  <span className="text-[var(--ink-3)] text-[12px]">6 个维度</span>
-                  {showFacets && <span className="text-[var(--brand)]/70 text-[11px] ml-1">点击条目可追加筛选</span>}
-                </span>
-                <ChevronDown className={cn("h-4 w-4 text-[var(--ink-2)] transition-transform", showFacets && "rotate-180")} />
-              </button>
-
-              {/* 6 维度分布卡片 3×2 网格 */}
+              {/* 6 维度分布卡片 3×2 网格（由统计头次按钮控制） */}
               {showFacets && (
-                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {/* 年份分布 */}
                   <div className="rounded-lg bg-[#f9f9f6] border hairline p-4">
                     <div className="flex items-center gap-2 text-[13px] font-medium text-[var(--ink)] mb-3">
@@ -2014,9 +2274,17 @@ export default function Experience() {
               )}
 
               {/* 元数据样例标题行 */}
-              <div className="mt-6 flex items-center justify-between">
-                <h3 className="text-[14px] font-medium text-[var(--ink)]">元数据样例</h3>
-                <span className="text-[12px] text-[var(--ink-3)]">共 {Math.min(metaResults.length, 100)} 条 · 每页 {PAGE_SIZE} 条</span>
+              <div className="mt-7 flex items-baseline justify-between gap-3 flex-wrap">
+                <div className="flex items-baseline gap-3">
+                  <h3 className="font-mono text-[13px] tracking-[0.14em] uppercase text-[var(--ink)]">Metadata Sample</h3>
+                  <span className="text-[12px] text-[var(--ink-3)]">共 {Math.min(metaResults.length, 100)} 条 · 每页 {PAGE_SIZE} 条</span>
+                </div>
+                <button
+                  onClick={() => toast.info("导出前 100 条样例与分布统计概览，非全量数据")}
+                  className="inline-flex items-center gap-1.5 text-[12px] text-[var(--ink-3)] hover:text-[var(--brand)] transition-colors">
+                  <Download className="h-3.5 w-3.5" />
+                  导出样例
+                </button>
               </div>
 
               {/* 表格（对齐设计师稿：标题 | 引用 | 可用性 | doc_id） */}
@@ -2024,8 +2292,8 @@ export default function Experience() {
                 {/* 表头 */}
                 <div className="flex items-center px-4 py-2.5 text-[12px] font-medium text-[var(--ink-2)] border-b hairline">
                   <span className="flex-1">标题</span>
-                  <span className="w-[60px] text-center">引用</span>
-                  <span className="w-[80px] text-center">可用性</span>
+                  <span className="w-[64px] text-right">引用</span>
+                  <span className="w-[84px] text-center">可用性</span>
                   <span className="w-[60px] text-center">doc_id</span>
                 </div>
                 {/* 行 */}
@@ -2039,13 +2307,13 @@ export default function Experience() {
                       </p>
                     </div>
                     {/* 引用列 */}
-                    <span className="w-[60px] text-center font-mono text-[13px] text-[var(--ink)]">{r.citations}</span>
+                    <span className="w-[64px] text-right font-mono text-[13px] tabular-nums text-[var(--ink)]">{r.citations}</span>
                     {/* 可用性列 */}
-                    <span className="w-[80px] flex justify-center">
+                    <span className="w-[84px] flex justify-center">
                       {r.availability === "oa" ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#e8f5e9] text-[11px] font-medium text-[#2e7d32]">OA</span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#e8f5e9] font-mono text-[10.5px] tracking-[0.04em] font-medium text-[#2e7d32]">OA</span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#f5f5f5] text-[11px] text-[var(--ink-2)]">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#f5f5f5] font-mono text-[10.5px] tracking-[0.04em] text-[var(--ink-2)]">
                           <Database className="h-3 w-3" />
                           content
                         </span>
@@ -2094,30 +2362,48 @@ export default function Experience() {
             </section>
           )}
 
-          {/* STATUS + RESULTS — 自由检索模式 */}
+          {/* STATUS + RESULTS — 自由检索模式（统一稿：agentic-search 证据区） */}
           {meta && results && committed && searchMode === "free" && (
             <section className="mt-6">
-              <IntegrationBubble />
-              <div className="mt-5 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[12.5px] text-[var(--ink-2)]">
-                <span>
-                  搜索结果{" "}
-                  <span className="text-[var(--ink)]">「{committed}」</span>
-                </span>
-                <span className="text-[var(--hairline-strong)]">·</span>
-                <span>
-                  共{" "}
-                  <span className="font-display text-[14px] text-[var(--ink)]">
-                    {meta.count}
-                  </span>{" "}
-                  条结果
-                </span>
-                <span className="text-[var(--hairline-strong)]">·</span>
-                <span className="font-mono">
-                  耗时 {meta.ms.toLocaleString()} ms
-                </span>
-                <span className="ml-auto inline-flex items-center gap-1.5 text-[11.5px] text-[var(--ink-3)]">
-                  <Sparkles className="h-3 w-3 text-[var(--brand)]" />
-                  LLM 已清洗 HTML / Markdown 残片
+              {/* 统计头 */}
+              <ResultStatHeader
+                figure={String(results!.length)}
+                unit="条可追溯证据"
+                endpoint="agentic-search"
+                caption={
+                  <>
+                    命中 {results!.length} 条语义片段；已保留{" "}
+                    <span className="font-mono text-[var(--ink-2)]">doc_id / page / offset / similarity</span>
+                    ，可继续读取 content。
+                  </>
+                }
+                onPrimary={() => setWorkflowOpen(true)}
+                primaryLabel="接入工作流"
+                secondaryLabel="查看证据详情"
+                secondaryActive={false}
+                onSecondary={() => setWorkflowOpen(true)}
+              />
+              {/* 接入条 */}
+              <IntegrationStrip
+                title="Agent 可用证据包"
+                steps={[
+                  { kind: "post", label: "/agentic-search" },
+                  { kind: "get", label: "/content" },
+                  { kind: "plain", label: "RAG / Cursor / Claude / Codex" },
+                ]}
+              />
+
+              {/* Evidence Hits 列表标题 */}
+              <div className="mt-7 flex items-baseline justify-between gap-3 flex-wrap">
+                <h3 className="font-mono text-[13px] tracking-[0.14em] uppercase text-[var(--ink)]">
+                  Evidence Hits
+                </h3>
+                <span className="text-[11.5px] text-[var(--ink-3)]">
+                  「{committed} · {Array.from(new Set(results!.map((r) => r.source_type))).join(", ")}」
+                  <span className="mx-1.5 text-[var(--hairline-strong)]">·</span>
+                  {results!.length} 条
+                  <span className="mx-1.5 text-[var(--hairline-strong)]">·</span>
+                  <span className="font-mono">{meta.ms.toLocaleString()} ms</span>
                 </span>
               </div>
 
@@ -2154,6 +2440,14 @@ export default function Experience() {
               )}
             </section>
           )}
+
+          {/* 接入工作流抽屉（两种模式共用） */}
+          <WorkflowDrawer
+            open={workflowOpen}
+            onClose={() => setWorkflowOpen(false)}
+            query={committed}
+            mode={searchMode === "filter" ? "filter" : "free"}
+          />
 
           {/* ═══ HOW IT WORKS — 3 步上手 (Lovable 风格左右布局自动轮播) ═══ */}
           <HowItWorksSection inputRef={inputRef} />
